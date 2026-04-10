@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header text-center bg-clarkson-green text-white">
+                <h4 class="mb-0">Clarkson University</h4>
+                <p class="mb-0 mt-1">Faculty Activity Report (FAR)</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Email Address</label>
+                        {{ form.email(class="form-control", placeholder="your.name@clarkson.edu") }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Password</label>
+                        {{ form.password(class="form-control") }}
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100 py-2 fw-bold">
+                        Sign In
+                    </button>
+                </form>
+            </div>
+            
+            <div class="card-footer text-center text-muted small py-3">
+                Clarkson University • Electrical & Computer Engineering
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

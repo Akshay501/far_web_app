@@ -1,0 +1,7 @@
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="mb-3">{{ form.year.label }} {{ form.year(class="form-control") }}</div>
+    <div class="mb-3">{{ form.award_type.label }} {{ form.award_type(class="form-select") }}</div>
+    <button type="submit" class="btn btn-gold">Save Changes</button>
+</form>

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Expenditure</h2>
+
+<table class="table table-striped datatable">
+    <thead class="table-dark">
+        <tr>
+            <th>Year</th>
+            <th>Name</th>
+            <th>Expenditure</th>
+            <th>Indirect</th>
+            <th>Tuition</th>
+            <th>Salary Recovery</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.Year or '—' }}</td>
+            <td>{{ item.Name or '—' }}</td>
+            <td>
+                ${{ (item.Expenditure|default(0)|round(2)) }}
+            </td>
+            <td>
+                ${{ (item.Indirect|default(0)|round(2)) }}
+            </td>
+            <td>
+                ${{ (item.Tuition|default(0)|round(2)) }}
+            </td>
+            <td>
+                ${{ (item.SalaryRecovery|default(0)|round(2)) }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

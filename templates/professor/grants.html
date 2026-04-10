@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Grants (Awarded Projects)</h2>
+
+<div class="card mb-4">
+    <div class="card-header bg-clarkson-green text-white">
+        <h5 class="mb-0">Add New Grant / Awarded Project</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-8">
+                    {{ form.title.label(class="form-label fw-medium") }}
+                    {{ form.title(class="form-control") }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.sponsor.label(class="form-label fw-medium") }}
+                    {{ form.sponsor(class="form-control") }}
+                </div>
+
+                <div class="col-md-3">
+                    {{ form.allocated_amount.label(class="form-label fw-medium") }}
+                    {{ form.allocated_amount(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.total_cost.label(class="form-label fw-medium") }}
+                    {{ form.total_cost(class="form-control") }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.funded.label(class="form-label fw-medium") }}
+                    {{ form.funded(class="form-select") }}
+                </div>
+
+                <div class="col-md-4">
+                    {{ form.begin_date.label(class="form-label fw-medium") }}
+                    {{ form.begin_date(class="form-control") }}
+                </div>
+                <div class="col-md-4">
+                    {{ form.end_date.label(class="form-label fw-medium") }}
+                    {{ form.end_date(class="form-control") }}
+                </div>
+
+                <div class="col-12">
+                    {{ form.principal_investigators.label(class="form-label fw-medium") }}
+                    {{ form.principal_investigators(class="form-control", rows="2", 
+                       placeholder="Last1, First1; Last2, First2; ...") }}
+                </div>
+
+                <div class="col-12">
+                    {{ form.submit(class="btn btn-gold") }}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Grants Table with Extra Columns -->
+<table class="table table-striped datatable">
+    <thead class="table-dark">
+        <tr>
+            <th>Title</th>
+            <th>Sponsor</th>
+            <th>Allocated Amount</th>
+            <th>Total Cost</th>
+            <th>Funded</th>
+            <th>Begin Date</th>
+            <th>End Date</th>
+            <th>Principal Investigators</th>
+            <th>Role</th>
+            <th width="140px">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.Title or '—' }}</td>
+            <td>{{ item.Sponsor or '—' }}</td>
+            <td>${{ (item.AllocatedAmount|default(0)|round(2)) }}</td>
+            <td>${{ (item.TotalCost|default(0)|round(2)) }}</td>
+            <td>{{ item.Funded or '—' }}</td>
+            <td>{{ item.BeginDate or '—' }}</td>
+            <td>{{ item.EndDate or '—' }}</td>
+            <td>{{ item.PrincipalInvestigators|truncate(40) or '—' }}</td>
+            <td>{{ item.Role or '—' }}</td>
+            <td>
+                <button onclick="editRecord('grant', {{ item.GrantKey }})" 
+                        class="btn btn-sm btn-warning me-1">Edit</button>
+                <button onclick="deleteRecord('grant', {{ item.GrantKey }}, '{{ item.Title|escape|default('') }}')" 
+                        class="btn btn-sm btn-danger">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

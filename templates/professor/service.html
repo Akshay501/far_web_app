@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Service Activities</h2>
+
+<form method="POST" class="mb-4 card p-4">
+    {{ form.hidden_tag() }}
+    <div class="row g-3">
+        <div class="col-md-6">{{ form.description(class="form-control") }}</div>
+        <div class="col-md-3">{{ form.type(class="form-select") }}</div>
+        <div class="col-md-3">{{ form.term(class="form-select") }}</div>
+        <div class="col-12">
+            {{ form.submit(class="btn btn-gold") }}
+        </div>
+    </div>
+</form>
+
+<table class="table table-striped datatable">
+    <thead class="table-dark">
+        <tr>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Term</th>
+            <th>Year</th>
+            <th>Hours</th>
+            <th width="160px">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.Description|truncate(60) }}</td>
+            <td>{{ item.Type }}</td>
+            <td>{{ item.Term }}</td>
+            <td>{{ item.CalendarYear }}</td>
+            <td>{{ item.HoursSemester }}</td>
+            <td>
+                <button onclick="editRecord('service', {{ item.ServiceKey }})" 
+                        class="btn btn-sm btn-warning me-1">Edit</button>
+                <button onclick="deleteRecord('service', {{ item.ServiceKey }}, '{{ item.Description|escape|truncate(30) }}')" 
+                        class="btn btn-sm btn-danger">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

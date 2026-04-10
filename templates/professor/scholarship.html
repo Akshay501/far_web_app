@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Scholarship</h2>
+<p class="text-muted">Current Students, Theses, and Undergraduate Research</p>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center bg-light">
+            <div class="card-body">
+                <h5>Current Students</h5>
+                <h3 class="text-success">{{ current_students|length }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center bg-light">
+            <div class="card-body">
+                <h5>Theses Advised</h5>
+                <h3 class="text-success">{{ theses|length }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center bg-light">
+            <div class="card-body">
+                <h5>Undergrad Research</h5>
+                <h3 class="text-success">{{ undergrad_research|length }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Students Table -->
+<h4>Current Students</h4>
+<table class="table table-striped datatable mb-5">
+    <thead>
+        <tr>
+            <th>Student Name</th>
+            <th>Program</th>
+            <th>Start Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in current_students %}
+        <tr>
+            <td>{{ student.StudentName }}</td>
+            <td>{{ student.CurrentProgram }}</td>
+            <td>{{ student.StartDate }}</td>
+            <td>
+                <button class="btn btn-sm btn-warning">Edit</button>
+                <button class="btn btn-sm btn-danger">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Theses Table -->
+<h4>Theses</h4>
+<table class="table table-striped datatable">
+    <thead>
+        <tr>
+            <th>Student</th>
+            <th>Degree</th>
+            <th>Year</th>
+            <th>Title</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for thesis in theses %}
+        <tr>
+            <td>{{ thesis.StudentName }}</td>
+            <td>{{ thesis.Degree }}</td>
+            <td>{{ thesis.Year }}</td>
+            <td>{{ thesis.Title|truncate(60) }}</td>
+            <td>
+                <button class="btn btn-sm btn-warning">Edit</button>
+                <button class="btn btn-sm btn-danger">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Professor Profile</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <!-- Profile Photo Placeholder -->
+                <img src="{{ url_for('static', filename='images/clarkson-logo.png') }}" 
+                     class="rounded-circle mb-3" width="150" alt="Profile">
+                <h5>{{ professor.FirstName }} {{ professor.LastName }}</h5>
+                <p class="text-muted">{{ professor.Department }}</p>
+                <button class="btn btn-outline-primary btn-sm">Upload Photo</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Personal Information</div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr><th width="30%">Employee ID</th><td>{{ professor.EmployeeID }}</td></tr>
+                    <tr><th>ORCID</th><td>{{ professor.ORCID }}</td></tr>
+                    <tr><th>Google Scholar</th><td>{{ professor.GoogleID }}</td></tr>
+                    <tr><th>Department</th><td>{{ professor.Department }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Teaching Evaluations</h2>
+
+<table class="table table-striped datatable">
+    <thead class="table-dark">
+        <tr>
+            <th>Course Title</th>
+            <th>Term</th>
+            <th>Enrollment</th>
+            <th>Avg Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.CourseTitle }}</td>
+            <td>{{ item.Term }}</td>
+            <td>{{ item.Enrolment }}</td>
+            <td>{{ item.a1_pct or '—' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

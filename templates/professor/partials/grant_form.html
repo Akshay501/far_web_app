@@ -1,0 +1,10 @@
+<form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="mb-3">{{ form.sponsor.label }} {{ form.sponsor(class="form-control") }}</div>
+    <div class="row">
+        <div class="col-md-6">{{ form.allocated_amount.label }} {{ form.allocated_amount(class="form-control") }}</div>
+        <div class="col-md-6">{{ form.total_cost.label }} {{ form.total_cost(class="form-control") }}</div>
+    </div>
+    <button type="submit" class="btn btn-gold mt-3">Save Changes</button>
+</form>

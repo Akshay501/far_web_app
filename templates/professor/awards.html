@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Awards</h2>
+
+<!-- Add New Award Form -->
+<form method="POST" class="mb-4 card p-4">
+    {{ form.hidden_tag() }}
+    <div class="row g-3">
+        <div class="col-md-6">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control") }}
+        </div>
+        <div class="col-md-2">
+            {{ form.year.label(class="form-label") }}
+            {{ form.year(class="form-control") }}
+        </div>
+        <div class="col-md-3">
+            {{ form.award_type.label(class="form-label") }}
+            {{ form.award_type(class="form-select") }}
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            {{ form.submit(class="btn btn-gold w-100") }}
+        </div>
+    </div>
+</form>
+
+<!-- Awards Table -->
+<table class="table table-striped datatable">
+    <thead class="table-dark">
+        <tr>
+            <th>Title</th>
+            <th>Year</th>
+            <th>Type</th>
+            <th width="160px">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in data %}
+        <tr>
+            <td>{{ item.Title }}</td>
+            <td>{{ item.Year }}</td>
+            <td>{{ item.AwardType or '—' }}</td>
+            <td>
+                <button onclick="editRecord('award', {{ item.AwardKey }})" 
+                        class="btn btn-sm btn-warning me-1">Edit</button>
+                <button onclick="deleteRecord('award', {{ item.AwardKey }}, '{{ item.Title|escape }}')" 
+                        class="btn btn-sm btn-danger">Delete</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

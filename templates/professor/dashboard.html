@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+    <!-- Sidebar Navigation -->
+    <div class="col-lg-3 col-md-4 mb-4">
+        <div class="card sticky-top" style="top: 20px;">
+            <div class="card-header bg-clarkson-green text-white">
+                <h5 class="mb-0">FAR Sections</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('professor.profile') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-person-circle me-3"></i> My Profile
+                </a>
+                <a href="{{ url_for('professor.awards') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-trophy me-3"></i> Awards
+                </a>
+                <a href="{{ url_for('professor.proposals') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-file-text me-3"></i> Proposals
+                </a>
+                <a href="{{ url_for('professor.grants') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-currency-dollar me-3"></i> Grants
+                </a>
+                <a href="{{ url_for('professor.scholarship') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-mortarboard me-3"></i> Scholarship
+                </a>
+                <a href="{{ url_for('professor.service') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-people me-3"></i> Service
+                </a>
+                <a href="{{ url_for('professor.teaching') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-book me-3"></i> Teaching
+                </a>
+                <a href="{{ url_for('professor.expenditure') }}" 
+                   class="list-group-item list-group-item-action d-flex align-items-center">
+                    <i class="bi bi-receipt me-3"></i> Expenditure
+                </a>
+            </div>
+            
+            <div class="card-body border-top">
+                <a href="{{ url_for('professor.generate_cv_route') }}" 
+                   class="btn btn-gold w-100 py-2 fw-bold">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Generate Full CV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="col-lg-9 col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Welcome, {{ current_user.email.split('@')[0] }}!</h2>
+            <span class="badge bg-success fs-6 px-3 py-2">Professor Dashboard</span>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="row g-3 mb-5">
+            <div class="col-md-3 col-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="bi bi-trophy-fill text-warning fs-1 mb-2"></i>
+                        <h5 class="text-muted">Awards</h5>
+                        <h2 class="text-clarkson-green fw-bold">{{ counts.awards }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="bi bi-currency-dollar text-success fs-1 mb-2"></i>
+                        <h5 class="text-muted">Grants</h5>
+                        <h2 class="text-clarkson-green fw-bold">{{ counts.grants }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="bi bi-mortarboard fs-1 mb-2"></i>
+                        <h5 class="text-muted">Students</h5>
+                        <h2 class="text-clarkson-green fw-bold">{{ counts.students }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="card text-center h-100">
+                    <div class="card-body">
+                        <i class="bi bi-book fs-1 mb-2"></i>
+                        <h5 class="text-muted">Theses</h5>
+                        <h2 class="text-clarkson-green fw-bold">{{ counts.theses }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('professor.profile') }}" class="btn btn-outline-primary w-100 py-3">
+                            Update Profile
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('professor.awards') }}" class="btn btn-outline-primary w-100 py-3">
+                            Add New Award
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ url_for('professor.proposals') }}" class="btn btn-outline-primary w-100 py-3">
+                            Add New Proposal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
