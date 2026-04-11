@@ -1,25 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="mb-4">Teaching Evaluations</h2>
 
-<table class="table table-striped datatable">
-    <thead class="table-dark">
-        <tr>
-            <th>Course Title</th>
-            <th>Term</th>
-            <th>Enrollment</th>
-            <th>Avg Score</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in data %}
-        <tr>
-            <td>{{ item.CourseTitle }}</td>
-            <td>{{ item.Term }}</td>
-            <td>{{ item.Enrolment }}</td>
-            <td>{{ item.a1_pct or '—' }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h2 class="mb-4">Teaching Evaluations</h2>
+<p class="text-muted mb-4">Student feedback summaries.</p>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Term</th>
+                    <th>Combined Course Num</th>
+                    <th>Combined Num + Sec</th>
+                    <th>Course Title</th>
+                    <th class="text-center">Enrollment</th>
+                    <th class="text-center">Count 19</th>
+                    <th class="text-center">Mean 19</th>
+                    <th class="text-center">Count 20</th>
+                    <th class="text-center">Mean 20</th>
+                    <th width="130px" class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td><strong>{{ item.term or item.Term or '—' }}</strong></td>
+                    <td>{{ item.combined_course_num or item.Course or '—' }}</td>
+                    <td>{{ item.combined_num_sec or (item.CourseNumber ~ '-' ~ item.CourseSection) or '—' }}</td>
+                    <td>{{ item.course_title or item.CourseTitle or '—' }}</td>
+                    <td class="text-center">{{ item.enrollment or item.Enrollment or 0 }}</td>
+                    <td class="text-center">{{ item.count_19 or 0 }}</td>
+                    <td class="text-center fw-medium">{{ item.mean_19|default(0)|round(2) }}</td>
+                    <td class="text-center">{{ item.count_20 or 0 }}</td>
+                    <td class="text-center fw-medium">{{ item.mean_20|default(0)|round(2) }}</td>
+                    <td class="text-center">
+                        <button onclick="editRecord('teaching', {{ item.Key }})" 
+                                class="btn btn-sm btn-warning me-1">Edit</button>
+                        <button onclick="deleteRecord('teaching', {{ item.Key }}, '{{ (item.course_title or item.CourseTitle)|escape|default('') }}')" 
+                                class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
