@@ -22,16 +22,35 @@
             --clarkson-green: #004e42;
             --clarkson-gold: #ffcd00;
         }
+        
+        .navbar {
+            background-color: var(--clarkson-green) !important;
+        }
+        
+        .btn-gold {
+            background-color: var(--clarkson-gold);
+            color: #004e42;
+            font-weight: 600;
+        }
+        
+        .btn-gold:hover {
+            background-color: #e6b800;
+            color: #004e42;
+        }
+        
+        .card-header.bg-clarkson-green {
+            background-color: var(--clarkson-green) !important;
+        }
     </style>
 </head>
 <body class="bg-light">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-dark">
+    <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('professor.dashboard') if current_user.is_authenticated and current_user.role == 'professor' else '#' }}">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('professor.dashboard') if current_user.is_authenticated and current_user.role == 'professor' else '#' }}">
                 <img src="{{ url_for('static', filename='images/clarkson-logo.png') }}" 
-                     height="48" alt="Clarkson University">
+                     height="48" alt="Clarkson University" class="me-3">
                 Faculty Activity Report
             </a>
             
@@ -71,16 +90,16 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Global Edit/Delete Modal -->
+    <!-- Global Edit Modal -->
     <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalTitle">Edit Record</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="modalBody">
-                    <!-- Dynamic form content loaded via JavaScript -->
+                    <!-- Dynamic form loaded by JavaScript -->
                 </div>
             </div>
         </div>
@@ -92,7 +111,7 @@
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
     
-    <!-- Your custom JavaScript -->
+    <!-- Main Application JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
 </body>

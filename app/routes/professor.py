@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from app.utils import execute_query
-from app.forms import AwardForm, GrantForm, ServiceForm, ProfileForm, ProposalForm
+from app.forms import PersonalAwardForm, StudentAwardForm, GrantForm, ServiceForm, ProfileForm, ProposalForm
 
 professor_bp = Blueprint('professor', __name__)
 
@@ -73,52 +73,131 @@ def profile():
     return render_template('professor/profile.html', professor=professor, form=form)
 
 
-# ====================== AWARDS ======================
+# ====================== AWARDS (Personal + Student Tabs) ======================
 @professor_bp.route('/awards', methods=['GET', 'POST'])
 @login_required
 def awards():
     pk = current_user.professor_key
-    form = AwardForm()
-    if form.validate_on_submit():
-        execute_query(
-            "INSERT INTO AWARDS (Title, Year, AwardType) VALUES (%s, %s, %s)",
-            (form.title.data, form.year.data, form.award_type.data), commit=True)
-        flash('Award added successfully', 'success')
+    
+    personal_form = PersonalAwardForm()
+    student_form = StudentAwardForm()
+
+    # Handle Personal Award submission
+    if personal_form.validate_on_submit() and request.form.get('form_type') == 'personal':
+        execute_query("""
+            INSERT INTO PERSONALAWARDS (Title, AwardType, Description, ProfessorKey)
+            VALUES (%s, %s, %s, %s)
+        """, (personal_form.title.data, personal_form.award_type.data,
+              personal_form.description.data, pk), commit=True)
+        flash('Personal Award added successfully', 'success')
         return redirect(url_for('professor.awards'))
 
-    data = execute_query("SELECT * FROM AWARDS ORDER BY Year DESC")
-    return render_template('professor/awards.html', data=data, form=form)
+    # Handle Student Award submission
+    if student_form.validate_on_submit() and request.form.get('form_type') == 'student':
+        execute_query("""
+            INSERT INTO STUDENTAWARDS (StudentName, AwardTitle, AwardType)
+            VALUES (%s, %s, %s)
+        """, (student_form.student_name.data, student_form.award_title.data,
+              student_form.award_type.data), commit=True)
+        flash('Student Award added successfully', 'success')
+        return redirect(url_for('professor.awards'))
+
+    # Fetch data safely using correct column name (with space)
+    personal_awards = execute_query("""
+        SELECT * FROM PERSONALAWARDS 
+        WHERE ProfessorKey = %s 
+        ORDER BY `Award Key` DESC
+    """, (pk,))
+
+    student_awards = execute_query("""
+        SELECT * FROM STUDENTAWARDS 
+        ORDER BY `Award Key` DESC
+    """, ())
+
+    return render_template('professor/awards.html',
+                           personal_awards=personal_awards,
+                           student_awards=student_awards,
+                           personal_form=personal_form,
+                           student_form=student_form)
 
 
-@professor_bp.route('/awards/edit/<int:id>', methods=['GET', 'POST'])
+# ------------------- Personal Awards Edit/Delete -------------------
+@professor_bp.route('/awards/personal/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
-def edit_award(id):
+def edit_personal_award(id):
+    pk = current_user.professor_key
     if request.method == 'POST':
-        form = AwardForm()
+        form = PersonalAwardForm()
         if form.validate_on_submit():
             execute_query("""
-                UPDATE AWARDS SET Title=%s, Year=%s, AwardType=%s 
-                WHERE AwardKey=%s
-            """, (form.title.data, form.year.data, form.award_type.data, id), commit=True)
-            flash('Award updated', 'success')
+                UPDATE PERSONALAWARDS 
+                SET Title=%s, Year=%s, AwardType=%s, Description=%s
+                WHERE PersonalAwardKey=%s AND ProfessorKey=%s
+            """, (form.title.data, form.year.data, form.award_type.data, 
+                  form.description.data, id, pk), commit=True)
+            flash('Personal Award updated', 'success')
             return redirect(url_for('professor.awards'))
     else:
-        award = execute_query("SELECT * FROM AWARDS WHERE AwardKey=%s", (id,), fetchone=True)
+        award = execute_query("SELECT * FROM PERSONALAWARDS WHERE PersonalAwardKey=%s AND ProfessorKey=%s", 
+                            (id, pk), fetchone=True)
         if award:
-            form = AwardForm()
-            form.title.data = award['Title']
-            form.year.data = award['Year']
+            form = PersonalAwardForm()
+            form.title.data = award.get('Title')
+            form.year.data = award.get('Year')
             form.award_type.data = award.get('AwardType')
-            return render_template('professor/partials/award_form.html', form=form, id=id, type='award')
+            form.description.data = award.get('Description')
+            return render_template('professor/partials/personal_award_form.html', form=form, id=id)
     return redirect(url_for('professor.awards'))
 
 
-@professor_bp.route('/awards/delete/<int:id>', methods=['POST'])
+@professor_bp.route('/awards/personal/delete/<int:id>', methods=['POST'])
 @login_required
-def delete_award(id):
-    execute_query("DELETE FROM AWARDS WHERE AwardKey=%s", (id,), commit=True)
-    flash('Award deleted', 'success')
+def delete_personal_award(id):
+    pk = current_user.professor_key
+    execute_query("DELETE FROM PERSONALAWARDS WHERE PersonalAwardKey=%s AND ProfessorKey=%s", 
+                  (id, pk), commit=True)
+    flash('Personal Award deleted', 'success')
     return redirect(url_for('professor.awards'))
+
+
+# ------------------- Student Awards Edit/Delete -------------------
+@professor_bp.route('/awards/student/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_student_award(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = StudentAwardForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE STUDENTAWARDS 
+                SET StudentName=%s, AwardTitle=%s, Year=%s, AwardType=%s
+                WHERE StudentAwardKey=%s AND ProfessorKey=%s
+            """, (form.student_name.data, form.award_title.data, form.year.data,
+                  form.award_type.data, id, pk), commit=True)
+            flash('Student Award updated', 'success')
+            return redirect(url_for('professor.awards'))
+    else:
+        award = execute_query("SELECT * FROM STUDENTAWARDS WHERE StudentAwardKey=%s AND ProfessorKey=%s", 
+                            (id, pk), fetchone=True)
+        if award:
+            form = StudentAwardForm()
+            form.student_name.data = award.get('StudentName')
+            form.award_title.data = award.get('AwardTitle')
+            form.year.data = award.get('Year')
+            form.award_type.data = award.get('AwardType')
+            return render_template('professor/partials/student_award_form.html', form=form, id=id)
+    return redirect(url_for('professor.awards'))
+
+
+@professor_bp.route('/awards/student/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_student_award(id):
+    pk = current_user.professor_key
+    execute_query("DELETE FROM STUDENTAWARDS WHERE StudentAwardKey=%s AND ProfessorKey=%s", 
+                  (id, pk), commit=True)
+    flash('Student Award deleted', 'success')
+    return redirect(url_for('professor.awards'))
+
 
 # ====================== SERVICE ======================
 @professor_bp.route('/service', methods=['GET', 'POST'])

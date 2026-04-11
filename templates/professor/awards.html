@@ -1,54 +1,143 @@
 {% extends "base.html" %}
 {% block content %}
+
 <h2 class="mb-4">Awards</h2>
 
-<!-- Add New Award Form -->
-<form method="POST" class="mb-4 card p-4">
-    {{ form.hidden_tag() }}
-    <div class="row g-3">
-        <div class="col-md-6">
-            {{ form.title.label(class="form-label") }}
-            {{ form.title(class="form-control") }}
-        </div>
-        <div class="col-md-2">
-            {{ form.year.label(class="form-label") }}
-            {{ form.year(class="form-control") }}
-        </div>
-        <div class="col-md-3">
-            {{ form.award_type.label(class="form-label") }}
-            {{ form.award_type(class="form-select") }}
-        </div>
-        <div class="col-md-1 d-flex align-items-end">
-            {{ form.submit(class="btn btn-gold w-100") }}
-        </div>
-    </div>
-</form>
+<ul class="nav nav-tabs mb-4" id="awardsTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" 
+                data-bs-target="#personal-awards" type="button" role="tab">
+            <i class="bi bi-trophy me-2"></i>Personal Awards
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="student-tab" data-bs-toggle="tab" 
+                data-bs-target="#student-awards" type="button" role="tab">
+            <i class="bi bi-mortarboard me-2"></i>Student Awards
+        </button>
+    </li>
+</ul>
 
-<!-- Awards Table -->
-<table class="table table-striped datatable">
-    <thead class="table-dark">
-        <tr>
-            <th>Title</th>
-            <th>Year</th>
-            <th>Type</th>
-            <th width="160px">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in data %}
-        <tr>
-            <td>{{ item.Title }}</td>
-            <td>{{ item.Year }}</td>
-            <td>{{ item.AwardType or '—' }}</td>
-            <td>
-                <button onclick="editRecord('award', {{ item.AwardKey }})" 
-                        class="btn btn-sm btn-warning me-1">Edit</button>
-                <button onclick="deleteRecord('award', {{ item.AwardKey }}, '{{ item.Title|escape }}')" 
-                        class="btn btn-sm btn-danger">Delete</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="tab-content" id="awardsTabContent">
+
+    <!-- ====================== PERSONAL AWARDS TAB ====================== -->
+    <div class="tab-pane fade show active" id="personal-awards" role="tabpanel">
+        <div class="card mb-4">
+            <div class="card-header bg-clarkson-green text-white">
+                <h5 class="mb-0">Add Personal Award</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ personal_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="personal">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            {{ personal_form.title.label(class="form-label") }}
+                            {{ personal_form.title(class="form-control") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ personal_form.award_type.label(class="form-label") }}
+                            {{ personal_form.award_type(class="form-control") }}
+                        </div>
+                        <div class="col-12">
+                            {{ personal_form.description.label(class="form-label") }}
+                            {{ personal_form.description(class="form-control", rows="3") }}
+                        </div>
+                        <div class="col-12">
+                            {{ personal_form.submit(class="btn btn-gold") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <table class="table table-striped datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Award Type</th>
+                    <th>Description</th>
+                    <th width="140px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in personal_awards %}
+                <tr>
+                    <td>{{ item.Title or '—' }}</td>
+                    <td>{{ item.AwardType or '—' }}</td>
+                    <td>{{ item.Description or '—' }}</td>
+                    <td>
+                        <button onclick="editRecord('personal_award', {{ item.PersonalAwardKey or item.AwardKey }})" 
+                                class="btn btn-sm btn-warning me-1">Edit</button>
+                        <button onclick="deleteRecord('personal_award', {{ item.PersonalAwardKey or item.AwardKey }}, '{{ item.Title|escape|default('') }}')" 
+                                class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ====================== STUDENT AWARDS TAB ====================== -->
+    <div class="tab-pane fade" id="student-awards" role="tabpanel">
+        <div class="card mb-4">
+            <div class="card-header bg-clarkson-green text-white">
+                <h5 class="mb-0">Add Student Award</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ student_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="student">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ student_form.student_name.label(class="form-label") }}
+                            {{ student_form.student_name(class="form-control") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ student_form.award_title.label(class="form-label") }}
+                            {{ student_form.award_title(class="form-control") }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ student_form.award_type.label(class="form-label") }}
+                            {{ student_form.award_type(class="form-control") }}
+                        </div>
+                        <div class="col-12">
+                            {{ student_form.submit(class="btn btn-gold") }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <table class="table table-striped datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Student Name</th>
+                    <th>Award Title</th>
+                    <th>Award Type</th>
+                    <th width="140px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in student_awards %}
+                <tr>
+                    <td>{{ item.StudentName or '—' }}</td>
+                    <td>{{ item.AwardTitle or '—' }}</td>
+                    <td>{{ item.AwardType or '—' }}</td>
+                    <td>
+                        <button onclick="editRecord('student_award', {{ item.StudentAwardKey }})" 
+                                class="btn btn-sm btn-warning me-1">Edit</button>
+                        <button onclick="deleteRecord('student_award', {{ item.StudentAwardKey }}, '{{ item.StudentName|escape|default('') }}')" 
+                                class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
 
 {% endblock %}

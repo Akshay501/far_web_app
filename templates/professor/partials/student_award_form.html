@@ -1,0 +1,21 @@
+<form method="POST" id="studentAwardForm">
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="form_type" value="student">
+
+    <div class="mb-3">
+        {{ form.student_name.label(class="form-label fw-medium") }}
+        {{ form.student_name(class="form-control") }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.award_title.label(class="form-label fw-medium") }}
+        {{ form.award_title(class="form-control") }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.award_type.label(class="form-label fw-medium") }}
+        {{ form.award_type(class="form-control") }}
+    </div>
+
+    <button type="submit" class="btn btn-gold w-100">Save Student Award</button>
+</form>

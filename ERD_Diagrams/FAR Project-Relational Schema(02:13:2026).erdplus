@@ -1,0 +1,1995 @@
+{
+  "diagramType": 2,
+  "data": {
+    "nodes": [
+      {
+        "id": "b8e4087b-3545-498b-8aab-f32223cb165c",
+        "type": "Table",
+        "position": {
+          "x": -1229.8603597138308,
+          "y": 185.59265679572843
+        },
+        "data": {
+          "label": "PROFESSOR",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "9f1365c2-22fb-4fed-b1ca-6787c9d3aae2",
+              "name": "Employee ID",
+              "type": "VARCHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": false
+            },
+            {
+              "id": "a4f2ffba-9803-4ed4-882d-12d529c70088",
+              "name": "First Name",
+              "type": "CHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": false
+            },
+            {
+              "id": "9370ed34-b3a2-479f-924b-6558408f5a10",
+              "name": "Last Name",
+              "type": "CHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": false
+            },
+            {
+              "id": "2def102c-30f7-4f0c-bbd8-334f92167ad9",
+              "name": "Middle Name",
+              "type": "CHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": true
+            },
+            {
+              "id": "a139c6c7-139e-4eb7-8269-066481f70925",
+              "name": "Google ID",
+              "type": "VARCHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": true
+            },
+            {
+              "id": "50027b1a-752c-4e2c-ba75-a5f6d19c3bc4",
+              "name": "ORCID",
+              "type": "VARCHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": true
+            },
+            {
+              "id": "84477189-c08e-471b-a0ed-24788a6011f3",
+              "name": "Department",
+              "type": "VARCHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": false
+            },
+            {
+              "id": "7c989683-76c9-4eac-80e3-33470e92b43f",
+              "name": "Professor Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isUnique": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 226
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+        "type": "Table",
+        "position": {
+          "x": -104.31275056056336,
+          "y": 180.45387773117602
+        },
+        "data": {
+          "label": "AWARDS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "42365073-b90c-460b-8c36-47e98aad15ca",
+              "name": "Title",
+              "type": "CHAR(n)",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f956bda2-d349-40ff-835d-44ae290e4a94",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "882fe995-8be9-49bd-a302-acc7a1cfca9c",
+              "name": "Award Type",
+              "type": "CHAR(n)",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c790c066-3574-4716-b828-34c692ee2816",
+              "name": "Award Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": true
+        },
+        "measured": {
+          "width": 240,
+          "height": 126
+        },
+        "selected": true,
+        "dragging": false
+      },
+      {
+        "id": "cc20828f-898d-4ce1-9fa6-fc5a9ec17bdb",
+        "type": "Table",
+        "position": {
+          "x": -105,
+          "y": 330
+        },
+        "data": {
+          "label": "STUDENTAWARDS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "65f4424f-e5db-43e6-994e-c1806d3cde72",
+              "name": "Amount",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c233721f-2cd6-40ea-b9e1-207b7a4c5833",
+              "name": "Student",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "e5a5a1a5-6d38-4e01-8e20-82662718de59",
+              "name": "Category",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "a4680315-4f71-44e9-8f7e-101106a1d644",
+              "name": "fk_AWARDS",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "042a61e9-afef-45be-909d-aa59ab38f3a8",
+                "sourceTableId": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+                "columns": [
+                  {
+                    "id": "fk_c790c066-3574-4716-b828-34c692ee2816",
+                    "name": "Award Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 127
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "0df663b6-5265-466d-a82a-c5aa719347f8",
+        "type": "Table",
+        "position": {
+          "x": 206,
+          "y": 180
+        },
+        "data": {
+          "label": "PERSONALAWARDS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "33c42aac-b6be-483a-b132-380220a50646",
+              "name": "Amount",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "9793ea5a-f51a-4cc3-bf74-7d3c1cce571f",
+              "name": "fk_AWARDS",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "1aa55413-2834-49ce-b33a-9e6cf60e4563",
+                "sourceTableId": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+                "columns": [
+                  {
+                    "id": "fk_c790c066-3574-4716-b828-34c692ee2816",
+                    "name": "Award Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 77
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "8ab92eb6-d16b-4b56-af67-284553ad9a09",
+        "type": "Table",
+        "position": {
+          "x": -1229.1756621189556,
+          "y": 437.183663610223
+        },
+        "data": {
+          "label": "PROPOSAL",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "c190b0fd-0a51-4166-b2eb-c49c6da6bf3e",
+              "name": "Proposal ID",
+              "type": "VARCHAR(n)",
+              "isPrimaryKey": false,
+              "isOptional": false
+            },
+            {
+              "id": "5b623f26-303b-460a-bd41-4105d8ba1743",
+              "name": "Role",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "5e76f345-df9b-4a2b-91c1-5750558b6188",
+              "name": "Funded?",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "eff5e3e8-78a4-4a3c-b3d8-3d111d9b4332",
+              "name": "Principal Investigator",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "3def413c-8492-46b4-acdf-db4a6f011f03",
+              "name": "Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "7ccd0fde-1d6c-4813-9d0d-270282bcd65b",
+              "name": "Begin Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "851ee48a-130a-4921-bc0f-fa36001dc7c8",
+              "name": "End Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "055e0934-2fad-4365-ba61-3b600fb0ba22",
+              "name": "Sponsor",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "68137b7b-55ea-417d-9d24-dffa6bdd8f0b",
+              "name": "Allocated Amount",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "0788ff18-a3c7-489e-af07-4f12e3fca097",
+              "name": "Submit Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "421fe08f-2634-45c0-bf1c-6a8bf0a1b5bd",
+              "name": "Faculty",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "87e5a776-61ff-48fc-bd30-87b4a3d7b7d9",
+              "name": "Total Cost",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "64a79e1e-5093-42de-994d-5c5081c86a83",
+              "name": "Proposal Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isUnique": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 351
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "15f40b46-ea75-44ca-a27c-c79098de434b",
+        "type": "Table",
+        "position": {
+          "x": -934.7908455978833,
+          "y": 184.80608734182056
+        },
+        "data": {
+          "label": "GRANTS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "2a4df2b9-14da-4952-aca5-0a52defda315",
+              "name": "Grant ID",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "ec8fa95d-220d-43ef-a6e6-4fa5b50263e8",
+              "name": "Role",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "285392d3-661a-4cf5-95d7-ee43b653b797",
+              "name": "PCT",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "df59f3c9-b3e9-460a-8488-98ffc90e9706",
+              "name": "Principal Investigators",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f2c76e3e-07af-415d-afa3-dc9bc8265b96",
+              "name": "Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c5f00e19-1a8c-4df4-a960-d1722915864c",
+              "name": "Begin Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "9d2e054b-b128-4a71-a4f1-60e66309e6e8",
+              "name": "End Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "ae71d246-e165-429f-99b3-6bdeaf870f73",
+              "name": "Sponsor",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "a8f3f7d4-8587-4923-8232-bbaa2efeee46",
+              "name": "Allocated Amount",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "dbe4aad8-bac1-42e8-9a44-00936bd0d23d",
+              "name": "Award Total Direct Funding",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "48b9b98b-ac54-4eb0-8c83-74d5fc47c9df",
+              "name": "Faculty",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "089c6686-9a08-4096-a998-d15ca4984ac1",
+              "name": "Total Cost",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "17145679-02a4-4b1b-9685-d43bd1e489e8",
+              "name": "Grant Key",
+              "type": "INT",
+              "isPrimaryKey": false,
+              "isUnique": true
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 367
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "80894b46-37d5-44ba-b521-ba3eacc9ba70",
+        "type": "Table",
+        "position": {
+          "x": -667.6125054604073,
+          "y": 179.50447590521537
+        },
+        "data": {
+          "label": "CURRENTSTUDENTS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "5a8cef9b-a1a1-464d-874c-0ad50fc51283",
+              "name": "Student Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "427d267d-7b97-4714-bea6-55670606bf07",
+              "name": "Current Program",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "cb2ebda9-f353-43a3-8aec-0168aefc440e",
+              "name": "Start Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "02332cf3-76ac-4679-861d-b2e076dc37ca",
+              "name": "Student Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 126
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "18df247c-2553-4cfd-a230-8b055bb0cc34",
+        "type": "Table",
+        "position": {
+          "x": -932.9315218606898,
+          "y": 1201.9761845220041
+        },
+        "data": {
+          "label": "EXPENDITURE",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "3a3ce8c7-2b32-40c0-8946-a1fb957639c9",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f867ce69-6123-45fc-b7e6-51e5b6208940",
+              "name": "Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "93fc709c-210a-4586-aa5b-f888d1300611",
+              "name": "Expenditure",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c439212c-864d-4f98-ac21-cd642dc21eac",
+              "name": "Indirect",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d75452bd-6656-4ea5-925c-1b5f4f37fe4e",
+              "name": "Tuition",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "dc0286a4-29b0-4e5f-84ec-29a5c883b128",
+              "name": "Salary Recovery",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "48f985b9-99a8-4afb-9051-178103b823e3",
+              "name": "Expenditure Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 201
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "dab4ab1a-b3fd-4c5e-8515-13b7dc8fb303",
+        "type": "Table",
+        "position": {
+          "x": -1231,
+          "y": 1236.5
+        },
+        "data": {
+          "label": "THESIS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "ba8df949-003f-42de-be27-8b8f634ac0bd",
+              "name": "Student Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c0fa5b9d-a0f1-4118-8c44-aa838fcc1736",
+              "name": "Start Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "083896f8-57d5-4ea7-b7a5-1180e7419024",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "1e195c62-01dd-4f64-85e7-0d5d2cd6adf3",
+              "name": "Degree ",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "e3a362b7-7866-4e5b-90b6-829c5de81d35",
+              "name": "Advisor",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "2583aee5-103b-4220-ae84-cd7a8255a3e5",
+              "name": "Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "48b6cc18-984a-474f-bb51-cbab32df8c5f",
+              "name": "Comments",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d3a13fe2-4c1a-4231-a361-aae5d8c80921",
+              "name": "Thesis Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 226
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "b435d3c4-287c-4c4c-aa28-d830bb067877",
+        "type": "Table",
+        "position": {
+          "x": -669,
+          "y": 326
+        },
+        "data": {
+          "label": "ADVISEECOUNT",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "00362036-2b7a-46c2-a6f0-4297d0b8822d",
+              "name": "Advisee Count Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "991d679a-d4cc-4447-ac19-003150c4564f",
+              "name": "Advisor Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "bd0b34a8-353b-49c8-b599-ea4b4d0130f3",
+              "name": "Advisee Count",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "46e4349f-7635-4724-80b9-48c1c6eeab03",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 126
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "1647bd77-3aed-434a-9d83-7e3a8e14f035",
+        "type": "Table",
+        "position": {
+          "x": -665.2051761921809,
+          "y": 466.70285065192354
+        },
+        "data": {
+          "label": "ADVISINGEVALUATION",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "a8f15687-abd0-454f-a3b8-fd1288d684e2",
+              "name": "Advising Evaluation Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "e8d1bc42-fae7-4a8a-85ed-3baa13f25e02",
+              "name": "Evaluation ID",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "a7bf0d48-8aba-476a-894c-5c10bd86cb4b",
+              "name": "Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "850e55d1-f318-4729-8e41-2d6fba4c39bc",
+              "name": "Career",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "8e0d0e35-de59-43cc-8524-72faa04a2eec",
+              "name": "Term",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c03c9fb9-1793-41a9-adff-2504d54372e7",
+              "name": "Department ID",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c9265a2e-3aa9-4540-877d-d9c990ab97b7",
+              "name": "Description",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "47ca3b0c-c15c-417c-95d1-c48686576053",
+              "name": "School",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d2de5b7c-1734-477d-95f8-f150ab72c5ea",
+              "name": "Number",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d088297b-dcc1-4b92-b2ee-d6a03cd038e0",
+              "name": "Long Description",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "aa48a092-3e0c-43c7-b11d-428bbf1b6c5b",
+              "name": "Q&A",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "039aa060-b64e-455c-b00e-092a456160b0",
+              "name": "Question 4",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "403d766f-2cfe-4039-b652-d80cd564d429",
+              "name": "Question 7",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "1ed117dc-d810-48aa-9b6f-b5f3c34106c9",
+              "name": "Question 8",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "22a5969b-c63c-4cf8-b07d-bb5e81096e79",
+              "name": "Question 9",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "28bbb177-a9e4-4f11-955c-6e6b0ea1f264",
+              "name": "Question 0",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "5b081d47-960d-4454-94ab-847dd1cabf59",
+              "name": "Question 1",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "623854f7-3271-40da-99ee-34c492793009",
+              "name": "Question 2",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "019592d1-5fcf-4a92-b398-cf52c4af8d3a",
+              "name": "Question 3",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "add073af-5084-4bf0-b26c-12c39fb8f4d7",
+              "name": "Question 5",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "51c2c32a-c1f3-4f3b-b315-ab0fc1981a52",
+              "name": "Question 6",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "43f850c8-47dd-46ea-8f88-196411c64524",
+              "name": "Average PCT",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "df089d51-e726-43ba-bc8b-75834752b5db",
+              "name": "Department Average",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "538e78f3-8f58-412a-ba58-ddde1f865bda",
+              "name": "School Average",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f6e2969b-ba7d-4b1e-a150-0c1d3eee86f2",
+              "name": "University Average",
+              "type": "INT",
+              "isPrimaryKey": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 667
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "b012ac73-d95e-4a26-a7da-805385762672",
+        "type": "Table",
+        "position": {
+          "x": -1229,
+          "y": 812
+        },
+        "data": {
+          "label": "PROSPECTIVEVISIT",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "d345a2b9-c557-4f45-acce-75fb6b9e35a2",
+              "name": "Staff",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "8038e5a2-5476-4832-bcf4-dfdee61a75c0",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "0626b672-4c86-4d3d-9098-f76d06378214",
+              "name": "Visits",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "df44677a-b59b-4903-a408-0c4121b969d6",
+              "name": "Deposits",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "745c4948-6b42-40ed-86f3-3866e3068ba9",
+              "name": "Prospective Visit Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 151
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "d65d7166-532b-4e23-acf3-0d009b840475",
+        "type": "Table",
+        "position": {
+          "x": -932.8436273651363,
+          "y": 580.0157685308557
+        },
+        "data": {
+          "label": "PROFESSIONALDEVELOPMENT",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "6add316b-ec73-4ef1-ace7-35f8e18845ba",
+              "name": "Description",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f4240d31-1a1e-4a62-b9ed-7ffad9dee817",
+              "name": "Type",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c5461c81-4046-4930-8bc1-76f4140ce0b2",
+              "name": "Calendar Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "c4cb2c4d-1a4f-4da3-a8ea-0cd9db9ed70f",
+              "name": "Notes",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "0687a87d-6f9b-4b90-aadf-8589f01f9673",
+              "name": "Term",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "a76dfd07-52d1-4e68-a141-6129920bccf3",
+              "name": "Hours",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "502eda72-df05-4a23-afca-8828d5e7fe11",
+              "name": "Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 225
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "57bca7af-da73-40eb-89f0-a8f144a703c1",
+        "type": "Table",
+        "position": {
+          "x": -934,
+          "y": 825.0000000000001
+        },
+        "data": {
+          "label": "REVIEWS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "6c55c5ce-d438-4b78-90c8-29a07363b9af",
+              "name": "Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "53b73df3-b417-4817-b50d-9f83c83a81b2",
+              "name": "Journal",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "4726ddec-6e5e-47eb-aaae-24e5624c7935",
+              "name": "Start Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "95c78563-51f9-42cf-9af1-f5e4768c5564",
+              "name": "Rounds",
+              "type": "INT",
+              "isPrimaryKey": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 126
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "f1a7ce12-1c91-4be7-95d6-d279ac91094d",
+        "type": "Table",
+        "position": {
+          "x": -1230.3143945545482,
+          "y": 991.8958639452349
+        },
+        "data": {
+          "label": "SERVICE",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "cc6947b4-2d16-4543-a02c-abae7a4cca0c",
+              "name": "Description",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "b0c5601d-4ad6-4c34-a502-ba1eea1ca089",
+              "name": "Type",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "a23fc4ef-e4dc-4cd7-af2c-289f63c3fdf4",
+              "name": "Term",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "63c03ce4-d228-42cf-9853-017f6099fdc8",
+              "name": "Calendar Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "b1a9bdbe-8806-4c54-8e29-2b42e1675e4e",
+              "name": "Hours/Semester",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "96b7d295-df45-4b8e-b202-cfa3f1aa999b",
+              "name": "Comments",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "06f8031b-5e43-4820-bbde-b3ba51c8c074",
+              "name": "Position",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "5f4765dd-b499-4616-88c9-74d52d7d7d4f",
+              "name": "Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 226
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "f082de6a-e047-4f29-9ebc-4ddf5251bc36",
+        "type": "Table",
+        "position": {
+          "x": -934,
+          "y": 976.0000000000001
+        },
+        "data": {
+          "label": "UNDERGRADUATERESEARCH",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "bf79af27-54fc-4f7b-93ed-318c3b6475c0",
+              "name": "Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "0a7d77b9-3058-4471-9890-77afc905f7f3",
+              "name": "Students",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "cbc59f0d-e99f-46c3-89b8-e38b82cd7219",
+              "name": "Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "3041ce8a-4276-415a-8c25-4ef1d1d4a91a",
+              "name": "Program Type",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "cfbd6f93-39ba-45d8-aec8-a1f5cda0a609",
+              "name": "Term",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "15dda4ba-6347-4861-b5e0-ae3368fc029d",
+              "name": "Calendar Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 200
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "115128be-0661-4716-b399-40a12574215f",
+        "type": "Table",
+        "position": {
+          "x": -402.9304197720569,
+          "y": 180.41291673886167
+        },
+        "data": {
+          "label": "TEACHINGEVALUATION",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "f5437b87-5a6e-48f9-b7a2-ac7d8d556777",
+              "name": "Count Evals",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "750b72d5-03f3-40bc-b299-0e0b60434e25",
+              "name": "Term",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "db567fff-a1ab-46ce-8227-c734bbfed617",
+              "name": " Course",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "26da6f9c-7dbb-4d8d-be06-bd59205313e8",
+              "name": "Course Number",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "fc53325c-d6c5-4e54-a2d1-e14f6be54d4b",
+              "name": "Course Section",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "20982edc-f1e2-4845-83bf-b78f507030c7",
+              "name": "Course Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "079efa5d-fe07-4c97-a7d9-5037dd6d6be2",
+              "name": "INSTR_NA",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "dd33c34f-152c-4f97-be85-d169cdf53f1b",
+              "name": "ID",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "7147aef3-62bf-4b0f-bdb8-c70d0de1c974",
+              "name": "Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            },
+            {
+              "id": "b5c15aa9-778b-4c90-becc-9d7fcb26ecb9",
+              "name": "STRM",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "edaf606d-f5c3-420c-a7b7-bf5a9dfc8dd9",
+              "name": "School",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "4a470925-983c-4103-b06d-3f9ca6192a70",
+              "name": "Participation",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "3109e1b3-5e4b-40e8-b169-7de8eb3bbada",
+              "name": "a1_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "817a67be-b253-4f11-97bf-8cd1dd4d490b",
+              "name": "a2",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "69b745b0-337e-4f61-a375-14fc992b5a83",
+              "name": "a2_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "199f3ce8-1b88-4f4a-afbf-299093cfbe81",
+              "name": "a3",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "26639b14-ebf5-4d4a-a015-88f0e2c0caaf",
+              "name": "a3_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "06290706-5197-4655-b067-b3dbacbf26b4",
+              "name": "a4",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "387ec613-e0fc-470c-95e5-0cf6dd778750",
+              "name": "Enrollment",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "42b8d371-8060-4dae-bb1b-0a6e67b7bc45",
+              "name": "question",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "7aa6198a-23ab-4e63-aa1c-dda5951fdaa0",
+              "name": "a1",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "2d7cb00d-839d-4ca2-b30c-42776ad84168",
+              "name": "a4_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "ff244736-b12a-40c4-8d4c-f9791dc21e83",
+              "name": "a5",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "7a9846c7-0c39-4039-a5f8-c902c873d74b",
+              "name": "a5_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "dbb884ef-ec47-492a-9bb4-22ba28eedfa4",
+              "name": "na",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "285d2e8b-c2df-49e7-80ee-01f510cbb644",
+              "name": "na_pct",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "9aa352f8-5d44-45a0-bc39-20e5e8eda994",
+              "name": "Question",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "dd12757c-86b1-4585-8126-36980227066c",
+              "name": "Calculated Mean",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "941781af-9de1-492d-8614-0bf509acdfc5",
+              "name": "Combined Course Number",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "b556dd13-7b01-496b-976e-701f514e2c71",
+              "name": "Weighted Average",
+              "type": "INT",
+              "isPrimaryKey": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 792
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "type": "Table",
+        "position": {
+          "x": -117.9736212453613,
+          "y": 726.2648807600528
+        },
+        "data": {
+          "label": "SCHOLARSHIPPAPER",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "6ae10a2b-99f6-4a93-9187-2436a2de57d6",
+              "name": "Authors/Inventors",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d3a592c3-5156-4bc4-a5bb-6b3ad482b42d",
+              "name": "Year",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f3285636-16b2-4fc9-9c66-4b45b64afe5a",
+              "name": "Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "37608315-a67c-463b-9f8c-67c4d23b1093",
+              "name": "Scholarship Paper Key",
+              "type": "INT",
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 126
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "f2e72622-c049-48bd-8086-e203af1398d7",
+        "type": "Table",
+        "position": {
+          "x": 831.5842274521217,
+          "y": 1137.0202965928013
+        },
+        "data": {
+          "label": "JOURNALARTICLE",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "30061d70-e888-4eb8-9bf8-2e90a133c331",
+              "name": "Journal Name",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "64c515e4-be6f-4b08-911d-2152414775e1",
+              "name": "Volume",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "65e48414-d261-4ec7-8638-cbffdab1bf45",
+              "name": "Pages",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "75bbd037-1e5b-44b9-a08b-d9ffdc414f9a",
+              "name": "Notes",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "8e993a62-f55b-4ef9-8271-160428e6ecab",
+              "name": "Citations",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "eb9e0e3d-31c9-40ba-b834-cf73a84dd409",
+              "name": "DOI",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f12e6daa-afb0-4e05-b9c7-df0577acd8eb",
+              "name": "Issue",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "2533481e-a6be-4c80-984c-3e5309fc0d1c",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "238f52d4-e7fd-44f8-9286-eb678f675180",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 227
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "03c84434-d777-4d6b-9eea-37ac82470f01",
+        "type": "Table",
+        "position": {
+          "x": 827.6177134222419,
+          "y": 753.6468256532632
+        },
+        "data": {
+          "label": "REFEREEDCONFERENCEPROCEEDINGS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "8e89f847-fae7-45e1-9897-2be6183cc819",
+              "name": "Conference/Book Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "18443b05-fd8a-4ecf-a531-b531b6534ddd",
+              "name": "Notes",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "d41c11bd-9b92-4b6c-8f4a-b39dbd304175",
+              "name": "Citations",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "bb01df3e-944b-45e4-9e99-cd219fc61923",
+              "name": "DOI",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "b2c6438b-43f6-4ae9-bec8-764968c1b05b",
+              "name": "Publisher",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "b8a34c4b-8756-4b43-9892-2902b4095935",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "529fc84a-81dc-431b-8c43-a3815305b845",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 201
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "7018c882-c0f8-4f92-834d-152fa2ec3e02",
+        "type": "Table",
+        "position": {
+          "x": 825.7308121081645,
+          "y": 571.4532942829244
+        },
+        "data": {
+          "label": "CONFERENCEPRESENTATIONS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "3dc2533b-5299-4fe7-85cd-da1067b81939",
+              "name": "Conference",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "6ee5675c-0d11-4217-bb24-fb76e871c626",
+              "name": "Notes",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "cae5024e-3759-462c-8f70-5e28007583a1",
+              "name": "Publisher",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f08b8a31-9554-4d58-b042-cf9b7842b79f",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "f3f8d333-2334-4e6c-b72a-e395caca01d6",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 151
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "732ad83c-e1a7-42a3-95ea-e8f5eb65d890",
+        "type": "Table",
+        "position": {
+          "x": 826.7889721205593,
+          "y": 211.55661241932398
+        },
+        "data": {
+          "label": "BOOKS&BOOKCHAPTERS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "4f4c7783-3f85-4512-be8a-152c7345c194",
+              "name": "Book Title",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "9e80278d-8a9e-4619-9ec4-0508837df575",
+              "name": "DOI",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "e1fe15e3-1e8f-4897-a85e-a17ccdc2109b",
+              "name": "Publisher",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "25ee8f0e-8e8c-4d65-8356-1c24e317a29d",
+              "name": "Citations",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "64acb516-39b9-46f7-b1f6-3b92cff71575",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "09c2874a-3e70-4b95-9597-7461aa4af69b",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 152
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "c64a0e26-1fc4-4ad8-beef-65a4e63af624",
+        "type": "Table",
+        "position": {
+          "x": 827.5489504292459,
+          "y": 405.7295893902417
+        },
+        "data": {
+          "label": "TECHNICALREPORTS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "6d786999-271d-4e88-b5fa-148be2aabf71",
+              "name": "Institution ",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "60105e1f-1aea-4b82-b12e-803aac363123",
+              "name": "Citations",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "cdb7bf00-4f0d-4cd6-bca3-35d34044c427",
+              "name": "Report Number",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "19480c1b-d2e7-4fe5-9d34-1dd78f1fa68d",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "6b3f12eb-f94e-490a-9d7d-b5fdc9b0e4b9",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 127
+        },
+        "selected": false,
+        "dragging": false
+      },
+      {
+        "id": "b20487fc-4364-414b-8fdb-17bd2b17b924",
+        "type": "Table",
+        "position": {
+          "x": 825.9166905220399,
+          "y": 992.4181032749511
+        },
+        "data": {
+          "label": "PATENTS",
+          "isConnectable": false,
+          "columns": [
+            {
+              "id": "d055527d-5a85-4c8f-a9dc-7b5d490afcdd",
+              "name": "Patent Number ",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "781c2972-f7cf-4351-9ace-d91c00101cca",
+              "name": "Date",
+              "type": "INT",
+              "isPrimaryKey": false
+            },
+            {
+              "id": "f5123277-72c3-48b4-b160-872449b62692",
+              "name": "fk_SCHOLARSHIPPAPER",
+              "type": "None",
+              "isForeignKey": true,
+              "foreignKeyProps": {
+                "foreignKeyGroupId": "b49e96d1-d0ec-4a34-b6d1-64099277f8c7",
+                "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+                "columns": [
+                  {
+                    "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                    "name": "Scholarship Paper Key",
+                    "type": "INT"
+                  }
+                ]
+              },
+              "isPrimaryKey": true,
+              "isOptional": false
+            }
+          ],
+          "numberOfGroups": 0,
+          "isSelected": false
+        },
+        "measured": {
+          "width": 240,
+          "height": 102
+        },
+        "selected": false,
+        "dragging": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "f7303ec2-b0d0-4b52-9518-9e94e815b02e->cc20828f-898d-4ce1-9fa6-fc5a9ec17bdb_042a61e9-afef-45be-909d-aa59ab38f3a8",
+        "type": "Relational",
+        "source": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+        "targetHandle": "foreign-key-handle-042a61e9-afef-45be-909d-aa59ab38f3a8",
+        "target": "cc20828f-898d-4ce1-9fa6-fc5a9ec17bdb",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "042a61e9-afef-45be-909d-aa59ab38f3a8",
+            "sourceTableId": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+            "columns": [
+              {
+                "id": "fk_c790c066-3574-4716-b828-34c692ee2816",
+                "name": "Award Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "f7303ec2-b0d0-4b52-9518-9e94e815b02e->0df663b6-5265-466d-a82a-c5aa719347f8_1aa55413-2834-49ce-b33a-9e6cf60e4563",
+        "type": "Relational",
+        "source": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+        "targetHandle": "foreign-key-handle-1aa55413-2834-49ce-b33a-9e6cf60e4563",
+        "target": "0df663b6-5265-466d-a82a-c5aa719347f8",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "1aa55413-2834-49ce-b33a-9e6cf60e4563",
+            "sourceTableId": "f7303ec2-b0d0-4b52-9518-9e94e815b02e",
+            "columns": [
+              {
+                "id": "fk_c790c066-3574-4716-b828-34c692ee2816",
+                "name": "Award Key",
+                "type": "INT"
+              }
+            ]
+          }
+        },
+        "selected": false
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->f2e72622-c049-48bd-8086-e203af1398d7_238f52d4-e7fd-44f8-9286-eb678f675180",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-238f52d4-e7fd-44f8-9286-eb678f675180",
+        "target": "f2e72622-c049-48bd-8086-e203af1398d7",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "238f52d4-e7fd-44f8-9286-eb678f675180",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->03c84434-d777-4d6b-9eea-37ac82470f01_529fc84a-81dc-431b-8c43-a3815305b845",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-529fc84a-81dc-431b-8c43-a3815305b845",
+        "target": "03c84434-d777-4d6b-9eea-37ac82470f01",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "529fc84a-81dc-431b-8c43-a3815305b845",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->7018c882-c0f8-4f92-834d-152fa2ec3e02_f3f8d333-2334-4e6c-b72a-e395caca01d6",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-f3f8d333-2334-4e6c-b72a-e395caca01d6",
+        "target": "7018c882-c0f8-4f92-834d-152fa2ec3e02",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "f3f8d333-2334-4e6c-b72a-e395caca01d6",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->732ad83c-e1a7-42a3-95ea-e8f5eb65d890_09c2874a-3e70-4b95-9597-7461aa4af69b",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-09c2874a-3e70-4b95-9597-7461aa4af69b",
+        "target": "732ad83c-e1a7-42a3-95ea-e8f5eb65d890",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "09c2874a-3e70-4b95-9597-7461aa4af69b",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->c64a0e26-1fc4-4ad8-beef-65a4e63af624_6b3f12eb-f94e-490a-9d7d-b5fdc9b0e4b9",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-6b3f12eb-f94e-490a-9d7d-b5fdc9b0e4b9",
+        "target": "c64a0e26-1fc4-4ad8-beef-65a4e63af624",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "6b3f12eb-f94e-490a-9d7d-b5fdc9b0e4b9",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139->b20487fc-4364-414b-8fdb-17bd2b17b924_b49e96d1-d0ec-4a34-b6d1-64099277f8c7",
+        "type": "Relational",
+        "source": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+        "targetHandle": "foreign-key-handle-b49e96d1-d0ec-4a34-b6d1-64099277f8c7",
+        "target": "b20487fc-4364-414b-8fdb-17bd2b17b924",
+        "markerStart": {
+          "type": "arrow"
+        },
+        "data": {
+          "foreignKeyProps": {
+            "foreignKeyGroupId": "b49e96d1-d0ec-4a34-b6d1-64099277f8c7",
+            "sourceTableId": "0bd66ab3-6e60-4a45-8c0f-2eb359c36139",
+            "columns": [
+              {
+                "id": "fk_37608315-a67c-463b-9f8c-67c4d23b1093",
+                "name": "Scholarship Paper Key",
+                "type": "INT"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "viewport": {
+      "x": 678.8539431369695,
+      "y": 31.99888102369613,
+      "zoom": 0.5
+    }
+  },
+  "name": "FAR Project-Relational Schema",
+  "folder": {
+    "name": "Prof.Brian Work",
+    "folderType": 2,
+    "parentFolder": {
+      "depth": 1,
+      "id": 203138,
+      "name": "IA605 - Data Warehousing",
+      "folderType": 2,
+      "parentFolder": {
+        "depth": 0,
+        "id": 203123,
+        "name": "Diagrams",
+        "folderType": 1
+      }
+    },
+    "depth": 2,
+    "id": 222376
+  },
+  "id": 276594,
+  "updatedAtTimestamp": 1771045072
+}

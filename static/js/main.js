@@ -1,45 +1,97 @@
+// static/js/main.js - Clean version for FAR app
 
 function editRecord(type, id) {
     let url = '';
-    if (type === 'award') url = `/professor/awards/edit/${id}`;
-    else if (type === 'grant') url = `/professor/grants/edit/${id}`;
-    else if (type === 'service') url = `/professor/service/edit/${id}`;
+    let modalTitle = 'Edit Record';
+
+    switch(type) {
+        case 'personal_award':
+            url = `/professor/awards/personal/edit/${id}`;
+            modalTitle = 'Edit Personal Award';
+            break;
+        case 'student_award':
+            url = `/professor/awards/student/edit/${id}`;
+            modalTitle = 'Edit Student Award';
+            break;
+        case 'grant':
+            url = `/professor/grants/edit/${id}`;
+            modalTitle = 'Edit Grant';
+            break;
+        case 'teaching':
+            url = `/professor/teaching/edit/${id}`;
+            modalTitle = 'Edit Teaching Evaluation';
+            break;
+        default:
+            alert('Unknown record type');
+            return;
+    }
 
     fetch(url)
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('modalTitle').textContent = 'Edit Record';
-            new bootstrap.Modal(document.getElementById('actionModal')).show();
-        });
-}
-
-function deleteRecord(type, id, name) {
-    if (!confirm(`Are you sure you want to delete this ${type}? (${name})`)) return;
-
-    fetch(`/professor/${type}s/delete/${id}`, { method: 'POST' })
         .then(response => {
-            if (response.ok) {
-                location.reload();
-            } else {
-                alert('Failed to delete record');
-            }
-        });
-}
-
-function editRecord(type, id) {
-    fetch(`/professor/${type}s/edit/${id}`)
-        .then(r => r.text())
+            if (!response.ok) throw new Error('Failed to load form');
+            return response.text();
+        })
         .then(html => {
+            document.getElementById('modalTitle').textContent = modalTitle;
             document.getElementById('modalBody').innerHTML = html;
-            document.getElementById('modalTitle').textContent = `Edit ${type.charAt(0).toUpperCase() + type.slice(1)}`;
             new bootstrap.Modal(document.getElementById('actionModal')).show();
+        })
+        .catch(error => {
+            console.error(error);
+            alert('Failed to load the edit form. Please try again.');
         });
 }
 
 function deleteRecord(type, id, name = '') {
-    if (confirm(`Delete this ${type}? ${name ? '(' + name + ')' : ''}`)) {
-        fetch(`/professor/${type}s/delete/${id}`, { method: 'POST' })
-            .then(() => location.reload());
+    const message = name 
+        ? `Are you sure you want to delete "${name}"?` 
+        : `Are you sure you want to delete this ${type}?`;
+
+    if (!confirm(message)) return;
+
+    let url = '';
+    switch(type) {
+        case 'personal_award':
+            url = `/professor/awards/personal/delete/${id}`;
+            break;
+        case 'student_award':
+            url = `/professor/awards/student/delete/${id}`;
+            break;
+        case 'grant':
+            url = `/professor/grants/delete/${id}`;
+            break;
+        case 'teaching':
+            url = `/professor/teaching/delete/${id}`;
+            break;
+        default:
+            alert('Unknown record type for delete');
+            return;
     }
+
+    fetch(url, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();   // Refresh to show updated list
+        } else {
+            alert('Failed to delete the record.');
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        alert('An error occurred while deleting.');
+    });
 }
+
+// Initialize DataTables
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof $.fn !== 'undefined' && $.fn.DataTable) {
+        $('.datatable').DataTable({
+            pageLength: 10,
+            responsive: true,
+            ordering: true
+        });
+    }
+});

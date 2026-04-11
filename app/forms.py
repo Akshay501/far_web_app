@@ -2,11 +2,19 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DateField, SelectField, DecimalField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired, Optional
 
-class AwardForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    year = IntegerField('Year', validators=[Optional()])
-    award_type = SelectField('Type', choices=[('Teaching', 'Teaching'), ('Research', 'Research'), ('Service', 'Service'), ('Mentoring', 'Mentoring')])
-    submit = SubmitField('Save Award')
+class PersonalAwardForm(FlaskForm):
+    title = StringField('Award Title', validators=[DataRequired()])
+    year = IntegerField('Year', validators=[DataRequired()])
+    award_type = StringField('Award Type')
+    description = TextAreaField('Description')
+    submit = SubmitField('Save Personal Award')
+
+class StudentAwardForm(FlaskForm):
+    student_name = StringField('Student Name', validators=[DataRequired()])
+    award_title = StringField('Award Title', validators=[DataRequired()])
+    year = IntegerField('Year', validators=[DataRequired()])
+    award_type = StringField('Award Type')
+    submit = SubmitField('Save Student Award')
 
 class GrantForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
