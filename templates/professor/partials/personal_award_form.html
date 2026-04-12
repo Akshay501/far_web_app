@@ -1,4 +1,4 @@
-<form method="POST" id="personalAwardForm">
+<form method="POST">
     {{ form.hidden_tag() }}
     <input type="hidden" name="form_type" value="personal">
 
@@ -7,15 +7,16 @@
         {{ form.title(class="form-control") }}
     </div>
 
-    <div class="mb-3">
-        {{ form.award_type.label(class="form-label fw-medium") }}
-        {{ form.award_type(class="form-control") }}
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.type.label(class="form-label fw-medium") }}
+            {{ form.type(class="form-select") }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.year.label(class="form-label fw-medium") }}
+            {{ form.year(class="form-control") }}
+        </div>
     </div>
 
-    <div class="mb-3">
-        {{ form.description.label(class="form-label fw-medium") }}
-        {{ form.description(class="form-control", rows="4") }}
-    </div>
-
-    <button type="submit" class="btn btn-gold w-100">Save Personal Award</button>
+    <button type="submit" class="btn btn-gold w-100 py-2">Save Personal Award</button>
 </form>

@@ -3,17 +3,31 @@ from wtforms import StringField, IntegerField, DateField, SelectField, DecimalFi
 from wtforms.validators import DataRequired, Optional
 
 class PersonalAwardForm(FlaskForm):
-    title = StringField('Award Title', validators=[DataRequired()])
+    title = StringField('Title', validators=[DataRequired()])
+    type = SelectField('Type', choices=[
+        ('Professional', 'Professional'),
+        ('School', 'School'),
+        ('Department', 'Department'),
+        ('University', 'University')
+    ], validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired()])
-    award_type = StringField('Award Type')
-    description = TextAreaField('Description')
     submit = SubmitField('Save Personal Award')
 
 class StudentAwardForm(FlaskForm):
-    student_name = StringField('Student Name', validators=[DataRequired()])
-    award_title = StringField('Award Title', validators=[DataRequired()])
+    student_name = StringField('Student', validators=[DataRequired()])
+    award_title = StringField('Title', validators=[DataRequired()])
+    amount = DecimalField('Amount', places=2)
+    category = SelectField('Category', choices=[
+        ('Conference', 'Conference'),
+        ('Fellowship', 'Fellowship'),
+        ('Travel', 'Travel'),
+        ('Research', 'Research')
+    ])
+    type = SelectField('Type', choices=[
+        ('Undergraduate', 'Undergraduate'),
+        ('Graduate', 'Graduate')
+    ])
     year = IntegerField('Year', validators=[DataRequired()])
-    award_type = StringField('Award Type')
     submit = SubmitField('Save Student Award')
 
 class GrantForm(FlaskForm):

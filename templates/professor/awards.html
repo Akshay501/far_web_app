@@ -32,17 +32,17 @@
                     <input type="hidden" name="form_type" value="personal">
                     
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-md-7">
                             {{ personal_form.title.label(class="form-label") }}
                             {{ personal_form.title(class="form-control") }}
                         </div>
-                        <div class="col-md-4">
-                            {{ personal_form.award_type.label(class="form-label") }}
-                            {{ personal_form.award_type(class="form-control") }}
+                        <div class="col-md-3">
+                            {{ personal_form.type.label(class="form-label") }}
+                            {{ personal_form.type(class="form-select") }}
                         </div>
-                        <div class="col-12">
-                            {{ personal_form.description.label(class="form-label") }}
-                            {{ personal_form.description(class="form-control", rows="3") }}
+                        <div class="col-md-2">
+                            {{ personal_form.year.label(class="form-label") }}
+                            {{ personal_form.year(class="form-control") }}
                         </div>
                         <div class="col-12">
                             {{ personal_form.submit(class="btn btn-gold") }}
@@ -52,12 +52,13 @@
             </div>
         </div>
 
+        <!-- Table - Only the columns you requested -->
         <table class="table table-striped datatable">
             <thead class="table-dark">
                 <tr>
                     <th>Title</th>
-                    <th>Award Type</th>
-                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Year</th>
                     <th width="140px">Actions</th>
                 </tr>
             </thead>
@@ -65,8 +66,8 @@
                 {% for item in personal_awards %}
                 <tr>
                     <td>{{ item.Title or '—' }}</td>
-                    <td>{{ item.AwardType or '—' }}</td>
-                    <td>{{ item.Description or '—' }}</td>
+                    <td>{{ item.AwardType or item.type or '—' }}</td>
+                    <td>{{ item.Year or '—' }}</td>
                     <td>
                         <button onclick="editRecord('personal_award', {{ item.PersonalAwardKey or item.AwardKey }})" 
                                 class="btn btn-sm btn-warning me-1">Edit</button>
@@ -91,18 +92,32 @@
                     <input type="hidden" name="form_type" value="student">
                     
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             {{ student_form.student_name.label(class="form-label") }}
                             {{ student_form.student_name(class="form-control") }}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-5">
                             {{ student_form.award_title.label(class="form-label") }}
                             {{ student_form.award_title(class="form-control") }}
                         </div>
-                        <div class="col-md-6">
-                            {{ student_form.award_type.label(class="form-label") }}
-                            {{ student_form.award_type(class="form-control") }}
+                        <div class="col-md-3">
+                            {{ student_form.amount.label(class="form-label") }}
+                            {{ student_form.amount(class="form-control") }}
                         </div>
+                        
+                        <div class="col-md-4">
+                            {{ student_form.category.label(class="form-label") }}
+                            {{ student_form.category(class="form-select") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ student_form.type.label(class="form-label") }}
+                            {{ student_form.type(class="form-select") }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ student_form.year.label(class="form-label") }}
+                            {{ student_form.year(class="form-control") }}
+                        </div>
+                        
                         <div class="col-12">
                             {{ student_form.submit(class="btn btn-gold") }}
                         </div>
@@ -111,12 +126,16 @@
             </div>
         </div>
 
+        <!-- Student Awards Table -->
         <table class="table table-striped datatable">
             <thead class="table-dark">
                 <tr>
-                    <th>Student Name</th>
-                    <th>Award Title</th>
-                    <th>Award Type</th>
+                    <th>Student</th>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Year</th>
                     <th width="140px">Actions</th>
                 </tr>
             </thead>
@@ -125,11 +144,14 @@
                 <tr>
                     <td>{{ item.StudentName or '—' }}</td>
                     <td>{{ item.AwardTitle or '—' }}</td>
-                    <td>{{ item.AwardType or '—' }}</td>
+                    <td>${{ item.Amount|default(0)|round(2) }}</td>
+                    <td>{{ item.Category or '—' }}</td>
+                    <td>{{ item.Type or '—' }}</td>
+                    <td>{{ item.Year or '—' }}</td>
                     <td>
-                        <button onclick="editRecord('student_award', {{ item.StudentAwardKey }})" 
+                        <button onclick="editRecord('student_award', {{ item.StudentAwardKey or item.AwardKey }})" 
                                 class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('student_award', {{ item.StudentAwardKey }}, '{{ item.StudentName|escape|default('') }}')" 
+                        <button onclick="deleteRecord('student_award', {{ item.StudentAwardKey or item.AwardKey }}, '{{ item.StudentName|escape|default('') }}')" 
                                 class="btn btn-sm btn-danger">Delete</button>
                     </td>
                 </tr>
@@ -137,7 +159,5 @@
             </tbody>
         </table>
     </div>
-
-</div>
 
 {% endblock %}
