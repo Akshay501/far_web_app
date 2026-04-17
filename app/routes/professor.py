@@ -1,8 +1,10 @@
 # app/routes/professor.py
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app.utils import execute_query
 from app.forms import PersonalAwardForm, StudentAwardForm, GrantForm, ServiceForm, ProfileForm, ProposalForm
+from werkzeug.utils import secure_filename
+import os
 
 professor_bp = Blueprint('professor', __name__)
 
@@ -52,17 +54,38 @@ def dashboard():
 def profile():
     pk = current_user.professor_key
     form = ProfileForm()
+
     if form.validate_on_submit():
         execute_query("""
             UPDATE PROFESSOR 
-            SET FirstName=%s, LastName=%s, ORCID=%s, GoogleID=%s, Department=%s 
-            WHERE ProfessorKey=%s
-        """, (form.first_name.data, form.last_name.data, form.orcid.data,
-              form.google_id.data, form.department.data, pk), commit=True)
+            SET FirstName = %s,
+                LastName = %s,
+                ORCID = %s,
+                GoogleID = %s,
+                Department = %s
+            WHERE ProfessorKey = %s
+        """, (form.first_name.data, form.last_name.data,
+              form.orcid.data, form.google_id.data,
+              form.department.data, pk), commit=True)
+        
         flash('Profile updated successfully', 'success')
         return redirect(url_for('professor.profile'))
 
-    professor = execute_query("SELECT * FROM PROFESSOR WHERE ProfessorKey = %s", (pk,), fetchone=True)
+    # Safe query that works even if Photo column doesn't exist yet
+    try:
+        professor = execute_query("""
+            SELECT FirstName, LastName, ORCID, GoogleID, Department, Photo
+            FROM PROFESSOR 
+            WHERE ProfessorKey = %s
+        """, (pk,), fetchone=True)
+    except:
+        # Fallback if Photo column is missing
+        professor = execute_query("""
+            SELECT FirstName, LastName, ORCID, GoogleID, Department
+            FROM PROFESSOR 
+            WHERE ProfessorKey = %s
+        """, (pk,), fetchone=True)
+
     if professor:
         form.first_name.data = professor.get('FirstName')
         form.last_name.data = professor.get('LastName')
@@ -70,7 +93,40 @@ def profile():
         form.google_id.data = professor.get('GoogleID')
         form.department.data = professor.get('Department')
 
-    return render_template('professor/profile.html', professor=professor, form=form)
+    photo = professor.get('Photo') if professor and 'Photo' in professor else None
+
+    return render_template('professor/profile.html', 
+                           form=form, 
+                           photo=photo)
+
+
+# ====================== PROFILE UPLOAD PHOTO =================================
+@professor_bp.route('/profile/upload-photo', methods=['POST'])
+@login_required
+def upload_photo():
+    if 'photo' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+
+    file = request.files['photo']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+    # Correct path for your project structure (static/ is in the root folder)
+    upload_folder = os.path.join(os.path.dirname(current_app.root_path), 'static', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    filename = f"{current_user.professor_key}_{secure_filename(file.filename)}"
+    filepath = os.path.join(upload_folder, filename)
+
+    file.save(filepath)
+
+    execute_query("""
+        UPDATE PROFESSOR 
+        SET Photo = %s 
+        WHERE ProfessorKey = %s
+    """, (filename, current_user.professor_key), commit=True)
+
+    return jsonify({'success': True})
 
 
 # ====================== AWARDS (Personal + Student Tabs) ======================

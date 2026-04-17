@@ -1,34 +1,113 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="mb-4">Professor Profile</h2>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body text-center">
-                <!-- Profile Photo Placeholder -->
-                <img src="{{ url_for('static', filename='images/clarkson-logo.png') }}" 
-                     class="rounded-circle mb-3" width="150" alt="Profile">
-                <h5>{{ professor.FirstName }} {{ professor.LastName }}</h5>
-                <p class="text-muted">{{ professor.Department }}</p>
-                <button class="btn btn-outline-primary btn-sm">Upload Photo</button>
+<div class="container py-4">
+    <h2 class="mb-4">Professor Profile</h2>
+    
+    <div class="row g-4">
+        <!-- Photo Card -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="card shadow-sm h-100 text-center p-5">
+                <div class="mx-auto mb-4" style="max-width: 280px;">
+                    {% if photo %}
+                        <img id="profile-photo" 
+                             src="{{ url_for('static', filename='uploads/' + photo) }}" 
+                             alt="Profile Photo"
+                             class="rounded-circle img-fluid shadow"
+                             style="width: 280px; height: 280px; object-fit: cover; border: 8px solid #004e42;">
+                    {% else %}
+                        <img id="profile-photo" 
+                             src="{{ url_for('static', filename='images/clarkson-logo.png') }}" 
+                             alt="Profile Photo"
+                             class="rounded-circle img-fluid shadow"
+                             style="width: 280px; height: 280px; object-fit: cover; border: 8px solid #004e42;">
+                    {% endif %}
+                </div>
+
+                <h4 class="mb-1">{{ current_user.first_name or '' }} {{ current_user.last_name or '' }}</h4>
+                <p class="text-muted mb-4">Professor</p>
+
+                <form id="photo-upload-form" enctype="multipart/form-data">
+                    <input type="file" id="photo-input" name="photo" accept="image/*" style="display: none;">
+                    <button type="button" id="upload-photo-btn" 
+                            class="btn btn-gold w-100 py-3 fw-semibold">
+                        <i class="bi bi-camera-fill me-2"></i>Upload New Photo
+                    </button>
+                </form>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">Personal Information</div>
-            <div class="card-body">
-                <table class="table table-borderless">
-                    <tr><th width="30%">Employee ID</th><td>{{ professor.EmployeeID }}</td></tr>
-                    <tr><th>ORCID</th><td>{{ professor.ORCID }}</td></tr>
-                    <tr><th>Google Scholar</th><td>{{ professor.GoogleID }}</td></tr>
-                    <tr><th>Department</th><td>{{ professor.Department }}</td></tr>
-                </table>
+        <!-- Personal Information Form -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="mb-0">Personal Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">First Name</label>
+                                {{ form.first_name(class="form-control") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Last Name</label>
+                                {{ form.last_name(class="form-control") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ORCID</label>
+                                {{ form.orcid(class="form-control") }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Google Scholar ID</label>
+                                {{ form.google_id(class="form-control") }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Department</label>
+                                {{ form.department(class="form-control") }}
+                            </div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-gold px-5 py-2">Update Profile</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Photo Upload JavaScript -->
+<script>
+document.getElementById('upload-photo-btn').addEventListener('click', function() {
+    document.getElementById('photo-input').click();
+});
+
+document.getElementById('photo-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        document.getElementById('profile-photo').src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    fetch("{{ url_for('professor.upload_photo') }}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Photo uploaded successfully');
+        }
+    });
+});
+</script>
 
 {% endblock %}
