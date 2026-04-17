@@ -69,14 +69,15 @@
                     <td>{{ item.AwardType or item.type or '—' }}</td>
                     <td>{{ item.Year or '—' }}</td>
                     <td>
-                        <button onclick="editRecord('personal_award', {{ item.PersonalAwardKey or item.AwardKey }})" 
+                        <button onclick="editRecord('personal_award', {{ item['Award Key'] }})" 
                                 class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('personal_award', {{ item.PersonalAwardKey or item.AwardKey }}, '{{ item.Title|escape|default('') }}')" 
+                        <button onclick="deleteRecord('personal_award', {{ item['Award Key'] }}, '{{ item.Title|escape|default('') }}')" 
                                 class="btn btn-sm btn-danger">Delete</button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+            
         </table>
     </div>
 
