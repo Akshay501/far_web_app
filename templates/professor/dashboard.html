@@ -99,6 +99,37 @@
             </div>
         </div>
 
+        <!-- Personal Information - Stretched full width with better spacing -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h5 class="mb-0">Personal Information</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <strong>Employee ID</strong>
+                                <p class="mb-0 text-muted">{{ professor.get('EmployeeID') or 'EMP001' }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>ORCID</strong>
+                                <p class="mb-0 text-muted">{{ professor.get('ORCID') or '—' }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Google Scholar ID</strong>
+                                <p class="mb-0 text-muted">{{ professor.get('GoogleID') or '—' }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Department</strong>
+                                <p class="mb-0 text-muted">{{ professor.get('Department') or 'Electrical & Computer Engineering' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="card">
             <div class="card-header">

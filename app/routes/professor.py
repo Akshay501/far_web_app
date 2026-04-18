@@ -45,7 +45,19 @@ def dashboard():
     except:
         pass
 
-    return render_template('professor/dashboard.html', counts=counts)
+    # Fetch Personal Information for the dashboard card
+    try:
+        professor = execute_query("""
+            SELECT EmployeeID, ORCID, GoogleID, Department
+            FROM PROFESSOR 
+            WHERE ProfessorKey = %s
+        """, (pk,), fetchone=True) or {}
+    except:
+        professor = {}
+
+    return render_template('professor/dashboard.html', 
+                           counts=counts, 
+                           professor=professor)
 
 
 # ====================== PROFILE ======================
