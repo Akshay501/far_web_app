@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Prospective Student Visits</h2>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+        <h6 class="mb-0">Add New Visit</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-6">{{ form.staff.label }} {{ form.staff(class="form-control", rows=2, placeholder="e.g. Akshay Thugu, Emily Chen (grad student host)") }}</div>
+                <div class="col-md-2">{{ form.year.label }} {{ form.year(class="form-control", placeholder="e.g. 2025") }}</div>
+                <div class="col-md-2">{{ form.visits.label }} {{ form.visits(class="form-control") }}</div>
+                <div class="col-md-2">{{ form.deposits.label }} {{ form.deposits(class="form-control") }}</div>
+                <div class="col-12">{{ form.submit(class="btn btn-gold") }}</div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr><th>Staff / Description</th><th class="text-center">Year</th><th class="text-center">Visits</th><th class="text-end">Deposits</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item.Staff|truncate(60) if item.Staff else '—' }}</td>
+                    <td class="text-center">{{ item.Year or '—' }}</td>
+                    <td class="text-center">{{ item.Visits or '—' }}</td>
+                    <td class="text-end">${{ '{:,.2f}'.format(item.Deposits or 0) }}</td>
+                    <td>
+                        <button onclick="editRecord('prospective', {{ item['Prospective Visit Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                        <button onclick="deleteRecord('prospective', {{ item['Prospective Visit Key'] }}, '{{ item.Year }}')" class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No prospective visits on record.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+<form method="POST" action="/professor/professional-development/edit/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.description.label }} {{ form.description(class="form-control", rows=3) }}</div>
+    <div class="row mb-3">
+        <div class="col-md-6">{{ form.type.label }} {{ form.type(class="form-select") }}</div>
+        <div class="col-md-3">{{ form.term.label }} {{ form.term(class="form-select") }}</div>
+        <div class="col-md-3">{{ form.calendar_year.label }} {{ form.calendar_year(class="form-control") }}</div>
+    </div>
+    <div class="mb-3">{{ form.hours.label }} {{ form.hours(class="form-control") }}</div>
+    <div class="mb-3">{{ form.notes.label }} {{ form.notes(class="form-control", rows=2) }}</div>
+    <button type="submit" class="btn btn-gold">Save Changes</button>
+</form>

@@ -1,9 +1,13 @@
-<form method="POST">
+<form method="POST" action="/professor/service/edit/{{ id }}">
     {{ form.hidden_tag() }}
     <div class="mb-3">{{ form.description.label }} {{ form.description(class="form-control") }}</div>
-    <div class="row">
+    <div class="row mb-3">
         <div class="col-md-6">{{ form.type.label }} {{ form.type(class="form-select") }}</div>
         <div class="col-md-6">{{ form.term.label }} {{ form.term(class="form-select") }}</div>
     </div>
-    <button type="submit" class="btn btn-gold mt-3">Save Changes</button>
+    <div class="row mb-3">
+        <div class="col-md-6">{{ form.calendar_year.label }} {{ form.calendar_year(class="form-control") }}</div>
+        <div class="col-md-6">{{ form.hours.label }} {{ form.hours(class="form-control") }}</div>
+    </div>
+    <button type="submit" class="btn btn-gold mt-2">Save Changes</button>
 </form>

@@ -1,0 +1,24 @@
+<form method="POST" action="/professor/scholarship/edit/thesis/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        <label class="form-label">Student Name</label>
+        {{ form.student(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Year</label>
+        {{ form.year(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Degree</label>
+        {{ form.degree(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        {{ form.title(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Comments</label>
+        {{ form.comments(class="form-control") }}
+    </div>
+    <button type="submit" class="btn btn-gold">Save Thesis</button>
+</form>

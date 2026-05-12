@@ -1,0 +1,17 @@
+<form method="POST" action="/professor/proposals/edit/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.title.label }} {{ form.title(class="form-control") }}</div>
+    <div class="mb-3">{{ form.sponsor.label }} {{ form.sponsor(class="form-control") }}</div>
+    <div class="row mb-3">
+        <div class="col-md-6">{{ form.allocated_amount.label }} {{ form.allocated_amount(class="form-control") }}</div>
+        <div class="col-md-6">{{ form.total_cost.label }} {{ form.total_cost(class="form-control") }}</div>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-4">{{ form.funded.label }} {{ form.funded(class="form-select") }}</div>
+        <div class="col-md-4">{{ form.begin_date.label }} {{ form.begin_date(class="form-control") }}</div>
+        <div class="col-md-4">{{ form.end_date.label }} {{ form.end_date(class="form-control") }}</div>
+    </div>
+    <div class="mb-3">{{ form.submit_date.label }} {{ form.submit_date(class="form-control") }}</div>
+    <div class="mb-3">{{ form.principal_investigators.label }} {{ form.principal_investigators(class="form-control") }}</div>
+    <button type="submit" class="btn btn-gold mt-2">Save Changes</button>
+</form>

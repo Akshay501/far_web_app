@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Advising Evaluations</h2>
+<p class="text-muted">These evaluations are imported from the university system and are read-only.</p>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Evaluation ID</th><th>Name</th><th>Term</th>
+                    <th class="text-center">Year</th><th class="text-center">Avg PCT</th>
+                    <th class="text-center">Dept Avg</th><th class="text-center">School Avg</th>
+                    <th class="text-center">University Avg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item.EvaluationID or '—' }}</td>
+                    <td>{{ item.Name or '—' }}</td>
+                    <td>{{ item.Term or '—' }}</td>
+                    <td class="text-center">{{ item.EvaluationYear or '—' }}</td>
+                    <td class="text-center">
+                        {% if item.AveragePCT %}
+                            <span class="badge {{ 'bg-success' if item.AveragePCT >= 90 else 'bg-warning text-dark' if item.AveragePCT >= 75 else 'bg-danger' }}">
+                                {{ item.AveragePCT }}%
+                            </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">{{ item.DepartmentAverage or '—' }}</td>
+                    <td class="text-center">{{ item.SchoolAverage or '—' }}</td>
+                    <td class="text-center">{{ item.UniversityAverage or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-3">No advising evaluations on record.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

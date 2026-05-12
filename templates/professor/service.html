@@ -1,47 +1,222 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="mb-4">Service Activities</h2>
 
-<form method="POST" class="mb-4 card p-4">
-    {{ form.hidden_tag() }}
-    <div class="row g-3">
-        <div class="col-md-6">{{ form.description(class="form-control") }}</div>
-        <div class="col-md-3">{{ form.type(class="form-select") }}</div>
-        <div class="col-md-3">{{ form.term(class="form-select") }}</div>
-        <div class="col-12">
-            {{ form.submit(class="btn btn-gold") }}
+<h2 class="mb-4">Service</h2>
+
+<ul class="nav nav-tabs mb-4" id="serviceTabs">
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'service' %}active{% endif %}" 
+           data-bs-toggle="tab" href="#service">Service Activities</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'reviews' %}active{% endif %}" 
+           data-bs-toggle="tab" href="#reviews">Reviews</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'prof_dev' %}active{% endif %}" 
+           data-bs-toggle="tab" href="#prof_dev">Professional Development</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'undergrad' %}active{% endif %}" 
+           data-bs-toggle="tab" href="#undergrad">Undergrad Research</a>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- ===== SERVICE ACTIVITIES TAB ===== -->
+    <div class="tab-pane fade {% if active_tab == 'service' %}show active{% endif %}" id="service">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+                <h6 class="mb-0">Add New Service Activity</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ service_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="service">
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ service_form.description.label }} {{ service_form.description(class="form-control") }}</div>
+                        <div class="col-md-3">{{ service_form.type.label }} {{ service_form.type(class="form-select") }}</div>
+                        <div class="col-md-3">{{ service_form.term.label }} {{ service_form.term(class="form-select") }}</div>
+                        <div class="col-md-3">{{ service_form.calendar_year.label }} {{ service_form.calendar_year(class="form-control", placeholder="e.g. 2025") }}</div>
+                        <div class="col-md-3">{{ service_form.hours.label }} {{ service_form.hours(class="form-control", placeholder="e.g. 48.5") }}</div>
+                        <div class="col-12">{{ service_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead class="table-dark">
+                        <tr><th>Description</th><th>Type</th><th>Term</th><th class="text-center">Year</th><th class="text-center">Hours</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in service_data %}
+                        <tr>
+                            <td>{{ item.Description|truncate(60) if item.Description else '—' }}</td>
+                            <td>{{ item.Type or '—' }}</td>
+                            <td>{{ item.Term or '—' }}</td>
+                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td class="text-center">{{ item['Hours/Semester'] or '—' }}</td>
+                            <td>
+                                <button onclick="editRecord('service', {{ item['Service Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                                <button onclick="deleteRecord('service', {{ item['Service Key'] }}, '{{ item.Description|escape|truncate(30) }}')" class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No service activities on record.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
 
-<table class="table table-striped datatable">
-    <thead class="table-dark">
-        <tr>
-            <th>Description</th>
-            <th>Type</th>
-            <th>Term</th>
-            <th>Year</th>
-            <th>Hours</th>
-            <th width="160px">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in data %}
-        <tr>
-            <td>{{ item.Description|truncate(60) }}</td>
-            <td>{{ item.Type }}</td>
-            <td>{{ item.Term }}</td>
-            <td>{{ item.CalendarYear }}</td>
-            <td>{{ item.HoursSemester }}</td>
-            <td>
-                <button onclick="editRecord('service', {{ item.ServiceKey }})" 
-                        class="btn btn-sm btn-warning me-1">Edit</button>
-                <button onclick="deleteRecord('service', {{ item.ServiceKey }}, '{{ item.Description|escape|truncate(30) }}')" 
-                        class="btn btn-sm btn-danger">Delete</button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <!-- ===== REVIEWS TAB ===== -->
+    <div class="tab-pane fade {% if active_tab == 'reviews' %}show active{% endif %}" id="reviews">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+                <h6 class="mb-0">Add New Review</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ reviews_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="reviews">
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ reviews_form.journal.label }} {{ reviews_form.journal(class="form-control", placeholder="e.g. IEEE Transactions on Computers") }}</div>
+                        <div class="col-md-3">{{ reviews_form.start_date.label }} {{ reviews_form.start_date(class="form-control") }}</div>
+                        <div class="col-md-3">{{ reviews_form.rounds.label }} {{ reviews_form.rounds(class="form-control", placeholder="e.g. 2") }}</div>
+                        <div class="col-12">{{ reviews_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead class="table-dark">
+                        <tr><th>Journal / Conference</th><th>Start Date</th><th class="text-center">Rounds</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in reviews_data %}
+                        <tr>
+                            <td>{{ item.Journal or '—' }}</td>
+                            <td>{{ item['Start Date'] or '—' }}</td>
+                            <td class="text-center">{{ item.Rounds or '—' }}</td>
+                            <td>
+                                <button onclick="editRecord('review', {{ item['Reviews Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                                <button onclick="deleteRecord('review', {{ item['Reviews Key'] }}, '{{ item.Journal|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">No reviews on record.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PROFESSIONAL DEVELOPMENT TAB ===== -->
+    <div class="tab-pane fade {% if active_tab == 'prof_dev' %}show active{% endif %}" id="prof_dev">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+                <h6 class="mb-0">Add New Entry</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ prof_dev_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="prof_dev">
+                    <div class="row g-3">
+                        <div class="col-md-8">{{ prof_dev_form.description.label }} {{ prof_dev_form.description(class="form-control", rows=2) }}</div>
+                        <div class="col-md-4">{{ prof_dev_form.type.label }} {{ prof_dev_form.type(class="form-select") }}</div>
+                        <div class="col-md-3">{{ prof_dev_form.term.label }} {{ prof_dev_form.term(class="form-select") }}</div>
+                        <div class="col-md-3">{{ prof_dev_form.calendar_year.label }} {{ prof_dev_form.calendar_year(class="form-control", placeholder="e.g. 2025") }}</div>
+                        <div class="col-md-3">{{ prof_dev_form.hours.label }} {{ prof_dev_form.hours(class="form-control", placeholder="e.g. 24.0") }}</div>
+                        <div class="col-12">{{ prof_dev_form.notes.label }} {{ prof_dev_form.notes(class="form-control", rows=2, placeholder="Optional notes") }}</div>
+                        <div class="col-12">{{ prof_dev_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead class="table-dark">
+                        <tr><th>Description</th><th>Type</th><th>Term</th><th class="text-center">Year</th><th class="text-center">Hours</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prof_dev_data %}
+                        <tr>
+                            <td>{{ item.Description|truncate(60) if item.Description else '—' }}</td>
+                            <td>{{ item.Type or '—' }}</td>
+                            <td>{{ item.Term or '—' }}</td>
+                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td class="text-center">{{ item.Hours or '—' }}</td>
+                            <td>
+                                <button onclick="editRecord('prof_dev', {{ item['Professional Development Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                                <button onclick="deleteRecord('prof_dev', {{ item['Professional Development Key'] }}, '{{ item.Type|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No professional development entries.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== UNDERGRADUATE RESEARCH TAB ===== -->
+    <div class="tab-pane fade {% if active_tab == 'undergrad' %}show active{% endif %}" id="undergrad">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+                <h6 class="mb-0">Add New Project</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ undergrad_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="undergrad">
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ undergrad_form.students.label }} {{ undergrad_form.students(class="form-control", rows=2, placeholder="e.g. Emily Chen, Liam Patel") }}</div>
+                        <div class="col-md-6">{{ undergrad_form.title.label }} {{ undergrad_form.title(class="form-control", placeholder="Project title") }}</div>
+                        <div class="col-md-4">{{ undergrad_form.program_type.label }} {{ undergrad_form.program_type(class="form-select") }}</div>
+                        <div class="col-md-4">{{ undergrad_form.term.label }} {{ undergrad_form.term(class="form-select") }}</div>
+                        <div class="col-md-4">{{ undergrad_form.calendar_year.label }} {{ undergrad_form.calendar_year(class="form-control", placeholder="e.g. 2025") }}</div>
+                        <div class="col-12">{{ undergrad_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 datatable">
+                    <thead class="table-dark">
+                        <tr><th>Students</th><th>Title</th><th>Program Type</th><th>Term</th><th class="text-center">Year</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in undergrad_data %}
+                        <tr>
+                            <td>{{ item.Students|truncate(30) if item.Students else '—' }}</td>
+                            <td>{{ item.Title|truncate(40) if item.Title else '—' }}</td>
+                            <td>{{ item['Program Type'] or '—' }}</td>
+                            <td>{{ item.Term or '—' }}</td>
+                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td>
+                                <button onclick="editRecord('undergrad', {{ item['Undergraduate Research Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                                <button onclick="deleteRecord('undergrad', {{ item['Undergraduate Research Key'] }}, '{{ item.Title|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-3">No undergraduate research entries.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 {% endblock %}

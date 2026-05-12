@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Back button + Header -->
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+    <div>
+        <h2 class="mb-0">{{ professor.FirstName }} {{ professor.LastName }}</h2>
+        <p class="text-muted mb-0">{{ professor.Department or '—' }} &mdash; Read-only FAR view</p>
+    </div>
+</div>
+
+<!-- Professor Info Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+        <h6 class="mb-0"><i class="bi bi-person-circle me-2"></i>Personal Information</h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="text-muted small">Employee ID</div>
+                <div class="fw-medium">{{ professor.EmployeeID or '—' }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">ORCID</div>
+                <div class="fw-medium">{{ professor.ORCID or '—' }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Google Scholar</div>
+                <div class="fw-medium">{{ professor.GoogleID or '—' }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Department</div>
+                <div class="fw-medium">{{ professor.Department or '—' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grants -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Grants
+            <span class="badge bg-secondary ms-2">{{ data.grants|length }}</span>
+        </h6>
+    </div>
+    {% if data.grants %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th><th>Sponsor</th><th>Role</th>
+                    <th class="text-end">Amount</th><th>Begin</th><th>End</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in data.grants %}
+                <tr>
+                    <td>{{ g.Title }}</td>
+                    <td>{{ g.Sponsor or '—' }}</td>
+                    <td>{{ g.Role or '—' }}</td>
+                    <td class="text-end">${{ '{:,.0f}'.format(g.AllocatedAmount or 0) }}</td>
+                    <td>{{ g['Begin Date'] or '—' }}</td>
+                    <td>{{ g['End Date'] or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No grants on record.</div>
+    {% endif %}
+</div>
+
+<!-- Proposals -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-file-text me-2"></i>Proposals
+            <span class="badge bg-secondary ms-2">{{ data.proposals|length }}</span>
+        </h6>
+    </div>
+    {% if data.proposals %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th><th>Sponsor</th><th>Role</th>
+                    <th class="text-center">Funded</th><th class="text-end">Amount</th><th>Submitted</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in data.proposals %}
+                <tr>
+                    <td>{{ p.Title }}</td>
+                    <td>{{ p.Sponsor or '—' }}</td>
+                    <td>{{ p.Role or '—' }}</td>
+                    <td class="text-center">
+                        {% if p['Funded?'] %}
+                            <span class="badge bg-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">${{ '{:,.0f}'.format(p.AllocatedAmount or 0) }}</td>
+                    <td>{{ p['Submit Date'] or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No proposals on record.</div>
+    {% endif %}
+</div>
+
+<!-- Theses -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-mortarboard me-2"></i>Theses supervised
+            <span class="badge bg-secondary ms-2">{{ data.thesis|length }}</span>
+        </h6>
+    </div>
+    {% if data.thesis %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Student</th><th>Title</th><th>Degree</th><th>Year</th></tr>
+            </thead>
+            <tbody>
+                {% for t in data.thesis %}
+                <tr>
+                    <td>{{ t['Student Name'] }}</td>
+                    <td>{{ t.Title or '—' }}</td>
+                    <td>{{ t.Degree or '—' }}</td>
+                    <td>{{ t.Year or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No theses on record.</div>
+    {% endif %}
+</div>
+
+<!-- Service -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-people me-2"></i>Service
+            <span class="badge bg-secondary ms-2">{{ data.service|length }}</span>
+        </h6>
+    </div>
+    {% if data.service %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Description</th><th>Type</th><th>Term</th><th>Year</th><th class="text-end">Hours/Sem</th></tr>
+            </thead>
+            <tbody>
+                {% for s in data.service %}
+                <tr>
+                    <td>{{ s.Description or '—' }}</td>
+                    <td>{{ s.Type or '—' }}</td>
+                    <td>{{ s.Term or '—' }}</td>
+                    <td>{{ s['Calendar Year'] or '—' }}</td>
+                    <td class="text-end">{{ s['Hours/Semester'] or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No service on record.</div>
+    {% endif %}
+</div>
+
+<!-- Teaching -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-book me-2"></i>Teaching evaluations
+            <span class="badge bg-secondary ms-2">{{ data.teaching|length }}</span>
+        </h6>
+    </div>
+    {% if data.teaching %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Term</th><th>Course</th><th>Title</th><th class="text-center">Enrollment</th><th class="text-center">Mean</th></tr>
+            </thead>
+            <tbody>
+                {% for t in data.teaching %}
+                <tr>
+                    <td>{{ t.Term or '—' }}</td>
+                    <td>{{ t.Course or '—' }}</td>
+                    <td>{{ t['Course Title'] or '—' }}</td>
+                    <td class="text-center">{{ t.Enrolment or '—' }}</td>
+                    <td class="text-center">{{ t['Weighted Average'] or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No teaching evaluations on record.</div>
+    {% endif %}
+</div>
+
+<!-- Awards -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-trophy me-2"></i>Awards
+            <span class="badge bg-secondary ms-2">{{ data.awards|length }}</span>
+        </h6>
+    </div>
+    {% if data.awards %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Title</th><th>Type</th><th>Year</th><th class="text-end">Amount</th></tr>
+            </thead>
+            <tbody>
+                {% for a in data.awards %}
+                <tr>
+                    <td>{{ a.Title }}</td>
+                    <td>{{ a['Award Type'] or '—' }}</td>
+                    <td>{{ a.Year }}</td>
+                    <td class="text-end">${{ '{:,.0f}'.format(a.Amount or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No awards on record.</div>
+    {% endif %}
+</div>
+
+<!-- Expenditure -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>Expenditure
+            <span class="badge bg-secondary ms-2">{{ data.expenditure|length }}</span>
+        </h6>
+    </div>
+    {% if data.expenditure %}
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 small">
+            <thead class="table-light">
+                <tr><th>Year</th><th>Name</th><th class="text-end">Expenditure</th>
+                    <th class="text-end">Indirect</th><th class="text-end">Tuition</th>
+                    <th class="text-end">Salary Recovery</th></tr>
+            </thead>
+            <tbody>
+                {% for e in data.expenditure %}
+                <tr>
+                    <td>{{ e.Year }}</td>
+                    <td>{{ e.Name or '—' }}</td>
+                    <td class="text-end">${{ '{:,.2f}'.format(e.Expenditure or 0) }}</td>
+                    <td class="text-end">${{ '{:,.2f}'.format(e.Indirect or 0) }}</td>
+                    <td class="text-end">${{ '{:,.2f}'.format(e.Tuition or 0) }}</td>
+                    <td class="text-end">${{ '{:,.2f}'.format(e['Salary Recovery'] or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-muted fst-italic">No expenditure on record.</div>
+    {% endif %}
+</div>
+
+{% endblock %}

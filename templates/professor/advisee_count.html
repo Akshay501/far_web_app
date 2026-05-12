@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Advisee Count</h2>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white" style="background-color: var(--clarkson-green);">
+        <h6 class="mb-0">Add New Entry</h6>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-4">{{ form.advisor_name.label }} {{ form.advisor_name(class="form-control") }}</div>
+                <div class="col-md-2">{{ form.advisee_count.label }} {{ form.advisee_count(class="form-control") }}</div>
+                <div class="col-md-3">{{ form.term.label }} {{ form.term(class="form-select") }}</div>
+                <div class="col-md-3">{{ form.year.label }} {{ form.year(class="form-control", placeholder="e.g. 2025") }}</div>
+                <div class="col-12">{{ form.submit(class="btn btn-gold") }}</div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr><th>Advisor Name</th><th class="text-center">Advisee Count</th><th>Term</th><th class="text-center">Year</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for item in data %}
+                <tr>
+                    <td>{{ item['Advisor Name'] or '—' }}</td>
+                    <td class="text-center"><span class="badge bg-success fs-6">{{ item['Advisee Count'] }}</span></td>
+                    <td>{{ item.Term or '—' }}</td>
+                    <td class="text-center">{{ item.Year or '—' }}</td>
+                    <td>
+                        <button onclick="editRecord('advisee_count', {{ item['Advisee Count Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
+                        <button onclick="deleteRecord('advisee_count', {{ item['Advisee Count Key'] }}, '{{ item['Advisor Name']|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">No advisee count entries.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

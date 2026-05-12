@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired
+from werkzeug.security import check_password_hash
 from app.utils import execute_query
 from app.models import User
 
@@ -22,11 +23,11 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user_data = execute_query(
-            "SELECT * FROM users WHERE Email = %s AND Password = %s",
-            (form.email.data, form.password.data),
+            "SELECT * FROM users WHERE Email = %s",
+            (form.email.data,),
             fetchone=True
         )
-        if user_data:
+        if user_data and check_password_hash(user_data['Password'], form.password.data):
             user = User(user_data)
             login_user(user)
             flash('Login successful', 'success')

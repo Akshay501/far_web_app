@@ -1,0 +1,9 @@
+<form method="POST" action="/professor/reviews/edit/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.journal.label }} {{ form.journal(class="form-control") }}</div>
+    <div class="row mb-3">
+        <div class="col-md-6">{{ form.start_date.label }} {{ form.start_date(class="form-control") }}</div>
+        <div class="col-md-6">{{ form.rounds.label }} {{ form.rounds(class="form-control") }}</div>
+    </div>
+    <button type="submit" class="btn btn-gold">Save Changes</button>
+</form>

@@ -2,15 +2,29 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app.utils import execute_query
-from app.forms import PersonalAwardForm, StudentAwardForm, GrantForm, ServiceForm, ProfileForm, ProposalForm
+from app.forms import PersonalAwardForm, StudentAwardForm, GrantForm, ServiceForm, ProfileForm, ProposalForm, CurrentStudentForm, ThesisForm, ReviewsForm, AdviseeCountForm, ProfessionalDevelopmentForm, ProspectiveVisitForm, UndergraduateResearchForm, AdvisingEvaluationForm
 from werkzeug.utils import secure_filename
 import os
 
 professor_bp = Blueprint('professor', __name__)
 
+
+def professor_required(f):
+    """Decorator that enforces professor-only access."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'professor':
+            flash('Professor access required.', 'danger')
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
 # ====================== DASHBOARD ======================
 @professor_bp.route('/dashboard')
 @login_required
+@professor_required
 def dashboard():
     if current_user.role != 'professor':
         return redirect(url_for('auth.login'))
@@ -63,6 +77,7 @@ def dashboard():
 # ====================== PROFILE ======================
 @professor_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def profile():
     pk = current_user.professor_key
     form = ProfileForm()
@@ -115,6 +130,7 @@ def profile():
 # ====================== PROFILE UPLOAD PHOTO =================================
 @professor_bp.route('/profile/upload-photo', methods=['POST'])
 @login_required
+@professor_required
 def upload_photo():
     if 'photo' not in request.files:
         return jsonify({'success': False, 'error': 'No file uploaded'}), 400
@@ -144,6 +160,7 @@ def upload_photo():
 # ====================== AWARDS (Personal + Student Tabs) ======================
 @professor_bp.route('/awards', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def awards():
     pk = current_user.professor_key
     
@@ -197,6 +214,7 @@ def awards():
 # ====================== PERSONAL AWARDS EDIT/DELETE ======================
 @professor_bp.route('/awards/personal/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def edit_personal_award(id):
     pk = current_user.professor_key
     if request.method == 'POST':
@@ -233,6 +251,7 @@ def edit_personal_award(id):
 
 @professor_bp.route('/awards/personal/delete/<int:id>', methods=['POST'])
 @login_required
+@professor_required
 def delete_personal_award(id):
     pk = current_user.professor_key
     execute_query("DELETE FROM PERSONALAWARDS WHERE `Award Key` = %s AND ProfessorKey = %s", 
@@ -244,6 +263,7 @@ def delete_personal_award(id):
 # ====================== STUDENT AWARDS EDIT/DELETE ======================
 @professor_bp.route('/awards/student/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def edit_student_award(id):
     if request.method == 'POST':
         form = StudentAwardForm()
@@ -288,48 +308,117 @@ def edit_student_award(id):
 
 @professor_bp.route('/awards/student/delete/<int:id>', methods=['POST'])
 @login_required
+@professor_required
 def delete_student_award(id):
     execute_query("DELETE FROM STUDENTAWARDS WHERE `Award Key` = %s", (id,), commit=True)
     flash('Student Award deleted successfully', 'success')
     return redirect(url_for('professor.awards'))
 
 
-# ====================== SERVICE ======================
+# ====================== SERVICE (tabbed: Service, Reviews, Prof Dev, Undergrad Research) ======================
 @professor_bp.route('/service', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def service():
     pk = current_user.professor_key
-    form = ServiceForm()
-    if form.validate_on_submit():
-        execute_query("""
-            INSERT INTO SERVICE (Description, Type, Term, CalendarYear, HoursSemester, ProfessorKey)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (form.description.data, form.type.data, form.term.data,
-              form.calendar_year.data, form.hours.data, pk), commit=True)
-        flash('Service activity added', 'success')
-        return redirect(url_for('professor.service'))
-    data = execute_query("SELECT * FROM SERVICE WHERE ProfessorKey = %s", (pk,))
-    return render_template('professor/service.html', data=data, form=form)
+
+    service_form = ServiceForm()
+    reviews_form = ReviewsForm()
+    prof_dev_form = ProfessionalDevelopmentForm()
+    undergrad_form = UndergraduateResearchForm()
+
+    active_tab = request.args.get('tab', 'service')
+
+    if request.method == 'POST':
+        form_type = request.form.get('form_type')
+
+        if form_type == 'service' and service_form.validate_on_submit():
+            execute_query("""
+                INSERT INTO SERVICE (Description, Type, Term, `Calendar Year`, `Hours/Semester`, ProfessorKey)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (service_form.description.data, service_form.type.data,
+                  service_form.term.data, service_form.calendar_year.data,
+                  service_form.hours.data, pk), commit=True)
+            flash('Service activity added', 'success')
+            return redirect(url_for('professor.service', tab='service'))
+
+        elif form_type == 'reviews' and reviews_form.validate_on_submit():
+            execute_query("""
+                INSERT INTO REVIEWS (Journal, `Start Date`, Rounds, ProfessorKey)
+                VALUES (%s, %s, %s, %s)
+            """, (reviews_form.journal.data, reviews_form.start_date.data,
+                  reviews_form.rounds.data, pk), commit=True)
+            flash('Review added', 'success')
+            return redirect(url_for('professor.service', tab='reviews'))
+
+        elif form_type == 'prof_dev' and prof_dev_form.validate_on_submit():
+            execute_query("""
+                INSERT INTO PROFESSIONALDEVELOPMENT
+                    (Description, Type, `Calendar Year`, Term, Hours, Notes, ProfessorKey)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (prof_dev_form.description.data, prof_dev_form.type.data,
+                  prof_dev_form.calendar_year.data, prof_dev_form.term.data,
+                  prof_dev_form.hours.data, prof_dev_form.notes.data, pk), commit=True)
+            flash('Professional development entry added', 'success')
+            return redirect(url_for('professor.service', tab='prof_dev'))
+
+        elif form_type == 'undergrad' and undergrad_form.validate_on_submit():
+            execute_query("""
+                INSERT INTO UNDERGRADUATERESEARCH
+                    (Students, Title, `Program Type`, Term, `Calendar Year`, ProfessorKey)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (undergrad_form.students.data, undergrad_form.title.data,
+                  undergrad_form.program_type.data, undergrad_form.term.data,
+                  undergrad_form.calendar_year.data, pk), commit=True)
+            flash('Undergraduate research entry added', 'success')
+            return redirect(url_for('professor.service', tab='undergrad'))
+
+    service_data = execute_query(
+        "SELECT * FROM SERVICE WHERE ProfessorKey = %s ORDER BY `Calendar Year` DESC", (pk,))
+    reviews_data = execute_query(
+        "SELECT * FROM REVIEWS WHERE ProfessorKey = %s ORDER BY `Start Date` DESC", (pk,))
+    prof_dev_data = execute_query(
+        "SELECT * FROM PROFESSIONALDEVELOPMENT WHERE ProfessorKey = %s ORDER BY `Calendar Year` DESC", (pk,))
+    undergrad_data = execute_query(
+        "SELECT * FROM UNDERGRADUATERESEARCH WHERE ProfessorKey = %s ORDER BY `Calendar Year` DESC", (pk,))
+
+    return render_template('professor/service.html',
+        service_form=service_form, reviews_form=reviews_form,
+        prof_dev_form=prof_dev_form, undergrad_form=undergrad_form,
+        service_data=service_data, reviews_data=reviews_data,
+        prof_dev_data=prof_dev_data, undergrad_data=undergrad_data,
+        active_tab=active_tab)
 
 
-# ====================== TEACHING & EXPENDITURE (Read-only) ======================
+# ====================== TEACHING & EXPENDITURE (Read-only, filtered by professor) ======================
 @professor_bp.route('/teaching')
 @login_required
+@professor_required
 def teaching():
-    data = execute_query("SELECT * FROM TEACHINGEVALUATION")
+    pk = current_user.professor_key
+    data = execute_query(
+        "SELECT * FROM TEACHINGEVALUATION WHERE ProfessorKey = %s ORDER BY EvaluationYear DESC, Term",
+        (pk,)
+    )
     return render_template('professor/teaching.html', data=data)
 
 
 @professor_bp.route('/expenditure')
 @login_required
+@professor_required
 def expenditure():
-    data = execute_query("SELECT * FROM EXPENDITURE")
+    pk = current_user.professor_key
+    data = execute_query(
+        "SELECT * FROM EXPENDITURE WHERE ProfessorKey = %s ORDER BY Year DESC",
+        (pk,)
+    )
     return render_template('professor/expenditure.html', data=data)
 
 
 # ====================== PROPOSALS ======================
 @professor_bp.route('/proposals', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def proposals():
     pk = current_user.professor_key
     form = ProposalForm()
@@ -352,6 +441,7 @@ def proposals():
 # ====================== GRANTS ======================
 @professor_bp.route('/grants', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def grants():
     pk = current_user.professor_key
     form = GrantForm()
@@ -371,8 +461,106 @@ def grants():
     return render_template('professor/grants.html', data=data, form=form)
 
 
+# ====================== PROPOSALS EDIT/DELETE ======================
+@professor_bp.route('/proposals/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_proposal(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = ProposalForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE PROPOSAL
+                SET Title=%s, Sponsor=%s, AllocatedAmount=%s, TotalCost=%s,
+                    `Funded?`=%s, `Begin Date`=%s, `End Date`=%s,
+                    `Submit Date`=%s, `Principal Investigator`=%s
+                WHERE `Proposal Key`=%s AND ProfessorKey=%s
+            """, (form.title.data, form.sponsor.data, form.allocated_amount.data,
+                  form.total_cost.data, form.funded.data, form.begin_date.data,
+                  form.end_date.data, form.submit_date.data,
+                  form.principal_investigators.data, id, pk), commit=True)
+            flash('Proposal updated successfully', 'success')
+            return redirect(url_for('professor.proposals'))
+    else:
+        proposal = execute_query(
+            "SELECT * FROM PROPOSAL WHERE `Proposal Key`=%s AND ProfessorKey=%s",
+            (id, pk), fetchone=True)
+        if proposal:
+            form = ProposalForm()
+            form.title.data = proposal.get('Title')
+            form.sponsor.data = proposal.get('Sponsor')
+            form.allocated_amount.data = proposal.get('AllocatedAmount')
+            form.total_cost.data = proposal.get('TotalCost')
+            form.funded.data = proposal.get('Funded?')
+            form.begin_date.data = proposal.get('Begin Date')
+            form.end_date.data = proposal.get('End Date')
+            form.submit_date.data = proposal.get('Submit Date')
+            form.principal_investigators.data = proposal.get('Principal Investigator')
+            return render_template('professor/partials/proposal_form.html', form=form, id=id)
+    return redirect(url_for('professor.proposals'))
+
+
+@professor_bp.route('/proposals/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_proposal(id):
+    pk = current_user.professor_key
+    execute_query(
+        "DELETE FROM PROPOSAL WHERE `Proposal Key`=%s AND ProfessorKey=%s",
+        (id, pk), commit=True)
+    flash('Proposal deleted successfully', 'success')
+    return redirect(url_for('professor.proposals'))
+
+
+# ====================== SERVICE EDIT/DELETE ======================
+@professor_bp.route('/service/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_service(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = ServiceForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE SERVICE
+                SET Description=%s, Type=%s, Term=%s,
+                    `Calendar Year`=%s, `Hours/Semester`=%s
+                WHERE `Service Key`=%s AND ProfessorKey=%s
+            """, (form.description.data, form.type.data, form.term.data,
+                  form.calendar_year.data, form.hours.data, id, pk), commit=True)
+            flash('Service updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='service'))
+    else:
+        row = execute_query(
+            "SELECT * FROM SERVICE WHERE `Service Key`=%s AND ProfessorKey=%s",
+            (id, pk), fetchone=True)
+        if row:
+            form = ServiceForm()
+            form.description.data = row.get('Description')
+            form.type.data = row.get('Type')
+            form.term.data = row.get('Term')
+            form.calendar_year.data = row.get('Calendar Year')
+            form.hours.data = row.get('Hours/Semester')
+            return render_template('professor/partials/service_form.html', form=form, id=id)
+    return redirect(url_for('professor.service', tab='service'))
+
+
+@professor_bp.route('/service/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_service(id):
+    pk = current_user.professor_key
+    execute_query(
+        "DELETE FROM SERVICE WHERE `Service Key`=%s AND ProfessorKey=%s",
+        (id, pk), commit=True)
+    flash('Service deleted successfully', 'success')
+    return redirect(url_for('professor.service', tab='service'))
+
+
 @professor_bp.route('/grants/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def edit_grant(id):
     pk = current_user.professor_key
     if request.method == 'POST':
@@ -409,6 +597,7 @@ def edit_grant(id):
 
 @professor_bp.route('/grants/delete/<int:id>', methods=['POST'])
 @login_required
+@professor_required
 def delete_grant(id):
     pk = current_user.professor_key
     execute_query("DELETE FROM GRANTS WHERE GrantKey=%s AND ProfessorKey=%s", (id, pk), commit=True)
@@ -418,6 +607,7 @@ def delete_grant(id):
 # ====================== CV ======================
 @professor_bp.route('/generate_cv')
 @login_required
+@professor_required
 def generate_cv_route():
     from app.utils import generate_cv
     pdf_path = generate_cv(current_user.professor_key)
@@ -426,22 +616,493 @@ def generate_cv_route():
     flash('CV generation failed', 'danger')
     return redirect(url_for('professor.dashboard'))
 
-# ====================== SCHOLARSHIP ======================
-@professor_bp.route('/scholarship')
+
+# ====================== SCHOLARSHIP (Two Tabs with Full CRUD) ======================
+@professor_bp.route('/scholarship', methods=['GET', 'POST'])
 @login_required
+@professor_required
 def scholarship():
     pk = current_user.professor_key
-    
-    current_students = execute_query(
-        "SELECT * FROM CURRENTSTUDENTS WHERE ProfessorKey = %s", (pk,))
-    
-    theses = execute_query(
-        "SELECT * FROM THESIS WHERE ProfessorKey = %s", (pk,))
-    
-    undergrad_research = execute_query(
-        "SELECT * FROM UNDERGRADUATERESEARCH WHERE ProfessorKey = %s", (pk,))
-    
+
+    current_student_form = CurrentStudentForm()
+    thesis_form = ThesisForm()
+
+    # === Add Current Student ===
+    if current_student_form.validate_on_submit() and request.form.get('form_type') == 'current_student':
+        execute_query("""
+            INSERT INTO CURRENTSTUDENTS (`Student Name`, `Current Program`, `Start Date`, ProfessorKey)
+            VALUES (%s, %s, %s, %s)
+        """, (current_student_form.student_name.data,
+              current_student_form.current_program.data,
+              current_student_form.start_date.data,
+              pk), commit=True)
+        flash('Current student added successfully', 'success')
+        return redirect(url_for('professor.scholarship'))
+
+    # === Add Thesis ===
+    if thesis_form.validate_on_submit() and request.form.get('form_type') == 'thesis':
+        execute_query("""
+            INSERT INTO THESIS (Student, Year, Degree, Title, Comments, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (thesis_form.student.data,
+              thesis_form.year.data,
+              thesis_form.degree.data,
+              thesis_form.title.data,
+              thesis_form.comments.data,
+              pk), commit=True)
+        flash('Thesis added successfully', 'success')
+        return redirect(url_for('professor.scholarship'))
+
+    # Load data for both tabs
+    current_students = execute_query("""
+        SELECT `Student Key`,
+               `Student Name`,
+               `Current Program`,
+               `Start Date`
+        FROM CURRENTSTUDENTS 
+        WHERE ProfessorKey = %s
+    """, (pk,))
+
+    theses = execute_query("""
+        SELECT * FROM THESIS WHERE ProfessorKey = %s
+    """, (pk,))
+
     return render_template('professor/scholarship.html',
                            current_students=current_students,
                            theses=theses,
-                           undergrad_research=undergrad_research)
+                           current_student_form=current_student_form,
+                           thesis_form=thesis_form)
+
+
+# ====================== SCHOLARSHIP ADD ROUTES ======================
+@professor_bp.route('/scholarship/add/current_student', methods=['GET'])
+@login_required
+@professor_required
+def add_current_student_form():
+    form = CurrentStudentForm()
+    return render_template('professor/partials/current_student_form.html', form=form)
+
+
+@professor_bp.route('/scholarship/add/thesis', methods=['GET'])
+@login_required
+@professor_required
+def add_thesis_form():
+    form = ThesisForm()
+    return render_template('professor/partials/thesis_form.html', form=form)
+
+
+# ====================== SCHOLARSHIP EDIT ROUTES ======================
+@professor_bp.route('/scholarship/edit/current_student/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_current_student(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = CurrentStudentForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE CURRENTSTUDENTS 
+                SET `Student Name` = %s, `Current Program` = %s, `Start Date` = %s
+                WHERE ProfessorKey = %s AND `Student Key` = %s
+            """, (form.student_name.data, form.current_program.data, form.start_date.data, pk, id), commit=True)
+            flash('Current student updated successfully', 'success')
+            return redirect(url_for('professor.scholarship'))
+    else:
+        row = execute_query("""
+            SELECT * FROM CURRENTSTUDENTS 
+            WHERE ProfessorKey = %s AND `Student Key` = %s
+        """, (pk, id), fetchone=True)
+        if row:
+            form = CurrentStudentForm()
+            form.student_name.data = row.get('Student Name')
+            form.current_program.data = row.get('Current Program')
+            form.start_date.data = row.get('Start Date')
+            return render_template('professor/partials/current_student_form.html', form=form, id=id)
+    return redirect(url_for('professor.scholarship'))
+
+
+@professor_bp.route('/scholarship/edit/thesis/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_thesis(id):
+    if request.method == 'POST':
+        form = ThesisForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE THESIS 
+                SET `Student Name` = %s, Year = %s, Degree = %s, Title = %s, Comments = %s
+                WHERE ProfessorKey = %s AND `Thesis Key` = %s
+            """, (form.student.data, form.year.data, form.degree.data, 
+                  form.title.data, form.comments.data, current_user.professor_key, id), commit=True)
+            flash('Thesis updated successfully', 'success')
+            return redirect(url_for('professor.scholarship'))
+    else:
+        row = execute_query("""
+            SELECT * FROM THESIS 
+            WHERE ProfessorKey = %s AND `Thesis Key` = %s
+        """, (current_user.professor_key, id), fetchone=True)
+        if row:
+            form = ThesisForm()
+            form.student.data = row.get('Student Name')
+            form.year.data = row.get('Year')
+            form.degree.data = row.get('Degree')
+            form.title.data = row.get('Title')
+            form.comments.data = row.get('Comments')
+            return render_template('professor/partials/thesis_form.html', form=form, id=id)
+    return redirect(url_for('professor.scholarship'))
+
+
+# ====================== SCHOLARSHIP DELETE ROUTES ======================
+@professor_bp.route('/scholarship/delete/current_student/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_current_student(id):
+    pk = current_user.professor_key
+    execute_query("DELETE FROM CURRENTSTUDENTS WHERE ProfessorKey = %s AND `Student Key` = %s", 
+                  (pk, id), commit=True)
+    flash('Current student deleted successfully', 'success')
+    return redirect(url_for('professor.scholarship'))
+
+
+@professor_bp.route('/scholarship/delete/thesis/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_thesis(id):
+    pk = current_user.professor_key
+    execute_query("DELETE FROM THESIS WHERE ProfessorKey = %s AND `Thesis Key` = %s", 
+                  (pk, id), commit=True)
+    flash('Thesis deleted successfully', 'success')
+    return redirect(url_for('professor.scholarship'))
+
+# ====================== REVIEWS ======================
+@professor_bp.route('/reviews', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def reviews():
+    pk = current_user.professor_key
+    form = ReviewsForm()
+    if form.validate_on_submit():
+        execute_query("""
+            INSERT INTO REVIEWS (Journal, `Start Date`, Rounds, ProfessorKey)
+            VALUES (%s, %s, %s, %s)
+        """, (form.journal.data, form.start_date.data, form.rounds.data, pk), commit=True)
+        flash('Review added successfully', 'success')
+        return redirect(url_for('professor.service', tab='reviews'))
+    data = execute_query(
+        "SELECT * FROM REVIEWS WHERE ProfessorKey = %s ORDER BY `Start Date` DESC", (pk,))
+    return render_template('professor/reviews.html', form=form, data=data)
+
+
+@professor_bp.route('/reviews/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_review(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = ReviewsForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE REVIEWS SET Journal=%s, `Start Date`=%s, Rounds=%s
+                WHERE `Reviews Key`=%s AND ProfessorKey=%s
+            """, (form.journal.data, form.start_date.data, form.rounds.data, id, pk), commit=True)
+            flash('Review updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='reviews'))
+    else:
+        row = execute_query(
+            "SELECT * FROM REVIEWS WHERE `Reviews Key`=%s AND ProfessorKey=%s",
+            (id, pk), fetchone=True)
+        if row:
+            form = ReviewsForm()
+            form.journal.data = row.get('Journal') or ''
+            form.start_date.data = row.get('Start Date') or None
+            form.rounds.data = row.get('Rounds') or 1
+            return render_template('professor/partials/reviews_form.html', form=form, id=id)
+    return redirect(url_for('professor.service', tab='reviews'))
+
+
+@professor_bp.route('/reviews/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_review(id):
+    pk = current_user.professor_key
+    execute_query(
+        "DELETE FROM REVIEWS WHERE `Reviews Key`=%s AND ProfessorKey=%s",
+        (id, pk), commit=True)
+    flash('Review deleted successfully', 'success')
+    return redirect(url_for('professor.service', tab='reviews'))
+
+
+# ====================== ADVISEE COUNT ======================
+@professor_bp.route('/advisee-count', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def advisee_count():
+    pk = current_user.professor_key
+    form = AdviseeCountForm()
+    if form.validate_on_submit():
+        execute_query("""
+            INSERT INTO ADVISEECOUNT (`Advisor Name`, `Advisee Count`, Year, Term, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (form.advisor_name.data, form.advisee_count.data,
+              form.year.data, form.term.data, pk), commit=True)
+        flash('Advisee count added successfully', 'success')
+        return redirect(url_for('professor.advisee_count'))
+    data = execute_query(
+        "SELECT * FROM ADVISEECOUNT WHERE ProfessorKey = %s ORDER BY Year DESC, Term", (pk,))
+    return render_template('professor/advisee_count.html', form=form, data=data)
+
+
+@professor_bp.route('/advisee-count/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_advisee_count(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = AdviseeCountForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE ADVISEECOUNT
+                SET `Advisor Name`=%s, `Advisee Count`=%s, Year=%s, Term=%s
+                WHERE `Advisee Count Key`=%s AND ProfessorKey=%s
+            """, (form.advisor_name.data, form.advisee_count.data,
+                  form.year.data, form.term.data, id, pk), commit=True)
+            flash('Advisee count updated', 'success')
+            return redirect(url_for('professor.advisee_count'))
+    else:
+        row = execute_query(
+            "SELECT * FROM ADVISEECOUNT WHERE `Advisee Count Key`=%s AND ProfessorKey=%s",
+            (id, pk), fetchone=True)
+        if row:
+            form = AdviseeCountForm()
+            form.advisor_name.data = row.get('Advisor Name') or ''
+            form.advisee_count.data = row.get('Advisee Count') or 0
+            form.year.data = row.get('Year') or 2025
+            form.term.data = row.get('Term') or 'Fall'
+            return render_template('professor/partials/advisee_count_form.html', form=form, id=id)
+    return redirect(url_for('professor.advisee_count'))
+
+
+@professor_bp.route('/advisee-count/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_advisee_count(id):
+    pk = current_user.professor_key
+    execute_query(
+        "DELETE FROM ADVISEECOUNT WHERE `Advisee Count Key`=%s AND ProfessorKey=%s",
+        (id, pk), commit=True)
+    flash('Advisee count deleted', 'success')
+    return redirect(url_for('professor.advisee_count'))
+
+
+# ====================== PROFESSIONAL DEVELOPMENT ======================
+@professor_bp.route('/professional-development', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def professional_development():
+    pk = current_user.professor_key
+    form = ProfessionalDevelopmentForm()
+    if form.validate_on_submit():
+        execute_query("""
+            INSERT INTO PROFESSIONALDEVELOPMENT
+                (Description, Type, `Calendar Year`, Term, Hours, Notes, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (form.description.data, form.type.data, form.calendar_year.data,
+              form.term.data, form.hours.data, form.notes.data, pk), commit=True)
+        flash('Professional development entry added', 'success')
+        return redirect(url_for('professor.service', tab='prof_dev'))
+    data = execute_query("""
+        SELECT * FROM PROFESSIONALDEVELOPMENT
+        WHERE ProfessorKey = %s ORDER BY `Calendar Year` DESC, Term
+    """, (pk,))
+    return render_template('professor/professional_development.html', form=form, data=data)
+
+
+@professor_bp.route('/professional-development/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_professional_development(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = ProfessionalDevelopmentForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE PROFESSIONALDEVELOPMENT
+                SET Description=%s, Type=%s, `Calendar Year`=%s, Term=%s, Hours=%s, Notes=%s
+                WHERE `Professional Development Key`=%s AND ProfessorKey=%s
+            """, (form.description.data, form.type.data, form.calendar_year.data,
+                  form.term.data, form.hours.data, form.notes.data, id, pk), commit=True)
+            flash('Entry updated', 'success')
+            return redirect(url_for('professor.service', tab='prof_dev'))
+    else:
+        row = execute_query("""
+            SELECT * FROM PROFESSIONALDEVELOPMENT
+            WHERE `Professional Development Key`=%s AND ProfessorKey=%s
+        """, (id, pk), fetchone=True)
+        if row:
+            form = ProfessionalDevelopmentForm()
+            form.description.data = row.get('Description') or ''
+            form.type.data = row.get('Type') or 'Conference'
+            form.calendar_year.data = row.get('Calendar Year') or 2025
+            form.term.data = row.get('Term') or 'Fall'
+            form.hours.data = row.get('Hours') or 0
+            form.notes.data = row.get('Notes') or ''
+            return render_template('professor/partials/professional_development_form.html', form=form, id=id)
+    return redirect(url_for('professor.service', tab='prof_dev'))
+
+
+@professor_bp.route('/professional-development/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_professional_development(id):
+    pk = current_user.professor_key
+    execute_query("""
+        DELETE FROM PROFESSIONALDEVELOPMENT
+        WHERE `Professional Development Key`=%s AND ProfessorKey=%s
+    """, (id, pk), commit=True)
+    flash('Entry deleted', 'success')
+    return redirect(url_for('professor.service', tab='prof_dev'))
+
+
+# ====================== PROSPECTIVE VISIT ======================
+@professor_bp.route('/prospective-visit', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def prospective_visit():
+    pk = current_user.professor_key
+    form = ProspectiveVisitForm()
+    if form.validate_on_submit():
+        execute_query("""
+            INSERT INTO PROSPECTIVEVISIT (Staff, Year, Visits, Deposits, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (form.staff.data, form.year.data, form.visits.data,
+              form.deposits.data, pk), commit=True)
+        flash('Prospective visit added', 'success')
+        return redirect(url_for('professor.prospective_visit'))
+    data = execute_query(
+        "SELECT * FROM PROSPECTIVEVISIT WHERE ProfessorKey = %s ORDER BY Year DESC", (pk,))
+    return render_template('professor/prospective_visit.html', form=form, data=data)
+
+
+@professor_bp.route('/prospective-visit/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_prospective_visit(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = ProspectiveVisitForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE PROSPECTIVEVISIT
+                SET Staff=%s, Year=%s, Visits=%s, Deposits=%s
+                WHERE `Prospective Visit Key`=%s AND ProfessorKey=%s
+            """, (form.staff.data, form.year.data, form.visits.data,
+                  form.deposits.data, id, pk), commit=True)
+            flash('Visit updated', 'success')
+            return redirect(url_for('professor.prospective_visit'))
+    else:
+        row = execute_query("""
+            SELECT * FROM PROSPECTIVEVISIT
+            WHERE `Prospective Visit Key`=%s AND ProfessorKey=%s
+        """, (id, pk), fetchone=True)
+        if row:
+            form = ProspectiveVisitForm()
+            form.staff.data = row.get('Staff') or ''
+            form.year.data = row.get('Year') or 2025
+            form.visits.data = row.get('Visits') or 0
+            form.deposits.data = row.get('Deposits') or 0
+            return render_template('professor/partials/prospective_visit_form.html', form=form, id=id)
+    return redirect(url_for('professor.prospective_visit'))
+
+
+@professor_bp.route('/prospective-visit/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_prospective_visit(id):
+    pk = current_user.professor_key
+    execute_query("""
+        DELETE FROM PROSPECTIVEVISIT
+        WHERE `Prospective Visit Key`=%s AND ProfessorKey=%s
+    """, (id, pk), commit=True)
+    flash('Visit deleted', 'success')
+    return redirect(url_for('professor.prospective_visit'))
+
+
+# ====================== UNDERGRADUATE RESEARCH ======================
+@professor_bp.route('/undergraduate-research', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def undergraduate_research():
+    pk = current_user.professor_key
+    form = UndergraduateResearchForm()
+    if form.validate_on_submit():
+        execute_query("""
+            INSERT INTO UNDERGRADUATERESEARCH
+                (Students, Title, `Program Type`, Term, `Calendar Year`, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (form.students.data, form.title.data, form.program_type.data,
+              form.term.data, form.calendar_year.data, pk), commit=True)
+        flash('Undergraduate research entry added', 'success')
+        return redirect(url_for('professor.service', tab='undergrad'))
+    data = execute_query("""
+        SELECT * FROM UNDERGRADUATERESEARCH
+        WHERE ProfessorKey = %s ORDER BY `Calendar Year` DESC
+    """, (pk,))
+    return render_template('professor/undergraduate_research.html', form=form, data=data)
+
+
+@professor_bp.route('/undergraduate-research/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def edit_undergraduate_research(id):
+    pk = current_user.professor_key
+    if request.method == 'POST':
+        form = UndergraduateResearchForm()
+        if form.validate_on_submit():
+            execute_query("""
+                UPDATE UNDERGRADUATERESEARCH
+                SET Students=%s, Title=%s, `Program Type`=%s, Term=%s, `Calendar Year`=%s
+                WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
+            """, (form.students.data, form.title.data, form.program_type.data,
+                  form.term.data, form.calendar_year.data, id, pk), commit=True)
+            flash('Entry updated', 'success')
+            return redirect(url_for('professor.service', tab='undergrad'))
+    else:
+        row = execute_query("""
+            SELECT * FROM UNDERGRADUATERESEARCH
+            WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
+        """, (id, pk), fetchone=True)
+        if row:
+            form = UndergraduateResearchForm()
+            form.students.data = row.get('Students') or ''
+            form.title.data = row.get('Title') or ''
+            form.program_type.data = row.get('Program Type') or 'Summer REU Program'
+            form.term.data = row.get('Term') or 'Fall'
+            form.calendar_year.data = row.get('Calendar Year') or 2025
+            return render_template('professor/partials/undergraduate_research_form.html', form=form, id=id)
+    return redirect(url_for('professor.service', tab='undergrad'))
+
+
+@professor_bp.route('/undergraduate-research/delete/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def delete_undergraduate_research(id):
+    pk = current_user.professor_key
+    execute_query("""
+        DELETE FROM UNDERGRADUATERESEARCH
+        WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
+    """, (id, pk), commit=True)
+    flash('Entry deleted', 'success')
+    return redirect(url_for('professor.service', tab='undergrad'))
+
+
+# ====================== ADVISING EVALUATION (Read-only) ======================
+@professor_bp.route('/advising-evaluation')
+@login_required
+@professor_required
+def advising_evaluation():
+    pk = current_user.professor_key
+    data = execute_query("""
+        SELECT * FROM ADVISINGEVALUATION
+        WHERE ProfessorKey = %s ORDER BY EvaluationYear DESC, Term
+    """, (pk,))
+    return render_template('professor/advising_evaluation.html', data=data)

@@ -1,0 +1,10 @@
+<form method="POST" action="/professor/advisee-count/edit/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.advisor_name.label }} {{ form.advisor_name(class="form-control") }}</div>
+    <div class="row mb-3">
+        <div class="col-md-4">{{ form.advisee_count.label }} {{ form.advisee_count(class="form-control") }}</div>
+        <div class="col-md-4">{{ form.term.label }} {{ form.term(class="form-select") }}</div>
+        <div class="col-md-4">{{ form.year.label }} {{ form.year(class="form-control") }}</div>
+    </div>
+    <button type="submit" class="btn btn-gold">Save Changes</button>
+</form>

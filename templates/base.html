@@ -48,7 +48,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-dark sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('professor.dashboard') if current_user.is_authenticated and current_user.role == 'professor' else '#' }}">
+            <a class="navbar-brand d-flex align-items-center" href="{% if current_user.is_authenticated %}{% if current_user.role == 'admin' %}{{ url_for('admin.dashboard') }}{% else %}{{ url_for('professor.dashboard') }}{% endif %}{% else %}#{% endif %}">
                 <img src="{{ url_for('static', filename='images/clarkson-logo.png') }}" 
                      height="48" alt="Clarkson University" class="me-3">
                 Faculty Activity Report
@@ -60,12 +60,19 @@
                 <span class="text-white fw-medium">{{ current_user.email }}</span>
                 
                 {% if current_user.role == 'professor' %}
-                <a href="{{ url_for('professor.generate_cv_route') }}" 
+                <a href="{{ url_for('generate.generate') }}" 
                    class="btn btn-gold btn-sm">
                     <i class="bi bi-file-earmark-pdf me-1"></i> Generate CV
                 </a>
                 {% endif %}
-                
+            
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('generate.generate_all') }}"
+                   class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-people me-1"></i> Generate All FARs
+                </a>
+                {% endif %} 
+            
                 <a href="{{ url_for('auth.logout') }}" 
                    class="btn btn-outline-light btn-sm">
                     Logout

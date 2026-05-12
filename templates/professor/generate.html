@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Generate FAR / CV{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <h2 class="fw-bold mb-1" style="color: var(--clarkson-green);">Generate FAR / CV</h2>
+      <p class="text-muted mb-4">Your data will be exported from the database and compiled into a document using <code>make_cv</code>.</p>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <form method="POST" enctype="multipart/form-data">
+            {{ csrf_token() if csrf_token is defined }}
+
+            <!-- Document Type -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Document Type</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="doc_type" id="type_far" value="far" checked>
+                  <label class="form-check-label" for="type_far">
+                    <strong>FAR</strong> <span class="text-muted">— Faculty Activity Report</span>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="doc_type" id="type_cv" value="cv">
+                  <label class="form-check-label" for="type_cv">
+                    <strong>Full CV</strong> <span class="text-muted">— Curriculum Vitae</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Years -->
+            <div class="mb-4">
+              <label for="years" class="form-label fw-semibold">Years of Data</label>
+              <select class="form-select" id="years" name="years" style="max-width: 220px;">
+                <option value="1" selected>Last 1 year</option>
+                <option value="2">Last 2 years</option>
+                <option value="3">Last 3 years</option>
+                <option value="5">Last 5 years</option>
+                <option value="0">All years</option>
+              </select>
+            </div>
+
+            <!-- Output Format -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Output Format</label>
+              <div class="d-flex gap-3">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="format" id="fmt_pdf" value="pdf" checked>
+                  <label class="form-check-label" for="fmt_pdf">PDF only</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="format" id="fmt_docx" value="docx">
+                  <label class="form-check-label" for="fmt_docx">Word (.docx) only</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="format" id="fmt_both" value="both">
+                  <label class="form-check-label" for="fmt_both">Both</label>
+                </div>
+              </div>
+              <small class="text-muted">Word output requires pandoc to be installed.</small>
+            </div>
+
+            <!-- .bib Upload -->
+            <div class="mb-4">
+              <label for="bib_file" class="form-label fw-semibold">
+                Publications (.bib file)
+                <span class="text-muted fw-normal">— optional</span>
+              </label>
+              <input class="form-control" type="file" id="bib_file" name="bib_file" accept=".bib">
+              <small class="text-muted">
+                Upload your <code>scholarship.bib</code> file. If not uploaded, the existing file on the server will be used.
+              </small>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-grid">
+              <button type="submit" class="btn btn-lg fw-semibold text-dark"
+                      style="background-color: var(--clarkson-gold);"
+                      onclick="this.innerHTML='⏳ Generating...'; this.disabled=true; this.form.submit();">
+                ⚙️ Generate &amp; Download
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div class="alert alert-info mt-4 border-0" style="background:#e8f4f8;">
+        <h6 class="fw-bold mb-2">What happens when you click Generate?</h6>
+        <ol class="mb-0 ps-3 small">
+          <li>Your data is exported from the database into Excel files</li>
+          <li><code>make_far</code> / <code>make_cv</code> compiles the document using LaTeX</li>
+          <li>The output is packaged and downloaded to your computer</li>
+        </ol>
+        <p class="mt-2 mb-0 small text-muted">This may take 15–30 seconds depending on the amount of data.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

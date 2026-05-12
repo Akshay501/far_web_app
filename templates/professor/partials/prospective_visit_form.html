@@ -1,0 +1,10 @@
+<form method="POST" action="/professor/prospective-visit/edit/{{ id }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.staff.label }} {{ form.staff(class="form-control", rows=2) }}</div>
+    <div class="row mb-3">
+        <div class="col-md-4">{{ form.year.label }} {{ form.year(class="form-control") }}</div>
+        <div class="col-md-4">{{ form.visits.label }} {{ form.visits(class="form-control") }}</div>
+        <div class="col-md-4">{{ form.deposits.label }} {{ form.deposits(class="form-control") }}</div>
+    </div>
+    <button type="submit" class="btn btn-gold">Save Changes</button>
+</form>

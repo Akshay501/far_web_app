@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="mb-1">Admin Dashboard</h2>
+        <p class="text-muted mb-0">All faculty — Faculty Activity Report overview</p>
+    </div>
+    <span class="badge bg-secondary fs-6 px-3 py-2">{{ professors|length }} professor{{ 's' if professors|length != 1 }}</span>
+</div>
+
+<!-- Summary Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="fs-1 fw-bold" style="color: var(--clarkson-green);">
+                    {{ professors|selectattr('grant_count', 'gt', 0)|list|length }}
+                </div>
+                <div class="text-muted small">With grants</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="fs-1 fw-bold" style="color: var(--clarkson-green);">
+                    {{ professors|sum(attribute='thesis_count') }}
+                </div>
+                <div class="text-muted small">Total theses</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="fs-1 fw-bold" style="color: var(--clarkson-green);">
+                    {{ professors|sum(attribute='service_count') }}
+                </div>
+                <div class="text-muted small">Service activities</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card text-center border-0 shadow-sm">
+            <div class="card-body py-3">
+                <div class="fs-1 fw-bold text-danger">
+                    {{ professors|selectattr('grant_count', 'eq', 0)|selectattr('thesis_count', 'eq', 0)|selectattr('service_count', 'eq', 0)|selectattr('teaching_count', 'eq', 0)|list|length }}
+                </div>
+                <div class="text-muted small">No data entered</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Professor Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Email</th>
+                    <th class="text-center">Grants</th>
+                    <th class="text-center">Proposals</th>
+                    <th class="text-center">Theses</th>
+                    <th class="text-center">Service</th>
+                    <th class="text-center">Teaching</th>
+                    <th class="text-center">FAR Status</th>
+                    <th class="text-center">View</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in professors %}
+                {% set total = p.grant_count + p.thesis_count + p.service_count + p.teaching_count + p.proposal_count %}
+                <tr>
+                    <td><strong>{{ p.LastName }}, {{ p.FirstName }}</strong></td>
+                    <td>{{ p.Department or '—' }}</td>
+                    <td>
+                        {% if p.Email %}
+                            <a href="mailto:{{ p.Email }}" class="text-decoration-none text-muted">
+                                <i class="bi bi-envelope me-1"></i>{{ p.Email }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted fst-italic">No account</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if p.grant_count > 0 else 'bg-light text-muted border' }}">{{ p.grant_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if p.proposal_count > 0 else 'bg-light text-muted border' }}">{{ p.proposal_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if p.thesis_count > 0 else 'bg-light text-muted border' }}">{{ p.thesis_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if p.service_count > 0 else 'bg-light text-muted border' }}">{{ p.service_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge {{ 'bg-success' if p.teaching_count > 0 else 'bg-light text-muted border' }}">{{ p.teaching_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if total == 0 %}
+                            <span class="badge bg-danger">No data</span>
+                        {% elif total < 6 %}
+                            <span class="badge bg-warning text-dark">In progress</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('admin.view_professor', pk=p.ProfessorKey) }}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted py-4">No professors found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

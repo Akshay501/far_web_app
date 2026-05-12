@@ -86,9 +86,9 @@
             <td>{{ item.EndDate or '—' }}</td>
             <td>{{ item.SubmitDate or '—' }}</td>
             <td>
-                <button onclick="editRecord('proposal', {{ item.ProposalKey }})" 
+                <button onclick="editRecord('proposal', {{ item['Proposal Key'] }})" 
                         class="btn btn-sm btn-warning me-1">Edit</button>
-                <button onclick="deleteRecord('proposal', {{ item.ProposalKey }}, '{{ item.Title|escape|default('') }}')" 
+                <button onclick="deleteRecord('proposal', {{ item['Proposal Key'] }}, '{{ item.Title|escape|default('') }}')" 
                         class="btn btn-sm btn-danger">Delete</button>
             </td>
         </tr>
