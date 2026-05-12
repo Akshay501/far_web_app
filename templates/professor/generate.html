@@ -11,7 +11,7 @@
 
       <div class="card shadow-sm border-0">
         <div class="card-body p-4">
-          <form method="POST" enctype="multipart/form-data">
+          <form method="POST" enctype="multipart/form-data" id="generateForm">
             {{ csrf_token() if csrf_token is defined }}
 
             <!-- Document Type -->
@@ -79,9 +79,8 @@
 
             <!-- Submit -->
             <div class="d-grid">
-              <button type="submit" class="btn btn-lg fw-semibold text-dark"
-                      style="background-color: var(--clarkson-gold);"
-                      onclick="this.innerHTML='⏳ Generating...'; this.disabled=true; this.form.submit();">
+              <button type="submit" id="generateBtn" class="btn btn-lg fw-semibold text-dark"
+                      style="background-color: var(--clarkson-gold);">
                 ⚙️ Generate &amp; Download
               </button>
             </div>
@@ -104,4 +103,34 @@
     </div>
   </div>
 </div>
+
+<script>
+document.getElementById('generateForm').addEventListener('submit', function() {
+    var btn = document.getElementById('generateBtn');
+    btn.innerHTML = '⏳ Generating...';
+    btn.disabled = true;
+    btn.style.opacity = '0.7';
+
+    // Poll for the download cookie that Flask sets when the file is ready
+    // Re-enable button once download starts or after 90 second timeout
+    var timeout = setTimeout(function() {
+        resetBtn(btn);
+    }, 90000);
+
+    var poll = setInterval(function() {
+        if (document.cookie.indexOf('fileDownload=true') !== -1) {
+            document.cookie = 'fileDownload=true; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+            clearInterval(poll);
+            clearTimeout(timeout);
+            resetBtn(btn);
+        }
+    }, 1000);
+});
+
+function resetBtn(btn) {
+    btn.innerHTML = '⚙️ Generate &amp; Download';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+}
+</script>
 {% endblock %}

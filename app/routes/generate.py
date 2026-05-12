@@ -67,26 +67,51 @@ def fetch_all_db_data(professor_key):
         WHERE pa.ProfessorKey = %s
     """)
 
-    # Student awards: join STUDENTAWARDS with AWARDS
+    # Student awards: join STUDENTAWARDS with AWARDS via PERSONALAWARDS to filter by professor
     student_awards = q("""
         SELECT a.Title, a.Year, a.`Award Type`, sa.Student, sa.Amount, sa.Category
         FROM STUDENTAWARDS sa
         JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
-    """, ())
+        JOIN PERSONALAWARDS pa ON pa.`Award Key` = a.`Award Key`
+        WHERE pa.ProfessorKey = %s
+    """)
 
-    proposals = q("SELECT * FROM PROPOSAL WHERE ProfessorKey = %s")
-    grants    = q("SELECT * FROM GRANTS WHERE ProfessorKey = %s")
-    expenditures    = q("SELECT * FROM EXPENDITURE WHERE ProfessorKey = %s")
-    current_students = q("SELECT * FROM CURRENTSTUDENTS WHERE ProfessorKey = %s")
-    thesis    = q("SELECT * FROM THESIS WHERE ProfessorKey = %s")
-    service   = q("SELECT * FROM SERVICE WHERE ProfessorKey = %s")
-    reviews   = q("SELECT * FROM REVIEWS WHERE ProfessorKey = %s")
-    prof_dev  = q("SELECT * FROM PROFESSIONALDEVELOPMENT WHERE ProfessorKey = %s")
-    undergrad = q("SELECT * FROM UNDERGRADUATERESEARCH WHERE ProfessorKey = %s")
-    advisee   = q("SELECT * FROM ADVISEECOUNT WHERE ProfessorKey = %s")
-    advising  = q("SELECT * FROM ADVISINGEVALUATION WHERE ProfessorKey = %s")
-    teaching  = q("SELECT * FROM TEACHINGEVALUATION WHERE ProfessorKey = %s")
-    prospective = q("SELECT * FROM PROSPECTIVEVISIT WHERE ProfessorKey = %s")
+    proposals = q("""SELECT `Proposal ID`, Role, `Funded?`, `Principal Investigator`,
+        Title, `Begin Date`, `End Date`, Sponsor, `Allocated Amount`,
+        `Submit Date`, Faculty, `Total Cost` FROM PROPOSAL WHERE ProfessorKey = %s""")
+    grants = q("""SELECT `Grant ID`, Role, PCT, `Principal Investigators`,
+        Title, `Begin Date`, `End Date`, Sponsor, `Allocated Amount`,
+        `Award Total Direct Funding`, Faculty, `Total Cost` FROM GRANTS WHERE ProfessorKey = %s""")
+    expenditures = q("""SELECT Year, Name, Expenditure, Indirect, Tuition,
+        `Salary Recovery` FROM EXPENDITURE WHERE ProfessorKey = %s""")
+    current_students = q("""SELECT `Student Name`, `Current Program`,
+        `Start Date` FROM CURRENTSTUDENTS WHERE ProfessorKey = %s""")
+    thesis = q("""SELECT `Student Name`, `Start Date`, Year, Degree,
+        Advisor, Title, Comments FROM THESIS WHERE ProfessorKey = %s""")
+    service = q("""SELECT Description, Type, Position, Term,
+        `Calendar Year`, `Hours/Semester`, Comments FROM SERVICE WHERE ProfessorKey = %s""")
+    reviews = q("""SELECT Journal, `Start Date`, Rounds
+        FROM REVIEWS WHERE ProfessorKey = %s""")
+    prof_dev = q("""SELECT Description, Type, Term, `Calendar Year`,
+        Hours, Notes FROM PROFESSIONALDEVELOPMENT WHERE ProfessorKey = %s""")
+    undergrad = q("""SELECT Students, Title, `Program Type`, Term,
+        `Calendar Year` FROM UNDERGRADUATERESEARCH WHERE ProfessorKey = %s""")
+    advisee = q("""SELECT `Advisor Name`, `Advisee Count`, Year, Term
+        FROM ADVISEECOUNT WHERE ProfessorKey = %s""")
+    advising = q("SELECT * FROM ADVISINGEVALUATION WHERE ProfessorKey = %s")
+    teaching = q("""SELECT Term, `Combined Course Number`, `Course Section`,
+        `Course Title`, Enrolment, `Count Evals`,
+        `Calculated Mean`, `Weighted Average`
+        FROM TEACHINGEVALUATION
+        WHERE ProfessorKey = %s
+        AND `Combined Course Number` IS NOT NULL
+        AND `Count Evals` IS NOT NULL
+        AND `Count Evals` > 0
+        GROUP BY Term, `Combined Course Number`, `Course Section`,
+        `Course Title`, Enrolment, `Count Evals`,
+        `Calculated Mean`, `Weighted Average`""")
+    prospective = q("""SELECT Staff, Year, Visits, Deposits
+        FROM PROSPECTIVEVISIT WHERE ProfessorKey = %s""")
 
     return {
         'personal_awards':  personal_awards,
@@ -112,17 +137,20 @@ def run_make_far(far_folder, use_pandoc=False):
     Call make_far from within the FAR or FAR_docx folder.
     Returns (success, error_message)
     """
+    import sys
     try:
         from make_cv.make_far import main as make_far_main
         original_dir = os.getcwd()
+        original_argv = sys.argv
         os.chdir(far_folder)
         try:
-            argv = []
-            if use_pandoc:
-                argv.append('--pandoc')
+            # Replace sys.argv so argparse does not pick up Flask arguments
+            argv = ['-p'] if use_pandoc else []
+            sys.argv = ['make_far'] + argv
             make_far_main(argv)
         finally:
             os.chdir(original_dir)
+            sys.argv = original_argv
         return True, None
     except Exception as e:
         return False, str(e)
@@ -133,14 +161,18 @@ def run_make_cv(cv_folder):
     Call make_cv from within the CV folder.
     Returns (success, error_message)
     """
+    import sys
     try:
         from make_cv.make_cv import main as make_cv_main
         original_dir = os.getcwd()
+        original_argv = sys.argv
         os.chdir(cv_folder)
         try:
+            sys.argv = ['make_cv']
             make_cv_main([])
         finally:
             os.chdir(original_dir)
+            sys.argv = original_argv
         return True, None
     except Exception as e:
         return False, str(e)
@@ -237,12 +269,14 @@ def generate():
             for filename, filepath in output_files:
                 zf.write(filepath, filename)
 
-        return send_file(
+        response = send_file(
             zip_path + '.zip',
             as_attachment=True,
             download_name=f'{zip_name}.zip',
             mimetype='application/zip'
         )
+        response.set_cookie('fileDownload', 'true', max_age=60)
+        return response
 
     return render_template('professor/generate.html')
 

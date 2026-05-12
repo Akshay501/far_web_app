@@ -8,6 +8,37 @@ from openpyxl import Workbook
 from datetime import datetime
 
 
+def _safe_year(val):
+    """Extract integer year from datetime, date, string, or int."""
+    if val is None:
+        return None
+    if hasattr(val, 'year'):
+        return int(val.year)
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_date(val):
+    """Return date object or None — strip time component if datetime."""
+    if val is None:
+        return None
+    if hasattr(val, 'date'):
+        return val.date()
+    return val
+
+
+def _safe_float(val):
+    """Convert Decimal/None to float safely."""
+    if val is None:
+        return None
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+
 def _wb(headers):
     """Create a workbook with a Data sheet and given headers."""
     wb = Workbook()
@@ -27,7 +58,7 @@ def write_personal_awards(path, rows):
         ws.append([
             r.get('Title', ''),
             r.get('Award Type', ''),
-            r.get('Year', ''),
+            _safe_year(r.get('Year')),
         ])
     wb.save(path)
 
@@ -45,7 +76,7 @@ def write_student_awards(path, rows):
             r.get('Amount', 0),
             r.get('Category', ''),
             r.get('Award Type', ''),
-            r.get('Year', ''),
+            _safe_year(r.get('Year')),
         ])
     wb.save(path)
 
@@ -70,9 +101,9 @@ def write_proposals_and_grants(path, rows):
             r.get('Total Cost', 0) or 0,
             funded,
             r.get('Title', ''),
-            r.get('Begin Date', None),
-            r.get('End Date', None),
-            r.get('Submit Date', None),
+            _safe_date(r.get('Begin Date')),
+            _safe_date(r.get('End Date')),
+            _safe_date(r.get('Submit Date')),
             r.get('Principal Investigator', '') or r.get('Principal Investigators', ''),
         ])
     wb.save(path)
@@ -100,7 +131,7 @@ def write_expenditures(path, rows):
     ws.append(['Year', 'Name', 'Expenditure', 'Indirect', 'Tuition', 'Salary Recovery'])
     for r in rows:
         ws.append([
-            r.get('Year', ''),
+            _safe_year(r.get('Year')),
             r.get('Name', ''),
             r.get('Expenditure', 0) or 0,
             r.get('Indirect', 0) or 0,
@@ -120,7 +151,7 @@ def write_current_students(path, rows):
         ws.append([
             r.get('Student Name', ''),
             r.get('Current Program', ''),
-            r.get('Start Date', None),
+            _safe_date(r.get('Start Date')),
         ])
     wb.save(path)
 
@@ -128,14 +159,20 @@ def write_current_students(path, rows):
 def write_thesis(path, rows):
     """
     THESIS
-    make_cv expects: Student, Year, Degree, Title, Comments
+    make_cv expects: Student, Start Date, Year, Degree, Advisor, Title, Comments
+    Verified against Bohl Douglas real data.
     """
-    wb, ws = _wb(['Student', 'Year', 'Degree', 'Title', 'Comments'])
+    wb, ws = _wb(['Student', 'Start Date', 'Year', 'Degree', 'Advisor', 'Title', 'Comments'])
     for r in rows:
+        # make_cv reads Start Date as int — use 0 as placeholder (it reads year from Year column)
+        start = r.get('Start Date')
+        start_int = int(start.year) if hasattr(start, 'year') else (int(start) if start else 0)
         ws.append([
             r.get('Student Name', ''),
-            r.get('Year', ''),
+            start_int,
+            _safe_year(r.get('Year')) or 0,
             r.get('Degree', ''),
+            r.get('Advisor', ''),
             r.get('Title', ''),
             r.get('Comments', ''),
         ])
@@ -154,14 +191,17 @@ def write_service(path, rows):
     ])
     for r in rows:
         hours = r.get('Hours/Semester')
+        # Strip newlines from Description — they break LaTeX table rows
+        desc = (r.get('Description', '') or '').replace('\n', ' ').replace('\r', ' ').strip()
+        comments = (r.get('Comments', '') or '').replace('\n', ' ').replace('\r', ' ').strip()
         ws.append([
-            r.get('Description', ''),
+            desc,
             r.get('Type', ''),
             r.get('Position', ''),
             r.get('Term', ''),
-            r.get('Calendar Year', ''),
+            _safe_year(r.get('Calendar Year')),
             float(hours) if hours is not None else None,
-            r.get('Comments', ''),
+            comments,
         ])
     wb.save(path)
 
@@ -175,7 +215,7 @@ def write_reviews(path, rows):
     for r in rows:
         ws.append([
             r.get('Journal', ''),
-            r.get('Start Date', None),
+            _safe_date(r.get('Start Date')),
             r.get('Rounds', 0) or 0,
         ])
     wb.save(path)
@@ -192,7 +232,7 @@ def write_professional_development(path, rows):
             r.get('Description', ''),
             r.get('Type', ''),
             r.get('Term', ''),
-            r.get('Calendar Year', ''),
+            _safe_year(r.get('Calendar Year')),
             r.get('Hours', 0) or 0,
             r.get('Notes', ''),
         ])
@@ -211,7 +251,7 @@ def write_undergraduate_research(path, rows):
             r.get('Title', ''),
             r.get('Program Type', ''),
             r.get('Term', ''),
-            r.get('Calendar Year', ''),
+            _safe_year(r.get('Calendar Year')) or r.get('Calendar Year'),
         ])
     wb.save(path)
 
@@ -229,7 +269,7 @@ def write_advisee_counts(path, rows):
         ws.append([
             r.get('Advisor Name', ''),
             r.get('Advisee Count', 0) or 0,
-            r.get('Year', ''),
+            _safe_year(r.get('Year')),
         ])
     wb.save(path)
 
@@ -251,52 +291,41 @@ def write_advising_evaluation(path, rows):
 def write_teaching_evaluation(path, rows):
     """
     TEACHINGEVALUATION
-    Exact column names from Langen Tom's real teaching evaluation data.xlsx:
-    STRM, term, school, course, course_num, course_section, course_title,
-    INSTR_NA, ID, count_evals, enrollment, Particip, question,
-    a1, a1_pct, a2, a2_pct, a3, a3_pct, a4, a4_pct, a5, a5_pct,
-    na, na_pct, Calculated Mean, Question, combined_course_num, Weighted Average
+    Installed make_cv (0.9.7) expects exactly these columns in Data sheet:
+    term, combined_course_num, combined_num_sec, course_title,
+    enrollment, count_19, mean_19, count_20, mean_20
+
+    DB column mapping:
+    Term            → term
+    Combined Course Number → combined_course_num
+    Course Section  → combined_num_sec (used as section identifier)
+    Course Title    → course_title
+    Enrolment       → enrollment
+    Count Evals     → count_19 (number of respondents)
+    Calculated Mean → mean_19  (overall mean score Q19)
+    Count Evals     → count_20 (same respondents for Q20)
+    Weighted Average→ mean_20  (weighted average score Q20)
     """
     wb, ws = _wb([
-        'STRM', 'term', 'school', 'course', 'course_num',
-        'course_section', 'course_title', 'INSTR_NA', 'ID',
-        'count_evals', 'enrollment', 'Particip', 'question',
-        'a1', 'a1_pct', 'a2', 'a2_pct', 'a3', 'a3_pct',
-        'a4', 'a4_pct', 'a5', 'a5_pct', 'na', 'na_pct',
-        'Calculated Mean', 'Question', 'combined_course_num',
-        'Weighted Average'
+        'term', 'combined_course_num', 'combined_num_sec',
+        'course_title', 'enrollment',
+        'count_19', 'mean_19', 'count_20', 'mean_20'
     ])
     for r in rows:
+        count = int(r.get('Count Evals') or 0)
+        mean_19 = float(r.get('Calculated Mean') or 0)
+        mean_20 = float(r.get('Weighted Average') or 0)
+        enrol = int(r.get('Enrolment') or 0)
         ws.append([
-            r.get('STRM', ''),
-            r.get('Term', ''),
-            r.get('School', ''),
-            r.get('Course', '') or r.get('Course Number', ''),
-            r.get('Course Number', ''),
-            r.get('Course Section', ''),
-            r.get('Course Title', ''),
-            r.get('INSTR_NA', ''),
-            r.get('ID', ''),
-            r.get('Count Evals', 0) or 0,
-            r.get('Enrolment', 0) or 0,
-            r.get('Participation', 0) or 0,
-            r.get('question', '') or r.get('Question', ''),
-            r.get('a1', 0) or 0,
-            r.get('a1_pct', 0) or 0,
-            r.get('a2', 0) or 0,
-            r.get('a2_pct', 0) or 0,
-            r.get('a3', 0) or 0,
-            r.get('a3_pct', 0) or 0,
-            r.get('a4', 0) or 0,
-            r.get('a4_pct', 0) or 0,
-            r.get('a5', 0) or 0,
-            r.get('a5_pct', 0) or 0,
-            r.get('na', 0) or 0,
-            r.get('na_pct', 0) or 0,
-            r.get('Calculated Mean', 0) or 0,
-            r.get('question', '') or r.get('Question', ''),
-            r.get('Combined Course Number', '') or r.get('ID', ''),
-            r.get('Weighted Average', 0) or 0,
+            str(r.get('Term', '')),
+            str(r.get('Combined Course Number', '') or ''),
+            str(r.get('Course Section', '') or ''),
+            str(r.get('Course Title', '') or ''),
+            enrol,
+            count,
+            mean_19,
+            count,
+            mean_20,
         ])
     wb.save(path)
 
@@ -312,7 +341,7 @@ def write_prospective_visits(path, rows):
     ws.append(['Year', 'Staff', 'Visits', 'Deposits'])
     for r in rows:
         ws.append([
-            r.get('Year', ''),
+            _safe_year(r.get('Year')),
             r.get('Staff', ''),
             r.get('Visits', 0) or 0,
             r.get('Deposits', 0) or 0,
@@ -386,11 +415,13 @@ def export_all(professor_key, professor_folder, db_data):
         os.path.join(service_dir, 'advisee counts.xlsx'),
         db_data.get('advisee_counts', [])
     )
-    if db_data.get('advising_evals'):
-        write_advising_evaluation(
-            os.path.join(service_dir, 'advising evaluation data.xlsx'),
-            db_data.get('advising_evals', [])
-        )
+    # Advising evaluation data uses a special university format (STRM codes, specific columns)
+    # that cannot be replicated from our DB — skip writing this file so make_far skips it
+    # if db_data.get('advising_evals'):
+    #     write_advising_evaluation(
+    #         os.path.join(service_dir, 'advising evaluation data.xlsx'),
+    #         db_data.get('advising_evals', [])
+    #     )
     write_teaching_evaluation(
         os.path.join(teach_dir, 'teaching evaluation data.xlsx'),
         db_data.get('teaching', [])
