@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Something Went Wrong{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 text-center">
+
+            <!-- Error code -->
+            <div class="mb-4" style="font-size: 8rem; font-weight: 900;
+                 color: var(--clarkson-green); line-height: 1;">
+                500
+            </div>
+
+            <!-- Icon -->
+            <div class="mb-3">
+                <i class="bi bi-exclamation-triangle-fill"
+                   style="font-size: 3rem; color: var(--clarkson-gold);"></i>
+            </div>
+
+            <!-- Message -->
+            <h2 class="fw-bold mb-2" style="color: var(--clarkson-green);">
+                Something Went Wrong
+            </h2>
+            <p class="text-muted mb-2">
+                The server encountered an unexpected error.
+                This has been logged and will be investigated.
+            </p>
+            <p class="text-muted mb-4">
+                If this keeps happening, please contact
+                <a href="mailto:far@clarkson.edu">far@clarkson.edu</a>.
+            </p>
+
+            <!-- Actions -->
+            <div class="d-flex gap-3 justify-content-center">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('admin.dashboard') }}"
+                       class="btn btn-lg fw-semibold text-white"
+                       style="background-color: var(--clarkson-green);">
+                        <i class="bi bi-house me-2"></i>Go to Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('professor.dashboard') }}"
+                       class="btn btn-lg fw-semibold text-white"
+                       style="background-color: var(--clarkson-green);">
+                        <i class="bi bi-house me-2"></i>Go to Dashboard
+                    </a>
+                    {% endif %}
+                {% else %}
+                <a href="{{ url_for('auth.login') }}"
+                   class="btn btn-lg fw-semibold text-white"
+                   style="background-color: var(--clarkson-green);">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
+                </a>
+                {% endif %}
+
+                <button onclick="location.reload()"
+                        class="btn btn-lg btn-outline-secondary fw-semibold">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Try Again
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

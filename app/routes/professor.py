@@ -26,6 +26,7 @@ def professor_required(f):
 @login_required
 @professor_required
 def dashboard():
+        
     if current_user.role != 'professor':
         return redirect(url_for('auth.login'))
     
