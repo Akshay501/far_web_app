@@ -132,6 +132,55 @@ def fetch_all_db_data(professor_key):
     }
 
 
+def ensure_config_updated(far_folder):
+    """
+    Auto-update make_cv.cfg in the given folder so it has all required keys.
+
+    WHY THIS EXISTS:
+    make_cv is actively developed by Prof. Brian. When he releases a new version,
+    new required keys are added to make_cv.cfg. Old professor folders were created
+    with older versions and don't have those keys. make_far detects this and asks:
+        "UseWebScraper is missing. Would you like to update? [Y/N]"
+    In a web app there is no keyboard so it hangs forever.
+
+    THE FIX:
+    We call make_cv's own create_config() function BEFORE running make_far.
+    create_config() merges the old config with all required keys (preserving
+    existing values like years, latexfile, section toggles) and saves it.
+    make_far then finds all keys and never asks the question.
+    """
+    import configparser
+    cfg_path = os.path.join(far_folder, 'make_cv.cfg')
+    if not os.path.exists(cfg_path):
+        return  # no config file — make_far will handle this itself
+
+    try:
+        from make_cv.create_config import create_config, verify_config
+
+        # Read the existing config
+        old_config = configparser.ConfigParser()
+        old_config.read(cfg_path)
+
+        # Check if it already has all required keys
+        if verify_config(old_config):
+            return  # already up to date — nothing to do
+
+        # It's missing keys — update it silently using make_cv's own function
+        # create_config() merges old values with new required keys
+        current_dir = os.getcwd()
+        os.chdir(far_folder)  # create_config writes relative to cwd
+        try:
+            create_config('make_cv.cfg', old_config)
+            current_app.logger.info(f'Updated make_cv.cfg in {far_folder}')
+        finally:
+            os.chdir(current_dir)
+
+    except Exception as e:
+        # If anything goes wrong, log it but don't crash
+        # make_far will still try to run and may succeed
+        current_app.logger.warning(f'Could not update make_cv.cfg: {e}')
+
+
 def run_make_far(far_folder, use_pandoc=False):
     """
     Call make_far from within the FAR or FAR_docx folder.
@@ -223,6 +272,7 @@ def generate():
         if doc_type in ('far', 'both'):
             if fmt in ('pdf', 'both'):
                 far_folder = os.path.join(make_cv_folder, 'FAR')
+                ensure_config_updated(far_folder)   # silently fix missing config keys
                 ok, err = run_make_far(far_folder, use_pandoc=False)
                 if ok:
                     pdf = os.path.join(far_folder, 'far.pdf')
@@ -233,6 +283,7 @@ def generate():
 
             if fmt in ('docx', 'both'):
                 far_docx_folder = os.path.join(make_cv_folder, 'FAR_docx')
+                ensure_config_updated(far_docx_folder)  # silently fix missing config keys
                 ok, err = run_make_far(far_docx_folder, use_pandoc=True)
                 if ok:
                     docx = os.path.join(far_docx_folder, 'far.docx')
@@ -243,6 +294,7 @@ def generate():
 
         if doc_type in ('cv', 'both'):
             cv_folder = os.path.join(make_cv_folder, 'CV')
+            ensure_config_updated(cv_folder)        # silently fix any missing config keys
             ok, err = run_make_cv(cv_folder)
             if ok:
                 pdf = os.path.join(cv_folder, 'cv.pdf')
@@ -323,6 +375,7 @@ def generate_all():
 
                 if fmt in ('pdf', 'both'):
                     far_folder = os.path.join(make_cv_folder, 'FAR')
+                    ensure_config_updated(far_folder)
                     ok, err = run_make_far(far_folder, use_pandoc=False)
                     if ok:
                         pdf = os.path.join(far_folder, 'far.pdf')
@@ -334,6 +387,7 @@ def generate_all():
 
                 if fmt in ('docx', 'both'):
                     far_docx = os.path.join(make_cv_folder, 'FAR_docx')
+                    ensure_config_updated(far_docx)
                     ok, err = run_make_far(far_docx, use_pandoc=True)
                     if ok:
                         docx = os.path.join(far_docx, 'far.docx')

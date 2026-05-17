@@ -396,10 +396,14 @@ def service():
 @professor_required
 def teaching():
     pk = current_user.professor_key
-    data = execute_query(
-        "SELECT * FROM TEACHINGEVALUATION WHERE ProfessorKey = %s ORDER BY EvaluationYear DESC, Term",
-        (pk,)
-    )
+    data = execute_query("""
+        SELECT * FROM TEACHINGEVALUATION
+        WHERE ProfessorKey = %s
+        AND `Combined Course Number` IS NOT NULL
+        AND `Count Evals` IS NOT NULL
+        AND `Count Evals` > 0
+        ORDER BY EvaluationYear DESC, Term
+    """, (pk,))
     return render_template('professor/teaching.html', data=data)
 
 
@@ -833,52 +837,23 @@ def delete_review(id):
 
 
 # ====================== ADVISEE COUNT ======================
-@professor_bp.route('/advisee-count', methods=['GET', 'POST'])
+# READ-ONLY — data imported from university system (PeopleSoft)
+@professor_bp.route('/advisee-count', methods=['GET'])
 @login_required
 @professor_required
 def advisee_count():
     pk = current_user.professor_key
-    form = AdviseeCountForm()
-    if form.validate_on_submit():
-        execute_query("""
-            INSERT INTO ADVISEECOUNT (`Advisor Name`, `Advisee Count`, Year, Term, ProfessorKey)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (form.advisor_name.data, form.advisee_count.data,
-              form.year.data, form.term.data, pk), commit=True)
-        flash('Advisee count added successfully', 'success')
-        return redirect(url_for('professor.advisee_count'))
     data = execute_query(
         "SELECT * FROM ADVISEECOUNT WHERE ProfessorKey = %s ORDER BY Year DESC, Term", (pk,))
-    return render_template('professor/advisee_count.html', form=form, data=data)
+    return render_template('professor/advisee_count.html', data=data)
 
 
 @professor_bp.route('/advisee-count/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @professor_required
 def edit_advisee_count(id):
-    pk = current_user.professor_key
-    if request.method == 'POST':
-        form = AdviseeCountForm()
-        if form.validate_on_submit():
-            execute_query("""
-                UPDATE ADVISEECOUNT
-                SET `Advisor Name`=%s, `Advisee Count`=%s, Year=%s, Term=%s
-                WHERE `Advisee Count Key`=%s AND ProfessorKey=%s
-            """, (form.advisor_name.data, form.advisee_count.data,
-                  form.year.data, form.term.data, id, pk), commit=True)
-            flash('Advisee count updated', 'success')
-            return redirect(url_for('professor.advisee_count'))
-    else:
-        row = execute_query(
-            "SELECT * FROM ADVISEECOUNT WHERE `Advisee Count Key`=%s AND ProfessorKey=%s",
-            (id, pk), fetchone=True)
-        if row:
-            form = AdviseeCountForm()
-            form.advisor_name.data = row.get('Advisor Name') or ''
-            form.advisee_count.data = row.get('Advisee Count') or 0
-            form.year.data = row.get('Year') or 2025
-            form.term.data = row.get('Term') or 'Fall'
-            return render_template('professor/partials/advisee_count_form.html', form=form, id=id)
+    # READ-ONLY — block all edit attempts
+    flash('Advisee count data is read-only and cannot be edited.', 'warning')
     return redirect(url_for('professor.advisee_count'))
 
 
@@ -886,11 +861,8 @@ def edit_advisee_count(id):
 @login_required
 @professor_required
 def delete_advisee_count(id):
-    pk = current_user.professor_key
-    execute_query(
-        "DELETE FROM ADVISEECOUNT WHERE `Advisee Count Key`=%s AND ProfessorKey=%s",
-        (id, pk), commit=True)
-    flash('Advisee count deleted', 'success')
+    # READ-ONLY — block all delete attempts
+    flash('Advisee count data is read-only and cannot be deleted.', 'warning')
     return redirect(url_for('professor.advisee_count'))
 
 

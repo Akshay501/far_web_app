@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2 class="mb-4">Teaching Evaluations</h2>
-<p class="text-muted mb-4">Student feedback summaries.</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Teaching Evaluations</h2>
+</div>
+
+<!-- Read-only notice -->
+<div class="alert border-0 mb-4 d-flex align-items-center gap-2"
+     style="background-color: #fff8e1; border-left: 4px solid var(--clarkson-gold) !important; border-left-style: solid !important;">
+    <i class="bi bi-lock-fill" style="color: var(--clarkson-gold); font-size: 1.1rem;"></i>
+    <span>
+        <strong>Read-only.</strong>
+        Teaching evaluation data is imported from the university system and cannot be edited here.
+        Contact your department administrator if you believe there is an error.
+    </span>
+</div>
 
 <div class="card shadow-sm">
     <div class="card-body p-0">
@@ -10,34 +22,33 @@
             <thead class="table-dark">
                 <tr>
                     <th>Term</th>
-                    <th>Combined Course Num</th>
-                    <th>Combined Num + Sec</th>
+                    <th>Course</th>
+                    <th>Section</th>
                     <th>Course Title</th>
                     <th class="text-center">Enrollment</th>
                     <th class="text-center">Count 19</th>
                     <th class="text-center">Mean 19</th>
                     <th class="text-center">Count 20</th>
                     <th class="text-center">Mean 20</th>
-                    <th width="130px" class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in data %}
                 <tr>
-                    <td><strong>{{ item.term or item.Term or '—' }}</strong></td>
-                    <td>{{ item.combined_course_num or item.Course or '—' }}</td>
-                    <td>{{ item.combined_num_sec or (item.CourseNumber ~ '-' ~ item.CourseSection) or '—' }}</td>
-                    <td>{{ item.course_title or item.CourseTitle or '—' }}</td>
-                    <td class="text-center">{{ item.enrollment or item.Enrollment or 0 }}</td>
-                    <td class="text-center">{{ item.count_19 or 0 }}</td>
-                    <td class="text-center fw-medium">{{ item.mean_19|default(0)|round(2) }}</td>
-                    <td class="text-center">{{ item.count_20 or 0 }}</td>
-                    <td class="text-center fw-medium">{{ item.mean_20|default(0)|round(2) }}</td>
-                    <td class="text-center">
-                        <button onclick="editRecord('teaching', {{ item.Key }})" 
-                                class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('teaching', {{ item.Key }}, '{{ (item.course_title or item.CourseTitle)|escape|default('') }}')" 
-                                class="btn btn-sm btn-danger">Delete</button>
+                    <td><strong>{{ item.Term or '—' }}</strong></td>
+                    <td>{{ item['Combined Course Number'] or item.Course or '—' }}</td>
+                    <td>{{ item['Course Section'] or '—' }}</td>
+                    <td>{{ item['Course Title'] or '—' }}</td>
+                    <td class="text-center">{{ item.Enrolment or 0 }}</td>
+                    <td class="text-center">{{ item['Count Evals'] or 0 }}</td>
+                    <td class="text-center fw-medium">{{ item['Calculated Mean'] or '—' }}</td>
+                    <td class="text-center">{{ item['Count Evals'] or 0 }}</td>
+                    <td class="text-center fw-medium">{{ item['Weighted Average'] or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox me-2"></i>No teaching evaluation data available.
                     </td>
                 </tr>
                 {% endfor %}
