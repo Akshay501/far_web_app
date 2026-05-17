@@ -26,7 +26,6 @@ def professor_required(f):
 @login_required
 @professor_required
 def dashboard():
-        
     if current_user.role != 'professor':
         return redirect(url_for('auth.login'))
     
@@ -196,15 +195,22 @@ def awards():
 
     # === Fetch data for both tabs ===
     personal_awards = execute_query("""
-        SELECT * FROM PERSONALAWARDS 
-        WHERE ProfessorKey = %s 
-        ORDER BY `Award Key` DESC
+        SELECT pa.`Award Key`, a.Title, a.`Award Type`, a.Year, pa.Amount
+        FROM PERSONALAWARDS pa
+        JOIN AWARDS a ON pa.`Award Key` = a.`Award Key`
+        WHERE pa.ProfessorKey = %s
+        ORDER BY a.Year DESC
     """, (pk,))
 
     student_awards = execute_query("""
-        SELECT * FROM STUDENTAWARDS 
-        ORDER BY `Award Key` DESC
-    """, ())
+        SELECT sa.`Award Key`, a.Title, a.Year, sa.Student,
+               sa.Amount, sa.Category, a.`Award Type`
+        FROM STUDENTAWARDS sa
+        JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
+        JOIN PERSONALAWARDS pa ON pa.`Award Key` = a.`Award Key`
+        WHERE pa.ProfessorKey = %s
+        ORDER BY a.Year DESC
+    """, (pk,))
 
     return render_template('professor/awards.html',
                            personal_awards=personal_awards,
@@ -397,14 +403,10 @@ def service():
 @professor_required
 def teaching():
     pk = current_user.professor_key
-    data = execute_query("""
-        SELECT * FROM TEACHINGEVALUATION
-        WHERE ProfessorKey = %s
-        AND `Combined Course Number` IS NOT NULL
-        AND `Count Evals` IS NOT NULL
-        AND `Count Evals` > 0
-        ORDER BY EvaluationYear DESC, Term
-    """, (pk,))
+    data = execute_query(
+        "SELECT * FROM TEACHINGEVALUATION WHERE ProfessorKey = %s ORDER BY EvaluationYear DESC, Term",
+        (pk,)
+    )
     return render_template('professor/teaching.html', data=data)
 
 

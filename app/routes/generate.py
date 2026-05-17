@@ -181,6 +181,112 @@ def ensure_config_updated(far_folder):
         current_app.logger.warning(f'Could not update make_cv.cfg: {e}')
 
 
+def check_prerequisites(professor_folder, fmt):
+    """
+    Check everything needed for generation BEFORE running make_far.
+    Returns a list of error messages. Empty list means all good.
+
+    WHY WE CHECK EARLY:
+    make_far takes 10-30 seconds to run. If we check prerequisites first,
+    we can give the user a clear error message immediately instead of
+    waiting 30 seconds for a cryptic crash message.
+    """
+    errors = []
+
+    # Check 1: Does the make_cv folder exist?
+    make_cv_folder = os.path.join(professor_folder, 'make_cv')
+    if not os.path.isdir(make_cv_folder):
+        errors.append(
+            'Your make_cv folder is not set up. '
+            'Please ask your administrator to run "make_cv -b" for your profile.'
+        )
+        return errors  # No point checking further
+
+    # Check 2: Is LaTeX installed? (required for PDF)
+    if fmt in ('pdf', 'both'):
+        import shutil
+        if not shutil.which('xelatex'):
+            errors.append(
+                'LaTeX (xelatex) is not installed on this server. '
+                'PDF generation requires LaTeX. Contact your administrator.'
+            )
+
+    # Check 3: Is pandoc installed? (required for Word)
+    if fmt in ('docx', 'both'):
+        import shutil
+        if not shutil.which('pandoc'):
+            errors.append(
+                'Pandoc is not installed on this server. '
+                'Word (.docx) generation requires pandoc. Contact your administrator.'
+            )
+
+    # Check 4: Does the FAR folder exist?
+    far_folder = os.path.join(make_cv_folder, 'FAR')
+    far_docx_folder = os.path.join(make_cv_folder, 'FAR_docx')
+    cv_folder = os.path.join(make_cv_folder, 'CV')
+
+    if fmt in ('pdf', 'both') and not os.path.isdir(far_folder):
+        errors.append(
+            'FAR template folder not found. '
+            'Please ask your administrator to set up your make_cv folder.'
+        )
+
+    if fmt in ('docx', 'both') and not os.path.isdir(far_docx_folder):
+        errors.append(
+            'FAR_docx template folder not found. '
+            'Please ask your administrator to set up your make_cv folder.'
+        )
+
+    return errors
+
+
+def translate_error(raw_error):
+    """
+    Convert cryptic make_far/Python error messages into friendly ones.
+
+    WHY THIS EXISTS:
+    make_far produces technical error messages like:
+        "KeyError: 'count_19'"
+        "FileNotFoundError: [Errno 2] No such file or directory: 'far.tex'"
+    These mean nothing to a professor. We translate them into
+    plain English that tells the user what to do.
+    """
+    err = str(raw_error).lower()
+
+    if 'latex' in err or 'xelatex' in err or 'tex' in err:
+        return (
+            'LaTeX compilation failed. This usually means a data issue. '
+            'Check that your data does not contain special characters (&, %, $, #). '
+            'Contact your administrator if this continues.'
+        )
+    if 'pandoc' in err:
+        return (
+            'Pandoc failed to convert the document to Word format. '
+            'Contact your administrator.'
+        )
+    if 'no such file' in err or 'filenotfounderror' in err:
+        return (
+            'A required template file is missing. '
+            'Please ask your administrator to check your make_cv folder setup.'
+        )
+    if 'keyerror' in err or 'column' in err:
+        return (
+            'A data formatting error occurred. '
+            'The error has been logged. Contact your administrator.'
+        )
+    if 'permission' in err:
+        return (
+            'Permission error — the server cannot write files to your data folder. '
+            'Contact your administrator.'
+        )
+
+    # Default — show a generic message but log the real error
+    return (
+        'Generation failed due to an unexpected error. '
+        'The error has been logged. Contact your administrator at far@clarkson.edu.'
+    )
+
+
 def run_make_far(far_folder, use_pandoc=False):
     """
     Call make_far from within the FAR or FAR_docx folder.
@@ -246,7 +352,20 @@ def generate():
             return redirect(url_for('generate.generate'))
 
         if not os.path.isdir(professor_folder):
-            flash(f'Data folder not found: {professor_folder}. Please contact the administrator.', 'danger')
+            flash(
+                'Your data folder has not been set up on this server. '
+                'Please contact your administrator to set up your profile.',
+                'danger'
+            )
+            return redirect(url_for('generate.generate'))
+
+        # Check prerequisites BEFORE running make_far
+        # This gives clear error messages immediately instead of
+        # waiting 30 seconds for a cryptic crash
+        prereq_errors = check_prerequisites(professor_folder, fmt)
+        if prereq_errors:
+            for err in prereq_errors:
+                flash(err, 'danger')
             return redirect(url_for('generate.generate'))
 
         # Save uploaded .bib file into Scholarship/
@@ -279,7 +398,8 @@ def generate():
                     if os.path.exists(pdf):
                         output_files.append(('far.pdf', pdf))
                 else:
-                    errors.append(f'FAR PDF error: {err}')
+                    current_app.logger.error(f'FAR PDF error: {err}')
+                    errors.append(translate_error(err))
 
             if fmt in ('docx', 'both'):
                 far_docx_folder = os.path.join(make_cv_folder, 'FAR_docx')
@@ -290,7 +410,8 @@ def generate():
                     if os.path.exists(docx):
                         output_files.append(('far.docx', docx))
                 else:
-                    errors.append(f'FAR docx error: {err}')
+                    current_app.logger.error(f'FAR docx error: {err}')
+                    errors.append(translate_error(err))
 
         if doc_type in ('cv', 'both'):
             cv_folder = os.path.join(make_cv_folder, 'CV')
@@ -301,14 +422,23 @@ def generate():
                 if os.path.exists(pdf):
                     output_files.append(('cv.pdf', pdf))
             else:
-                errors.append(f'CV error: {err}')
+                current_app.logger.error(f'CV error: {err}')
+                errors.append(translate_error(err))
 
         if errors:
             for e in errors:
                 flash(e, 'danger')
 
         if not output_files:
-            flash('No output files were generated. Check that LaTeX and pandoc are installed.', 'danger')
+            if not errors:
+                # No errors were reported but no files were generated either
+                # This means make_far ran but produced no output
+                flash(
+                    'Generation completed but no output files were produced. '
+                    'This may be a LaTeX compilation issue. '
+                    'Contact your administrator at far@clarkson.edu.',
+                    'danger'
+                )
             return redirect(url_for('generate.generate'))
 
         # Package output into a zip and send

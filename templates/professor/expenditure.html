@@ -31,6 +31,13 @@
                 ${{ (item.SalaryRecovery|default(0)|round(2)) }}
             </td>
         </tr>
+        {% else %}
+        <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                No expenditure records added yet. Click <strong>Add New Expenditure</strong> to get started.
+            </td>
+        </tr>
         {% endfor %}
     </tbody>
 </table>
