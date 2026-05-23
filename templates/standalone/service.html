@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Service</h2>
+    <a href="{{ url_for('standalone.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- Add New Service -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white fw-semibold"
+         style="background-color: var(--clarkson-green);">
+        <i class="bi bi-plus-circle me-2"></i>Add New Service Entry
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Type</label>
+                    <select name="type" class="form-select">
+                        {% for t in service_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Position</label>
+                    <input type="text" name="position" class="form-control"
+                           placeholder="e.g. Member, Chair">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Term</label>
+                    <select name="term" class="form-select">
+                        <option value="Full Year">Full Year</option>
+                        <option value="Fall">Fall</option>
+                        <option value="Spring">Spring</option>
+                        <option value="Summer">Summer</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Calendar Year</label>
+                    <input type="number" name="calendar_year" class="form-control"
+                           value="{{ 2025 }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Hours/Semester</label>
+                    <input type="number" step="0.5" name="hours_semester" class="form-control">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Comments</label>
+                    <textarea name="comments" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-gold fw-semibold mt-3">
+                <i class="bi bi-save me-1"></i>Save Service Entry
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Service Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Position</th>
+                    <th>Term</th>
+                    <th>Year</th>
+                    <th>Hours</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, row in rows|enumerate %}
+                <tr>
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ (row.get('Description') or '')[:60] }}{% if (row.get('Description') or '')|length > 60 %}...{% endif %}</td>
+                    <td>{{ row.get('Type') or '—' }}</td>
+                    <td>{{ row.get('Position') or '—' }}</td>
+                    <td>{{ row.get('Term') or '—' }}</td>
+                    <td>{{ row.get('Calendar Year') or '—' }}</td>
+                    <td>{{ row.get('Hours/Semester') or '—' }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-warning me-1"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editServiceModal{{ i }}">Edit</button>
+                        <form method="POST" class="d-inline"
+                              onsubmit="return confirm('Delete this service entry?')">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="row_idx" value="{{ i }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <!-- Edit Modal -->
+                <div class="modal fade" id="editServiceModal{{ i }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header"
+                                 style="background-color: var(--clarkson-green);">
+                                <h5 class="modal-title text-white">Edit Service Entry</h5>
+                                <button type="button" class="btn-close btn-close-white"
+                                        data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="edit">
+                                    <input type="hidden" name="row_idx" value="{{ i }}">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold">Description</label>
+                                            <textarea name="description" class="form-control" rows="2">{{ row.get('Description') or '' }}</textarea>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Type</label>
+                                            <select name="type" class="form-select">
+                                                {% for t in service_types %}
+                                                <option value="{{ t }}" {% if row.get('Type') == t %}selected{% endif %}>{{ t }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Position</label>
+                                            <input type="text" name="position" class="form-control"
+                                                   value="{{ row.get('Position') or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Term</label>
+                                            <select name="term" class="form-select">
+                                                {% for t in ['Full Year', 'Fall', 'Spring', 'Summer'] %}
+                                                <option value="{{ t }}" {% if row.get('Term') == t %}selected{% endif %}>{{ t }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Calendar Year</label>
+                                            <input type="number" name="calendar_year" class="form-control"
+                                                   value="{{ row.get('Calendar Year') or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Hours/Semester</label>
+                                            <input type="number" step="0.5" name="hours_semester"
+                                                   class="form-control"
+                                                   value="{{ row.get('Hours/Semester') or '' }}">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label fw-semibold">Comments</label>
+                                            <textarea name="comments" class="form-control" rows="2">{{ row.get('Comments') or '' }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="submit" class="btn btn-gold fw-semibold">Save Changes</button>
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-bs-dismiss="modal">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                        No service entries yet. Add one above.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

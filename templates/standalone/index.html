@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-lg-7 text-center">
+
+        <!-- Header -->
+        <div class="mb-4">
+            <i class="bi bi-file-earmark-pdf-fill"
+               style="font-size: 4rem; color: var(--clarkson-green);"></i>
+            <h1 class="fw-bold mt-3" style="color: var(--clarkson-green);">
+                FAR Universal
+            </h1>
+            <p class="lead text-muted">
+                Generate your Faculty Activity Report from your existing
+                <code>make_cv</code> folder — no account needed.
+            </p>
+        </div>
+
+        <!-- How it works -->
+        <div class="row g-3 mb-4 text-start">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-upload fs-2 mb-2"
+                           style="color: var(--clarkson-gold);"></i>
+                        <h6 class="fw-bold">1. Upload</h6>
+                        <small class="text-muted">
+                            Zip your make_cv folder and upload it here.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-pencil-square fs-2 mb-2"
+                           style="color: var(--clarkson-gold);"></i>
+                        <h6 class="fw-bold">2. Edit</h6>
+                        <small class="text-muted">
+                            Add, edit, or delete your grants, service,
+                            awards, and scholarship data.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-download fs-2 mb-2"
+                           style="color: var(--clarkson-gold);"></i>
+                        <h6 class="fw-bold">3. Download</h6>
+                        <small class="text-muted">
+                            Generate your FAR PDF + Word, plus your
+                            updated Excel files.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload form -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--clarkson-green);">
+                    Upload your make_cv folder
+                </h5>
+                <form method="POST" action="{{ url_for('standalone.upload') }}"
+                      enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="zip_file" accept=".zip"
+                               class="form-control form-control-lg"
+                               required>
+                        <small class="text-muted mt-1 d-block">
+                            Zip your entire make_cv folder (including
+                            Awards/, Service/, Scholarship/, make_cv/ subfolders).
+                        </small>
+                    </div>
+                    <button type="submit"
+                            class="btn btn-lg w-100 fw-semibold text-white"
+                            style="background-color: var(--clarkson-green);">
+                        <i class="bi bi-upload me-2"></i>Upload & Get Started
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Privacy note -->
+        <p class="text-muted mt-3 small">
+            <i class="bi bi-shield-check me-1"></i>
+            Your files are stored temporarily on the server and deleted
+            automatically after you download your output.
+            No account or login required.
+        </p>
+
+    </div>
+</div>
+
+{% endblock %}

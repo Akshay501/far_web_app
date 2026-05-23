@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Generate FAR</h2>
+    <a href="{{ url_for('standalone.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header text-white fw-semibold"
+                 style="background-color: var(--clarkson-green);">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Generate Your FAR
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="generateForm">
+
+                    <!-- Output Format -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Output Format</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="format" value="pdf" id="fmtPdf" checked>
+                                <label class="form-check-label" for="fmtPdf">
+                                    <i class="bi bi-file-earmark-pdf text-danger me-1"></i>PDF only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="format" value="docx" id="fmtDocx">
+                                <label class="form-check-label" for="fmtDocx">
+                                    <i class="bi bi-file-earmark-word text-primary me-1"></i>Word only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="format" value="both" id="fmtBoth">
+                                <label class="form-check-label" for="fmtBoth">
+                                    <i class="bi bi-files me-1"></i>Both
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What will be downloaded -->
+                    <div class="alert alert-info d-flex gap-2 align-items-start">
+                        <i class="bi bi-info-circle-fill mt-1"></i>
+                        <div>
+                            <strong>What you'll download:</strong>
+                            <ul class="mb-0 mt-1 small">
+                                <li>Your generated FAR (PDF and/or Word)</li>
+                                <li>All updated Excel files with your edits</li>
+                            </ul>
+                            <small class="text-muted mt-1 d-block">
+                                Replace your local Excel files with the downloaded ones
+                                to keep your data up to date.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Warning about session -->
+                    <div class="alert alert-warning d-flex gap-2 align-items-start">
+                        <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                        <div>
+                            <strong>After downloading:</strong>
+                            Your files will be removed from our server automatically.
+                            Make sure to save the downloaded zip to your computer.
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button type="submit" class="btn btn-gold btn-lg w-100 fw-semibold"
+                            id="generateBtn">
+                        <i class="bi bi-gear me-2"></i>Generate & Download
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('generateForm').addEventListener('submit', function() {
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating... please wait';
+});
+</script>
+
+{% endblock %}

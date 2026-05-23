@@ -39,11 +39,19 @@ def create_app():
     # Register Blueprints
     from .routes import auth_bp, professor_bp, admin_bp
     from .routes.generate import generate_bp
+    from .routes.standalone import standalone_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(professor_bp, url_prefix='/professor')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(generate_bp)
+    app.register_blueprint(standalone_bp)
+
+    # Add enumerate filter to Jinja2
+    # WHY: Jinja2 doesn't have enumerate() built-in like Python.
+    # We use it in standalone templates to get the row index for
+    # edit/delete operations: {% for i, row in rows|enumerate %}
+    app.jinja_env.filters['enumerate'] = enumerate
 
     # ── Custom error handlers ──────────────────────────────────────────────
     # These replace Flask's default plain-white error pages with our

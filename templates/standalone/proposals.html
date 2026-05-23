@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Proposals</h2>
+    <a href="{{ url_for('standalone.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- Add New Proposal -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white fw-semibold"
+         style="background-color: var(--clarkson-green);">
+        <i class="bi bi-plus-circle me-2"></i>Add New Proposal
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Title</label>
+                    <input type="text" name="title" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Sponsor</label>
+                    <input type="text" name="sponsor" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Allocated Amount ($)</label>
+                    <input type="number" step="0.01" name="allocated_amt" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Total Cost ($)</label>
+                    <input type="number" step="0.01" name="total_cost" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Funded?</label>
+                    <select name="funded" class="form-select">
+                        <option value="Y">Yes</option>
+                        <option value="N">No</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Principal Investigators</label>
+                    <input type="text" name="principal_investigators" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Begin Date</label>
+                    <input type="date" name="begin_date" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">End Date</label>
+                    <input type="date" name="end_date" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Submit Date</label>
+                    <input type="date" name="submit_date" class="form-control">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-gold fw-semibold mt-3">
+                <i class="bi bi-save me-1"></i>Save Proposal
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Proposals Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Sponsor</th>
+                    <th>Allocated Amt</th>
+                    <th>Funded?</th>
+                    <th>Submit Date</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, row in rows|enumerate %}
+                <tr>
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ row.get('Title') or '—' }}</td>
+                    <td>{{ row.get('Sponsor') or '—' }}</td>
+                    <td>${{ row.get('Allocated Amt') or 0 }}</td>
+                    <td>{{ row.get('Funded?') or '—' }}</td>
+                    <td>{{ row.get('Submit Date') or '—' }}</td>
+                    <td class="text-center">
+                        <form method="POST" class="d-inline"
+                              onsubmit="return confirm('Delete this proposal?')">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="row_idx" value="{{ i }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                        No proposals yet. Add one above.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

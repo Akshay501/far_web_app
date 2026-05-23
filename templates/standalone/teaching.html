@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Teaching Evaluations</h2>
+    <a href="{{ url_for('standalone.dashboard') }}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+<!-- Read-only notice -->
+<div class="alert border-0 mb-4 d-flex align-items-center gap-2"
+     style="background-color: #fff8e1;
+            border-left: 4px solid var(--clarkson-gold) !important;
+            border-left-style: solid !important;">
+    <i class="bi bi-lock-fill" style="color: var(--clarkson-gold);"></i>
+    <span>
+        <strong>Read-only.</strong>
+        Teaching evaluation data comes from your uploaded Excel file
+        and cannot be edited here.
+        To update it, edit <code>Teaching/teaching evaluation data.xlsx</code>
+        locally and re-upload your folder.
+    </span>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 datatable">
+            <thead class="table-dark">
+                <tr>
+                    <th>Term</th>
+                    <th>Course</th>
+                    <th>Section</th>
+                    <th>Course Title</th>
+                    <th class="text-center">Enrollment</th>
+                    <th class="text-center">Count</th>
+                    <th class="text-center">Mean</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                {% set keys = row.keys()|list %}
+                <tr>
+                    <td><strong>{{ row.get('term') or row.get('Term') or '—' }}</strong></td>
+                    <td>{{ row.get('combined_course_num') or row.get('Combined Course Number') or '—' }}</td>
+                    <td>{{ row.get('combined_num_sec') or row.get('Course Section') or '—' }}</td>
+                    <td>{{ row.get('course_title') or row.get('Course Title') or '—' }}</td>
+                    <td class="text-center">{{ row.get('enrollment') or row.get('Enrolment') or 0 }}</td>
+                    <td class="text-center">{{ row.get('count_19') or row.get('Count Evals') or 0 }}</td>
+                    <td class="text-center fw-medium">{{ row.get('mean_19') or row.get('Calculated Mean') or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox me-2"></i>
+                        No teaching evaluation data found in your uploaded folder.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

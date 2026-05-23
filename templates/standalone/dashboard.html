@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">FAR Universal — Dashboard</h2>
+        <small class="text-muted">Edit your data then generate your FAR.</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('standalone.generate') }}"
+           class="btn btn-gold fw-semibold">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Generate FAR
+        </a>
+        <a href="{{ url_for('standalone.reset') }}"
+           class="btn btn-outline-secondary btn-sm"
+           onclick="return confirm('This will clear your session and delete your uploaded files. Continue?')">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Start Over
+        </a>
+    </div>
+</div>
+
+<!-- File inventory -->
+<div class="row g-3 mb-4">
+
+    <!-- Grants & Proposals -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-white fw-semibold"
+                 style="background-color: var(--clarkson-green);">
+                <i class="bi bi-cash-stack me-2"></i>Grants & Proposals
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('standalone.grants') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Grants
+                    {% if inventory.grants.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('standalone.proposals') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Proposals
+                    {% if inventory.proposals.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Awards -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-white fw-semibold"
+                 style="background-color: var(--clarkson-green);">
+                <i class="bi bi-trophy me-2"></i>Awards
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('standalone.awards') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Personal Awards
+                    {% if inventory.personal_awards.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('standalone.awards') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Student Awards
+                    {% if inventory.student_awards.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scholarship -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-white fw-semibold"
+                 style="background-color: var(--clarkson-green);">
+                <i class="bi bi-mortarboard me-2"></i>Scholarship
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('standalone.scholarship') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Current Students
+                    {% if inventory.current_students.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('standalone.scholarship') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Thesis
+                    {% if inventory.thesis.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service & Teaching -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header text-white fw-semibold"
+                 style="background-color: var(--clarkson-green);">
+                <i class="bi bi-people me-2"></i>Service & Teaching
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('standalone.service') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Service
+                    {% if inventory.service.exists %}
+                    <span class="badge bg-success">Found</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Not found</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('standalone.teaching') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    Teaching Evaluations
+                    <span class="badge bg-secondary">Read-only</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- make_cv folder status -->
+<div class="alert {% if inventory.make_cv_far.exists %}alert-success{% else %}alert-warning{% endif %} d-flex align-items-center gap-2">
+    {% if inventory.make_cv_far.exists %}
+    <i class="bi bi-check-circle-fill text-success"></i>
+    <span><strong>make_cv folder found.</strong> You are ready to generate your FAR.</span>
+    {% else %}
+    <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+    <span>
+        <strong>make_cv/FAR/ folder not found.</strong>
+        Generation may fail. Make sure your zip includes the <code>make_cv/</code> subfolder.
+    </span>
+    {% endif %}
+</div>
+
+{% endblock %}
