@@ -5,13 +5,13 @@
 
 <ul class="nav nav-tabs mb-4" id="awardsTab" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" 
+        <button class="nav-link {% if active_tab == 'personal' %}active{% endif %}" id="personal-tab" data-bs-toggle="tab"
                 data-bs-target="#personal-awards" type="button" role="tab">
             <i class="bi bi-trophy me-2"></i>Personal Awards
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="student-tab" data-bs-toggle="tab" 
+        <button class="nav-link {% if active_tab == 'student' %}active{% endif %}" id="student-tab" data-bs-toggle="tab"
                 data-bs-target="#student-awards" type="button" role="tab">
             <i class="bi bi-mortarboard me-2"></i>Student Awards
         </button>
@@ -20,8 +20,8 @@
 
 <div class="tab-content" id="awardsTabContent">
 
-    <!-- ====================== PERSONAL AWARDS TAB ====================== -->
-    <div class="tab-pane fade show active" id="personal-awards" role="tabpanel">
+    <!-- ===== PERSONAL AWARDS ===== -->
+    <div class="tab-pane fade {% if active_tab == 'personal' %}show active{% endif %}" id="personal-awards" role="tabpanel">
         <div class="card mb-4">
             <div class="card-header bg-clarkson-green text-white">
                 <h5 class="mb-0">Add Personal Award</h5>
@@ -30,66 +30,59 @@
                 <form method="POST">
                     {{ personal_form.hidden_tag() }}
                     <input type="hidden" name="form_type" value="personal">
-                    
                     <div class="row g-3">
-                        <div class="col-md-7">
-                            {{ personal_form.title.label(class="form-label") }}
-                            {{ personal_form.title(class="form-control") }}
-                        </div>
-                        <div class="col-md-3">
-                            {{ personal_form.type.label(class="form-label") }}
-                            {{ personal_form.type(class="form-select") }}
-                        </div>
-                        <div class="col-md-2">
-                            {{ personal_form.year.label(class="form-label") }}
-                            {{ personal_form.year(class="form-control") }}
-                        </div>
-                        <div class="col-12">
-                            {{ personal_form.submit(class="btn btn-gold") }}
-                        </div>
+                        <div class="col-md-7">{{ personal_form.title.label(class="form-label") }}{{ personal_form.title(class="form-control") }}</div>
+                        <div class="col-md-3">{{ personal_form.type.label(class="form-label") }}{{ personal_form.type(class="form-select") }}</div>
+                        <div class="col-md-2">{{ personal_form.year.label(class="form-label") }}{{ personal_form.year(class="form-control") }}</div>
+                        <div class="col-12">{{ personal_form.submit(class="btn btn-gold") }}</div>
                     </div>
                 </form>
             </div>
         </div>
-
-        <!-- Table - Only the columns you requested -->
-        <table class="table table-striped datatable">
+        <table class="table table-hover">
             <thead class="table-dark">
-                <tr>
-                    <th>Title</th>
-                    <th>Type</th>
-                    <th>Year</th>
-                    <th width="140px">Actions</th>
-                </tr>
+                <tr><th>Title</th><th>Type</th><th>Year</th><th width="170px">Actions</th></tr>
             </thead>
             <tbody>
                 {% for item in personal_awards %}
-                <tr>
+                <tr id="personal_award-row-{{ item['Award Key'] }}" class="align-middle">
                     <td>{{ item.Title or '—' }}</td>
                     <td>{{ item['Award Type'] or '—' }}</td>
                     <td>{{ item.Year or '—' }}</td>
                     <td>
-                        <button onclick="editRecord('personal_award', {{ item['Award Key'] }})" 
-                                class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('personal_award', {{ item['Award Key'] }}, '{{ item.Title|escape|default('') }}')" 
-                                class="btn btn-sm btn-danger">Delete</button>
+                        <div class="d-flex gap-1">
+                            <button onclick="inlineEdit('personal_award', {{ item['Award Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                            <button onclick="duplicateRecord('personal_award', {{ item['Award Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                            <button onclick="deleteRecord('personal_award', {{ item['Award Key'] }}, '{{ item.Title|escape|default('') }}')" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr id="personal_award-edit-{{ item['Award Key'] }}" class="d-none table-warning align-middle">
+                    <td><input type="text" class="form-control form-control-sm" id="personal_award-title-{{ item['Award Key'] }}" value="{{ item.Title or '' }}"></td>
+                    <td>
+                        <select class="form-select form-select-sm" id="personal_award-type-{{ item['Award Key'] }}">
+                            {% for opt in ['University','Department','School','Professional','Community'] %}
+                            <option value="{{ opt }}" {% if item['Award Type'] == opt %}selected{% endif %}>{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" class="form-control form-control-sm" id="personal_award-year-{{ item['Award Key'] }}" value="{{ item.Year or '' }}" style="width:90px"></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button onclick="saveInlineEdit('personal_award', {{ item['Award Key'] }}, ['title','type','year'])" class="btn btn-sm btn-success">Save</button>
+                            <button onclick="cancelInlineEdit('personal_award', {{ item['Award Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
-                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                        No personal awards yet. Click <strong>Add Personal Award</strong> to get started.
-                    </td>
-                </tr>
+                <tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No personal awards yet.</td></tr>
                 {% endfor %}
             </tbody>
-            
         </table>
     </div>
 
-    <!-- ====================== STUDENT AWARDS TAB ====================== -->
-    <div class="tab-pane fade" id="student-awards" role="tabpanel">
+    <!-- ===== STUDENT AWARDS ===== -->
+    <div class="tab-pane fade {% if active_tab == 'student' %}show active{% endif %}" id="student-awards" role="tabpanel">
         <div class="card mb-4">
             <div class="card-header bg-clarkson-green text-white">
                 <h5 class="mb-0">Add Student Award</h5>
@@ -98,58 +91,25 @@
                 <form method="POST">
                     {{ student_form.hidden_tag() }}
                     <input type="hidden" name="form_type" value="student">
-                    
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            {{ student_form.student_name.label(class="form-label") }}
-                            {{ student_form.student_name(class="form-control") }}
-                        </div>
-                        <div class="col-md-5">
-                            {{ student_form.award_title.label(class="form-label") }}
-                            {{ student_form.award_title(class="form-control") }}
-                        </div>
-                        <div class="col-md-3">
-                            {{ student_form.amount.label(class="form-label") }}
-                            {{ student_form.amount(class="form-control") }}
-                        </div>
-                        
-                        <div class="col-md-4">
-                            {{ student_form.category.label(class="form-label") }}
-                            {{ student_form.category(class="form-select") }}
-                        </div>
-                        <div class="col-md-4">
-                            {{ student_form.type.label(class="form-label") }}
-                            {{ student_form.type(class="form-select") }}
-                        </div>
-                        <div class="col-md-4">
-                            {{ student_form.year.label(class="form-label") }}
-                            {{ student_form.year(class="form-control") }}
-                        </div>
-                        
-                        <div class="col-12">
-                            {{ student_form.submit(class="btn btn-gold") }}
-                        </div>
+                        <div class="col-md-4">{{ student_form.student_name.label(class="form-label") }}{{ student_form.student_name(class="form-control") }}</div>
+                        <div class="col-md-5">{{ student_form.award_title.label(class="form-label") }}{{ student_form.award_title(class="form-control") }}</div>
+                        <div class="col-md-3">{{ student_form.amount.label(class="form-label") }}{{ student_form.amount(class="form-control") }}</div>
+                        <div class="col-md-4">{{ student_form.category.label(class="form-label") }}{{ student_form.category(class="form-select") }}</div>
+                        <div class="col-md-4">{{ student_form.type.label(class="form-label") }}{{ student_form.type(class="form-select") }}</div>
+                        <div class="col-md-4">{{ student_form.year.label(class="form-label") }}{{ student_form.year(class="form-control") }}</div>
+                        <div class="col-12">{{ student_form.submit(class="btn btn-gold") }}</div>
                     </div>
                 </form>
             </div>
         </div>
-
-        <!-- Student Awards Table -->
-        <table class="table table-striped datatable">
+        <table class="table table-hover">
             <thead class="table-dark">
-                <tr>
-                    <th>Student</th>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Year</th>
-                    <th width="140px">Actions</th>
-                </tr>
+                <tr><th>Student</th><th>Title</th><th>Amount</th><th>Category</th><th>Type</th><th>Year</th><th width="170px">Actions</th></tr>
             </thead>
             <tbody>
                 {% for item in student_awards %}
-                <tr>
+                <tr id="student_award-row-{{ item['Award Key'] }}" class="align-middle">
                     <td>{{ item.Student or '—' }}</td>
                     <td>{{ item.Title or '—' }}</td>
                     <td>${{ item.Amount|default(0)|round(2) }}</td>
@@ -157,23 +117,45 @@
                     <td>{{ item['Award Type'] or '—' }}</td>
                     <td>{{ item.Year or '—' }}</td>
                     <td>
-                        <button onclick="editRecord('student_award', {{ item['Award Key'] }})" 
-                                class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('student_award', {{ item['Award Key'] }}, '{{ item.Student|escape|default('') }}')" 
-                                class="btn btn-sm btn-danger">Delete</button>
+                        <div class="d-flex gap-1">
+                            <button onclick="inlineEdit('student_award', {{ item['Award Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                            <button onclick="duplicateRecord('student_award', {{ item['Award Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                            <button onclick="deleteRecord('student_award', {{ item['Award Key'] }}, '{{ item.Student|escape|default('') }}')" class="btn btn-sm btn-danger">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr id="student_award-edit-{{ item['Award Key'] }}" class="d-none table-warning align-middle">
+                    <td><input type="text" class="form-control form-control-sm" id="student_award-student_name-{{ item['Award Key'] }}" value="{{ item.Student or '' }}"></td>
+                    <td><input type="text" class="form-control form-control-sm" id="student_award-award_title-{{ item['Award Key'] }}" value="{{ item.Title or '' }}"></td>
+                    <td><input type="number" step="0.01" class="form-control form-control-sm" id="student_award-amount-{{ item['Award Key'] }}" value="{{ item.Amount or '' }}"></td>
+                    <td>
+                        <select class="form-select form-select-sm" id="student_award-category-{{ item['Award Key'] }}">
+                            {% for opt in ['Undergraduate','Graduate','Leadership','Research Excellence','Other'] %}
+                            <option value="{{ opt }}" {% if item.Category == opt %}selected{% endif %}>{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" id="student_award-type-{{ item['Award Key'] }}">
+                            {% for opt in ['University','Department','School','Professional','Community'] %}
+                            <option value="{{ opt }}" {% if item['Award Type'] == opt %}selected{% endif %}>{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td><input type="number" class="form-control form-control-sm" id="student_award-year-{{ item['Award Key'] }}" value="{{ item.Year or '' }}" style="width:90px"></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button onclick="saveInlineEdit('student_award', {{ item['Award Key'] }}, ['student_name','award_title','amount','category','type','year'])" class="btn btn-sm btn-success">Save</button>
+                            <button onclick="cancelInlineEdit('student_award', {{ item['Award Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
-                        <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                        No student awards yet. Click <strong>Add Student Award</strong> to get started.
-                    </td>
-                </tr>
+                <tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No student awards yet.</td></tr>
                 {% endfor %}
             </tbody>
-            
         </table>
     </div>
 
+</div>
 {% endblock %}

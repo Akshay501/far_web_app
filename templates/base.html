@@ -17,6 +17,9 @@
     <!-- Custom Clarkson Styles -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
+    <!-- CSRF token for JS fetch() calls -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <style>
         :root {
             --clarkson-green: #004e42;
@@ -126,7 +129,7 @@
     <script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
     
     <!-- Main Application JavaScript -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=2.4"></script>
 
 </body>
 </html>

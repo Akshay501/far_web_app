@@ -5,19 +5,19 @@
 
 <ul class="nav nav-tabs mb-4" id="serviceTabs">
     <li class="nav-item">
-        <a class="nav-link {% if active_tab == 'service' %}active{% endif %}" 
+        <a class="nav-link {% if active_tab == 'service' %}active{% endif %}"
            data-bs-toggle="tab" href="#service">Service Activities</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if active_tab == 'reviews' %}active{% endif %}" 
+        <a class="nav-link {% if active_tab == 'reviews' %}active{% endif %}"
            data-bs-toggle="tab" href="#reviews">Reviews</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if active_tab == 'prof_dev' %}active{% endif %}" 
+        <a class="nav-link {% if active_tab == 'prof_dev' %}active{% endif %}"
            data-bs-toggle="tab" href="#prof_dev">Professional Development</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link {% if active_tab == 'undergrad' %}active{% endif %}" 
+        <a class="nav-link {% if active_tab == 'undergrad' %}active{% endif %}"
            data-bs-toggle="tab" href="#undergrad">Undergrad Research</a>
     </li>
 </ul>
@@ -47,21 +47,55 @@
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr><th>Description</th><th>Type</th><th>Term</th><th class="text-center">Year</th><th class="text-center">Hours</th><th>Actions</th></tr>
+                        <tr>
+                            <th>Description</th><th>Type</th><th>Term</th>
+                            <th class="text-center">Year</th><th class="text-center">Hours</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for item in service_data %}
-                        <tr>
-                            <td>{{ item.Description|truncate(60) if item.Description else '—' }}</td>
-                            <td>{{ item.Type or '—' }}</td>
-                            <td>{{ item.Term or '—' }}</td>
-                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
-                            <td class="text-center">{{ item['Hours/Semester'] or '—' }}</td>
+                        <tr id="service-row-{{ item['Service Key'] }}" class="align-middle">
+                            {# VIEW MODE — shown by default #}
+                            <td class="view-cell">{{ item.Description|truncate(60) if item.Description else '—' }}</td>
+                            <td class="view-cell">{{ item.Type or '—' }}</td>
+                            <td class="view-cell">{{ item.Term or '—' }}</td>
+                            <td class="view-cell text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td class="view-cell text-center">{{ item['Hours/Semester'] or '—' }}</td>
+                            <td class="view-cell">
+                                <div class="view-actions d-flex gap-1">
+                                    <button onclick="inlineEdit('service', {{ item['Service Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('service', {{ item['Service Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('service', {{ item['Service Key'] }}, '{{ item.Description|escape|truncate(30) }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {# EDIT MODE ROW — hidden by default, same number of columns #}
+                        <tr id="service-edit-{{ item['Service Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="service-description-{{ item['Service Key'] }}" value="{{ item.Description or '' }}"></td>
                             <td>
-                                <button onclick="editRecord('service', {{ item['Service Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('service', {{ item['Service Key'] }}, '{{ item.Description|escape|truncate(30) }}')" class="btn btn-sm btn-danger">Delete</button>
+                                <select class="form-select form-select-sm" id="service-type-{{ item['Service Key'] }}">
+                                    {% for opt in ['Committee Work','Journal Review','Outreach/Seminar','University Committee','Accreditation','Other'] %}
+                                    <option value="{{ opt }}" {% if item.Type == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" id="service-term-{{ item['Service Key'] }}">
+                                    {% for opt in ['Full Year','Fall','Spring','Summer'] %}
+                                    <option value="{{ opt }}" {% if item.Term == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control form-control-sm" id="service-calendar_year-{{ item['Service Key'] }}" value="{{ item['Calendar Year'] or '' }}"></td>
+                            <td><input type="number" step="0.5" class="form-control form-control-sm" id="service-hours-{{ item['Service Key'] }}" value="{{ item['Hours/Semester'] or '' }}"></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('service', {{ item['Service Key'] }}, ['description','type','term','calendar_year','hours'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('service', {{ item['Service Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -94,19 +128,33 @@
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr><th>Journal / Conference</th><th>Start Date</th><th class="text-center">Rounds</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for item in reviews_data %}
-                        <tr>
-                            <td>{{ item.Journal or '—' }}</td>
-                            <td>{{ item['Start Date'] or '—' }}</td>
-                            <td class="text-center">{{ item.Rounds or '—' }}</td>
+                        <tr id="review-row-{{ item['Reviews Key'] }}" class="align-middle">
+                            <td class="view-cell">{{ item.Journal or '—' }}</td>
+                            <td class="view-cell">{{ item['Start Date'] or '—' }}</td>
+                            <td class="view-cell text-center">{{ item.Rounds or '—' }}</td>
+                            <td class="view-cell">
+                                <div class="d-flex gap-1">
+                                    <button onclick="inlineEdit('review', {{ item['Reviews Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('review', {{ item['Reviews Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('review', {{ item['Reviews Key'] }}, '{{ item.Journal|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="review-edit-{{ item['Reviews Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="review-journal-{{ item['Reviews Key'] }}" value="{{ item.Journal or '' }}"></td>
+                            <td><input type="date" class="form-control form-control-sm" id="review-start_date-{{ item['Reviews Key'] }}" value="{{ item['Start Date'] or '' }}"></td>
+                            <td><input type="number" class="form-control form-control-sm" id="review-rounds-{{ item['Reviews Key'] }}" value="{{ item.Rounds or '' }}"></td>
                             <td>
-                                <button onclick="editRecord('review', {{ item['Reviews Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('review', {{ item['Reviews Key'] }}, '{{ item.Journal|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('review', {{ item['Reviews Key'] }}, ['journal','start_date','rounds'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('review', {{ item['Reviews Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -142,21 +190,49 @@
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr><th>Description</th><th>Type</th><th>Term</th><th class="text-center">Year</th><th class="text-center">Hours</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for item in prof_dev_data %}
-                        <tr>
-                            <td>{{ item.Description|truncate(60) if item.Description else '—' }}</td>
-                            <td>{{ item.Type or '—' }}</td>
-                            <td>{{ item.Term or '—' }}</td>
-                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
-                            <td class="text-center">{{ item.Hours or '—' }}</td>
+                        <tr id="prof_dev-row-{{ item['Professional Development Key'] }}" class="align-middle">
+                            <td class="view-cell">{{ item.Description|truncate(60) if item.Description else '—' }}</td>
+                            <td class="view-cell">{{ item.Type or '—' }}</td>
+                            <td class="view-cell">{{ item.Term or '—' }}</td>
+                            <td class="view-cell text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td class="view-cell text-center">{{ item.Hours or '—' }}</td>
+                            <td class="view-cell">
+                                <div class="d-flex gap-1">
+                                    <button onclick="inlineEdit('prof_dev', {{ item['Professional Development Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('prof_dev', {{ item['Professional Development Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('prof_dev', {{ item['Professional Development Key'] }}, '{{ item.Type|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="prof_dev-edit-{{ item['Professional Development Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="prof_dev-description-{{ item['Professional Development Key'] }}" value="{{ item.Description or '' }}"></td>
                             <td>
-                                <button onclick="editRecord('prof_dev', {{ item['Professional Development Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('prof_dev', {{ item['Professional Development Key'] }}, '{{ item.Type|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                <select class="form-select form-select-sm" id="prof_dev-type-{{ item['Professional Development Key'] }}">
+                                    {% for opt in ['Conference','Online Certification','Workshop','Training/Workshop Leader','Leadership Program','Other'] %}
+                                    <option value="{{ opt }}" {% if item.Type == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" id="prof_dev-term-{{ item['Professional Development Key'] }}">
+                                    {% for opt in ['Full Year','Fall','Spring','Summer'] %}
+                                    <option value="{{ opt }}" {% if item.Term == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control form-control-sm" id="prof_dev-calendar_year-{{ item['Professional Development Key'] }}" value="{{ item['Calendar Year'] or '' }}"></td>
+                            <td><input type="number" step="0.5" class="form-control form-control-sm" id="prof_dev-hours-{{ item['Professional Development Key'] }}" value="{{ item.Hours or '' }}"></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('prof_dev', {{ item['Professional Development Key'] }}, ['description','type','term','calendar_year','hours'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('prof_dev', {{ item['Professional Development Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
@@ -191,21 +267,49 @@
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr><th>Students</th><th>Title</th><th>Program Type</th><th>Term</th><th class="text-center">Year</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for item in undergrad_data %}
-                        <tr>
-                            <td>{{ item.Students|truncate(30) if item.Students else '—' }}</td>
-                            <td>{{ item.Title|truncate(40) if item.Title else '—' }}</td>
-                            <td>{{ item['Program Type'] or '—' }}</td>
-                            <td>{{ item.Term or '—' }}</td>
-                            <td class="text-center">{{ item['Calendar Year'] or '—' }}</td>
+                        <tr id="undergrad-row-{{ item['Undergraduate Research Key'] }}" class="align-middle">
+                            <td class="view-cell">{{ item.Students|truncate(30) if item.Students else '—' }}</td>
+                            <td class="view-cell">{{ item.Title|truncate(40) if item.Title else '—' }}</td>
+                            <td class="view-cell">{{ item['Program Type'] or '—' }}</td>
+                            <td class="view-cell">{{ item.Term or '—' }}</td>
+                            <td class="view-cell text-center">{{ item['Calendar Year'] or '—' }}</td>
+                            <td class="view-cell">
+                                <div class="d-flex gap-1">
+                                    <button onclick="inlineEdit('undergrad', {{ item['Undergraduate Research Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('undergrad', {{ item['Undergraduate Research Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('undergrad', {{ item['Undergraduate Research Key'] }}, '{{ item.Title|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="undergrad-edit-{{ item['Undergraduate Research Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="undergrad-students-{{ item['Undergraduate Research Key'] }}" value="{{ item.Students or '' }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" id="undergrad-title-{{ item['Undergraduate Research Key'] }}" value="{{ item.Title or '' }}"></td>
                             <td>
-                                <button onclick="editRecord('undergrad', {{ item['Undergraduate Research Key'] }})" class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('undergrad', {{ item['Undergraduate Research Key'] }}, '{{ item.Title|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                <select class="form-select form-select-sm" id="undergrad-program_type-{{ item['Undergraduate Research Key'] }}">
+                                    {% for opt in ['Summer REU Program','Honors Thesis','Independent Study','Capstone Project','Undergraduate Research Assistantship','Other'] %}
+                                    <option value="{{ opt }}" {% if item['Program Type'] == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" id="undergrad-term-{{ item['Undergraduate Research Key'] }}">
+                                    {% for opt in ['Full Year','Fall','Spring','Summer'] %}
+                                    <option value="{{ opt }}" {% if item.Term == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="number" class="form-control form-control-sm" id="undergrad-calendar_year-{{ item['Undergraduate Research Key'] }}" value="{{ item['Calendar Year'] or '' }}"></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('undergrad', {{ item['Undergraduate Research Key'] }}, ['students','title','program_type','term','calendar_year'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('undergrad', {{ item['Undergraduate Research Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}

@@ -10,97 +10,72 @@
         <form method="POST">
             {{ form.hidden_tag() }}
             <div class="row g-3">
-                <div class="col-md-8">
-                    {{ form.title.label(class="form-label fw-medium") }}
-                    {{ form.title(class="form-control") }}
-                </div>
-                <div class="col-md-4">
-                    {{ form.sponsor.label(class="form-label fw-medium") }}
-                    {{ form.sponsor(class="form-control") }}
-                </div>
-
-                <div class="col-md-3">
-                    {{ form.allocated_amount.label(class="form-label fw-medium") }}
-                    {{ form.allocated_amount(class="form-control") }}
-                </div>
-                <div class="col-md-3">
-                    {{ form.total_cost.label(class="form-label fw-medium") }}
-                    {{ form.total_cost(class="form-control") }}
-                </div>
-                <div class="col-md-3">
-                    {{ form.funded.label(class="form-label fw-medium") }}
-                    {{ form.funded(class="form-select") }}
-                </div>
-
-                <div class="col-md-4">
-                    {{ form.begin_date.label(class="form-label fw-medium") }}
-                    {{ form.begin_date(class="form-control") }}
-                </div>
-                <div class="col-md-4">
-                    {{ form.end_date.label(class="form-label fw-medium") }}
-                    {{ form.end_date(class="form-control") }}
-                </div>
-                <div class="col-md-4">
-                    {{ form.submit_date.label(class="form-label fw-medium") }}
-                    {{ form.submit_date(class="form-control") }}
-                </div>
-
-                <div class="col-12">
-                    {{ form.principal_investigators.label(class="form-label fw-medium") }}
-                    {{ form.principal_investigators(class="form-control", rows="3", 
-                       placeholder="Last1, First1; Last2, First2; ...") }}
-                </div>
-
-                <div class="col-12">
-                    {{ form.submit(class="btn btn-gold") }}
-                </div>
+                <div class="col-md-8">{{ form.title.label(class="form-label fw-medium") }}{{ form.title(class="form-control") }}</div>
+                <div class="col-md-4">{{ form.sponsor.label(class="form-label fw-medium") }}{{ form.sponsor(class="form-control") }}</div>
+                <div class="col-md-3">{{ form.allocated_amount.label(class="form-label fw-medium") }}{{ form.allocated_amount(class="form-control") }}</div>
+                <div class="col-md-3">{{ form.total_cost.label(class="form-label fw-medium") }}{{ form.total_cost(class="form-control") }}</div>
+                <div class="col-md-3">{{ form.funded.label(class="form-label fw-medium") }}{{ form.funded(class="form-select") }}</div>
+                <div class="col-md-4">{{ form.begin_date.label(class="form-label fw-medium") }}{{ form.begin_date(class="form-control") }}</div>
+                <div class="col-md-4">{{ form.end_date.label(class="form-label fw-medium") }}{{ form.end_date(class="form-control") }}</div>
+                <div class="col-md-4">{{ form.submit_date.label(class="form-label fw-medium") }}{{ form.submit_date(class="form-control") }}</div>
+                <div class="col-12">{{ form.principal_investigators.label(class="form-label fw-medium") }}{{ form.principal_investigators(class="form-control", rows="3", placeholder="Last1, First1; Last2, First2; ...") }}</div>
+                <div class="col-12">{{ form.submit(class="btn btn-gold") }}</div>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Proposals Table -->
-<table class="table table-striped datatable">
+<table class="table table-hover">
     <thead class="table-dark">
         <tr>
-            <th>Title</th>
-            <th>Sponsor</th>
-            <th>Allocated</th>
-            <th>Total Cost</th>
-            <th>Funded</th>
-            <th>Begin Date</th>
-            <th>End Date</th>
-            <th>Submit Date</th>
-            <th width="140px">Actions</th>
+            <th>Title</th><th>Sponsor</th><th>Allocated</th><th>Total Cost</th>
+            <th>Funded</th><th>Begin</th><th>End</th><th>Submit</th>
+            <th width="170px">Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for item in data %}
-        <tr>
+        <tr id="proposal-row-{{ item['Proposal Key'] }}" class="align-middle">
             <td>{{ item.Title or '—' }}</td>
             <td>{{ item.Sponsor or '—' }}</td>
-            <td>${{ item.AllocatedAmount|default(0)|round(2) }}</td>
-            <td>${{ item.TotalCost|default(0)|round(2) }}</td>
-            <td>{{ item.Funded or '—' }}</td>
-            <td>{{ item.BeginDate or '—' }}</td>
-            <td>{{ item.EndDate or '—' }}</td>
-            <td>{{ item.SubmitDate or '—' }}</td>
+            <td>${{ item['Allocated Amount']|default(0)|round(2) }}</td>
+            <td>${{ item['Total Cost']|default(0)|round(2) }}</td>
+            <td>{{ 'Yes' if item['Funded?'] in (1, '1', True) else 'No' }}</td>
+            <td>{{ item['Begin Date'] or '—' }}</td>
+            <td>{{ item['End Date'] or '—' }}</td>
+            <td>{{ item['Submit Date'] or '—' }}</td>
             <td>
-                <button onclick="editRecord('proposal', {{ item['Proposal Key'] }})" 
-                        class="btn btn-sm btn-warning me-1">Edit</button>
-                <button onclick="deleteRecord('proposal', {{ item['Proposal Key'] }}, '{{ item.Title|escape|default('') }}')" 
-                        class="btn btn-sm btn-danger">Delete</button>
+                <div class="d-flex gap-1">
+                    <button onclick="inlineEdit('proposal', {{ item['Proposal Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                    <button onclick="duplicateRecord('proposal', {{ item['Proposal Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                    <button onclick="deleteRecord('proposal', {{ item['Proposal Key'] }}, '{{ item.Title|escape|default('') }}')" class="btn btn-sm btn-danger">Delete</button>
+                </div>
+            </td>
+        </tr>
+        <tr id="proposal-edit-{{ item['Proposal Key'] }}" class="d-none table-warning align-middle">
+            <td><input type="text" class="form-control form-control-sm" id="proposal-title-{{ item['Proposal Key'] }}" value="{{ item.Title or '' }}"></td>
+            <td><input type="text" class="form-control form-control-sm" id="proposal-sponsor-{{ item['Proposal Key'] }}" value="{{ item.Sponsor or '' }}"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm" id="proposal-allocated_amount-{{ item['Proposal Key'] }}" value="{{ item['Allocated Amount'] or '' }}"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm" id="proposal-total_cost-{{ item['Proposal Key'] }}" value="{{ item['Total Cost'] or '' }}"></td>
+            <td>
+                <select class="form-select form-select-sm" id="proposal-funded-{{ item['Proposal Key'] }}">
+                    <option value="1" {% if item['Funded?'] in (1, '1', True) %}selected{% endif %}>Yes</option>
+                    <option value="0" {% if item['Funded?'] in (0, '0', False, None) %}selected{% endif %}>No</option>
+                </select>
+            </td>
+            <td><input type="date" class="form-control form-control-sm" id="proposal-begin_date-{{ item['Proposal Key'] }}" value="{{ item['Begin Date'] or '' }}"></td>
+            <td><input type="date" class="form-control form-control-sm" id="proposal-end_date-{{ item['Proposal Key'] }}" value="{{ item['End Date'] or '' }}"></td>
+            <td><input type="date" class="form-control form-control-sm" id="proposal-submit_date-{{ item['Proposal Key'] }}" value="{{ item['Submit Date'] or '' }}"></td>
+            <td>
+                <div class="d-flex gap-1">
+                    <button onclick="saveInlineEdit('proposal', {{ item['Proposal Key'] }}, ['title','sponsor','allocated_amount','total_cost','funded','begin_date','end_date','submit_date'])" class="btn btn-sm btn-success">Save</button>
+                    <button onclick="cancelInlineEdit('proposal', {{ item['Proposal Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                </div>
             </td>
         </tr>
         {% else %}
-        <tr>
-            <td colspan="9" class="text-center text-muted py-4">
-                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                No proposals added yet. Click <strong>Add New Proposal</strong> to get started.
-            </td>
-        </tr>
+        <tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No proposals added yet.</td></tr>
         {% endfor %}
     </tbody>
 </table>
-
 {% endblock %}

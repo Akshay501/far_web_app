@@ -2,6 +2,7 @@
 import logging
 from flask import Flask, render_template
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 from .config import Config
 from .utils import load_config, close_db
 from .models import User
@@ -13,6 +14,10 @@ def create_app():
                 static_folder='../static')
 
     app.config.from_object(Config)
+
+    # Initialize CSRF protection globally
+    # This makes csrf_token() available in all Jinja2 templates
+    CSRFProtect(app)
 
     cfg = load_config()
     app.config['DB_CONFIG'] = cfg['db']

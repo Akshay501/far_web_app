@@ -207,16 +207,15 @@ def awards():
                sa.Amount, sa.Category, a.`Award Type`
         FROM STUDENTAWARDS sa
         JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
-        JOIN PERSONALAWARDS pa ON pa.`Award Key` = a.`Award Key`
-        WHERE pa.ProfessorKey = %s
         ORDER BY a.Year DESC
-    """, (pk,))
+    """, ())
 
     return render_template('professor/awards.html',
                            personal_awards=personal_awards,
                            student_awards=student_awards,
                            personal_form=personal_form,
-                           student_form=student_form)
+                           student_form=student_form,
+                           active_tab=request.args.get('tab', 'personal'))
 
 # ====================== PERSONAL AWARDS EDIT/DELETE ======================
 @professor_bp.route('/awards/personal/edit/<int:id>', methods=['GET', 'POST'])
@@ -225,6 +224,16 @@ def awards():
 def edit_personal_award(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            # Title, Award Type and Year live in the AWARDS table, not PERSONALAWARDS
+            execute_query("""
+                UPDATE AWARDS
+                SET Title=%s, `Award Type`=%s, Year=%s
+                WHERE `Award Key`=%s
+            """, (request.form.get('title'), request.form.get('type'),
+                  request.form.get('year'), id), commit=True)
+            flash('Personal Award updated successfully', 'success')
+            return redirect(url_for('professor.awards'))
         form = PersonalAwardForm()
         if form.validate_on_submit():
             execute_query("""
@@ -267,12 +276,56 @@ def delete_personal_award(id):
     return redirect(url_for('professor.awards'))
 
 
+@professor_bp.route('/awards/personal/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_personal_award(id):
+    pk = current_user.professor_key
+    # Join to get Title, Award Type, Year from AWARDS table
+    row = execute_query("""
+        SELECT a.Title, a.`Award Type`, a.Year
+        FROM PERSONALAWARDS pa
+        JOIN AWARDS a ON pa.`Award Key` = a.`Award Key`
+        WHERE pa.`Award Key`=%s AND pa.ProfessorKey=%s
+    """, (id, pk), fetchone=True)
+    if row:
+        # Step 1: Insert new row into AWARDS to get a new Award Key
+        execute_query(
+            'INSERT INTO AWARDS (Title, Year, `Award Type`) VALUES (%s, %s, %s)',
+            (row.get('Title'), row.get('Year'), row.get('Award Type')), commit=True)
+        # Step 2: Get the new Award Key just created
+        new_award_key = execute_query(
+            'SELECT LAST_INSERT_ID() AS new_key', fetchone=True).get('new_key')
+        # Step 3: Insert into PERSONALAWARDS linking to new Award Key
+        execute_query(
+            'INSERT INTO PERSONALAWARDS (`Award Key`, ProfessorKey) VALUES (%s, %s)',
+            (new_award_key, pk), commit=True)
+        flash('Personal award duplicated successfully.', 'success')
+    return redirect(url_for('professor.awards'))
+
+
 # ====================== STUDENT AWARDS EDIT/DELETE ======================
 @professor_bp.route('/awards/student/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @professor_required
 def edit_student_award(id):
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            # Title, Award Type and Year live in AWARDS; Student/Amount/Category in STUDENTAWARDS
+            execute_query("""
+                UPDATE AWARDS
+                SET Title=%s, `Award Type`=%s, Year=%s
+                WHERE `Award Key`=%s
+            """, (request.form.get('award_title'), request.form.get('type'),
+                  request.form.get('year'), id), commit=True)
+            execute_query("""
+                UPDATE STUDENTAWARDS
+                SET Student=%s, Amount=%s, Category=%s
+                WHERE `Award Key`=%s
+            """, (request.form.get('student_name'), request.form.get('amount') or None,
+                  request.form.get('category'), id), commit=True)
+            flash('Student Award updated successfully', 'success')
+            return redirect(url_for('professor.awards', tab='student') + '#student-awards')
         form = StudentAwardForm()
         if form.validate_on_submit():
             execute_query("""
@@ -292,7 +345,7 @@ def edit_student_award(id):
                   form.year.data,
                   id), commit=True)
             flash('Student Award updated successfully', 'success')
-            return redirect(url_for('professor.awards'))
+            return redirect(url_for('professor.awards', tab='student') + '#student-awards')
     else:
         award = execute_query("""
             SELECT * FROM STUDENTAWARDS 
@@ -320,6 +373,34 @@ def delete_student_award(id):
     execute_query("DELETE FROM STUDENTAWARDS WHERE `Award Key` = %s", (id,), commit=True)
     flash('Student Award deleted successfully', 'success')
     return redirect(url_for('professor.awards'))
+
+
+@professor_bp.route('/awards/student/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_student_award(id):
+    # STUDENTAWARDS stores: Award Key, Student, Amount, Category
+    # Title, Award Type, Year live in AWARDS — need two-step insert
+    row = execute_query("""
+        SELECT a.Title, a.Year, a.`Award Type`, sa.Student, sa.Amount, sa.Category
+        FROM STUDENTAWARDS sa
+        JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
+        WHERE sa.`Award Key`=%s
+    """, (id,), fetchone=True)
+    if row:
+        # Step 1: Insert into AWARDS to get new Award Key
+        execute_query(
+            'INSERT INTO AWARDS (Title, Year, `Award Type`) VALUES (%s, %s, %s)',
+            (row.get('Title'), row.get('Year'), row.get('Award Type')), commit=True)
+        # Step 2: Get the new Award Key
+        new_award_key = execute_query(
+            'SELECT LAST_INSERT_ID() AS new_key', fetchone=True).get('new_key')
+        # Step 3: Insert into STUDENTAWARDS with new Award Key
+        execute_query(
+            'INSERT INTO STUDENTAWARDS (`Award Key`, Student, Amount, Category) VALUES (%s, %s, %s, %s)',
+            (new_award_key, row.get('Student'), row.get('Amount'), row.get('Category')), commit=True)
+        flash('Student award duplicated successfully.', 'success')
+    return redirect(url_for('professor.awards', tab='student') + '#student-awards')
 
 
 # ====================== SERVICE (tabbed: Service, Reviews, Prof Dev, Undergrad Research) ======================
@@ -475,11 +556,28 @@ def grants():
 def edit_proposal(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE PROPOSAL
+                SET Title=%s, Sponsor=%s, `Allocated Amount`=%s, `Total Cost`=%s,
+                    `Funded?`=%s, `Begin Date`=%s, `End Date`=%s,
+                    `Submit Date`=%s, `Principal Investigator`=%s
+                WHERE `Proposal Key`=%s AND ProfessorKey=%s
+            """, (request.form.get('title'), request.form.get('sponsor'),
+                  request.form.get('allocated_amount') or None,
+                  request.form.get('total_cost') or None,
+                  1 if request.form.get('funded') in ('1', 'Y', True) else 0,
+                  request.form.get('begin_date') or None,
+                  request.form.get('end_date') or None,
+                  request.form.get('submit_date') or None,
+                  request.form.get('principal_investigators'), id, pk), commit=True)
+            flash('Proposal updated successfully', 'success')
+            return redirect(url_for('professor.proposals'))
         form = ProposalForm()
         if form.validate_on_submit():
             execute_query("""
                 UPDATE PROPOSAL
-                SET Title=%s, Sponsor=%s, AllocatedAmount=%s, TotalCost=%s,
+                SET Title=%s, Sponsor=%s, `Allocated Amount`=%s, `Total Cost`=%s,
                     `Funded?`=%s, `Begin Date`=%s, `End Date`=%s,
                     `Submit Date`=%s, `Principal Investigator`=%s
                 WHERE `Proposal Key`=%s AND ProfessorKey=%s
@@ -520,6 +618,24 @@ def delete_proposal(id):
     return redirect(url_for('professor.proposals'))
 
 
+@professor_bp.route('/proposals/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_proposal(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        'SELECT * FROM PROPOSAL WHERE `Proposal Key`=%s AND ProfessorKey=%s',
+        (id, pk), fetchone=True)
+    if row:
+        execute_query(
+            'INSERT INTO PROPOSAL (Title, Sponsor, `Allocated Amount`, `Total Cost`, `Funded?`, `Begin Date`, `End Date`, `Submit Date`, `Principal Investigator`, ProfessorKey) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+            (row.get('Title'), row.get('Sponsor'), row.get('Allocated Amount'), row.get('Total Cost'),
+             row.get('Funded?'), row.get('Begin Date'), row.get('End Date'),
+             row.get('Submit Date'), row.get('Principal Investigator'), pk), commit=True)
+        flash('Proposal duplicated successfully.', 'success')
+    return redirect(url_for('professor.proposals'))
+
+
 # ====================== SERVICE EDIT/DELETE ======================
 @professor_bp.route('/service/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -527,6 +643,17 @@ def delete_proposal(id):
 def edit_service(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE SERVICE
+                SET Description=%s, Type=%s, Term=%s,
+                    `Calendar Year`=%s, `Hours/Semester`=%s
+                WHERE `Service Key`=%s AND ProfessorKey=%s
+            """, (request.form.get('description'), request.form.get('type'),
+                  request.form.get('term'), request.form.get('calendar_year') or None,
+                  request.form.get('hours') or None, id, pk), commit=True)
+            flash('Service updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='service'))
         form = ServiceForm()
         if form.validate_on_submit():
             execute_query("""
@@ -565,21 +692,54 @@ def delete_service(id):
     return redirect(url_for('professor.service', tab='service'))
 
 
+@professor_bp.route('/service/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_service(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        "SELECT * FROM SERVICE WHERE `Service Key`=%s AND ProfessorKey=%s",
+        (id, pk), fetchone=True)
+    if row:
+        execute_query("""
+            INSERT INTO SERVICE (Description, Type, Term, `Calendar Year`, `Hours/Semester`, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (row.get('Description'), row.get('Type'), row.get('Term'),
+              row.get('Calendar Year'), row.get('Hours/Semester'), pk), commit=True)
+        flash('Service activity duplicated successfully.', 'success')
+    return redirect(url_for('professor.service', tab='service'))
+
+
 @professor_bp.route('/grants/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 @professor_required
 def edit_grant(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE GRANTS
+                SET Title=%s, Sponsor=%s, `Allocated Amount`=%s, `Total Cost`=%s,
+                    `Begin Date`=%s, `End Date`=%s, Role=%s, `Principal Investigators`=%s
+                WHERE GrantKey=%s AND ProfessorKey=%s
+            """, (request.form.get('title'), request.form.get('sponsor'),
+                  request.form.get('allocated_amount') or None,
+                  request.form.get('total_cost') or None,
+                  request.form.get('begin_date') or None,
+                  request.form.get('end_date') or None,
+                  request.form.get('role'),
+                  request.form.get('principal_investigators'), id, pk), commit=True)
+            flash('Grant updated successfully', 'success')
+            return redirect(url_for('professor.grants'))
         form = GrantForm()
         if form.validate_on_submit():
             execute_query("""
-                UPDATE GRANTS 
-                SET Title=%s, Sponsor=%s, AllocatedAmount=%s, TotalCost=%s, Funded=%s,
-                    BeginDate=%s, EndDate=%s, Role=%s, PrincipalInvestigators=%s
+                UPDATE GRANTS
+                SET Title=%s, Sponsor=%s, `Allocated Amount`=%s, `Total Cost`=%s,
+                    `Begin Date`=%s, `End Date`=%s, Role=%s, `Principal Investigators`=%s
                 WHERE GrantKey=%s AND ProfessorKey=%s
             """, (form.title.data, form.sponsor.data, form.allocated_amount.data,
-                  form.total_cost.data, form.funded.data, form.begin_date.data,
+                  form.total_cost.data, form.begin_date.data,
                   form.end_date.data, form.role.data, form.principal_investigators.data,
                   id, pk), commit=True)
             flash('Grant updated successfully', 'success')
@@ -610,6 +770,25 @@ def delete_grant(id):
     execute_query("DELETE FROM GRANTS WHERE GrantKey=%s AND ProfessorKey=%s", (id, pk), commit=True)
     flash('Grant deleted successfully', 'success')
     return redirect(url_for('professor.grants'))
+
+
+@professor_bp.route('/grants/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_grant(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        'SELECT * FROM GRANTS WHERE GrantKey=%s AND ProfessorKey=%s',
+        (id, pk), fetchone=True)
+    if row:
+        execute_query(
+            'INSERT INTO GRANTS (Title, Sponsor, `Allocated Amount`, `Total Cost`, `Begin Date`, `End Date`, Role, `Principal Investigators`, ProfessorKey) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+            (row.get('Title'), row.get('Sponsor'), row.get('Allocated Amount'), row.get('Total Cost'),
+             row.get('Begin Date'), row.get('End Date'), row.get('Role'),
+             row.get('Principal Investigators'), pk), commit=True)
+        flash('Grant duplicated successfully.', 'success')
+    return redirect(url_for('professor.grants'))
+
 
 # ====================== CV ======================
 @professor_bp.route('/generate_cv')
@@ -705,6 +884,16 @@ def add_thesis_form():
 def edit_current_student(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE CURRENTSTUDENTS
+                SET `Student Name`=%s, `Current Program`=%s, `Start Date`=%s
+                WHERE ProfessorKey=%s AND `Student Key`=%s
+            """, (request.form.get('student_name'),
+                  request.form.get('current_program'),
+                  request.form.get('start_date') or None, pk, id), commit=True)
+            flash('Student updated successfully', 'success')
+            return redirect(url_for('professor.scholarship'))
         form = CurrentStudentForm()
         if form.validate_on_submit():
             execute_query("""
@@ -733,6 +922,17 @@ def edit_current_student(id):
 @professor_required
 def edit_thesis(id):
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE THESIS
+                SET `Student Name`=%s, Year=%s, Degree=%s, Title=%s, Comments=%s
+                WHERE ProfessorKey=%s AND `Thesis Key`=%s
+            """, (request.form.get('student'), request.form.get('year') or None,
+                  request.form.get('degree'), request.form.get('title'),
+                  request.form.get('comments'),
+                  current_user.professor_key, id), commit=True)
+            flash('Thesis updated successfully', 'success')
+            return redirect(url_for('professor.scholarship'))
         form = ThesisForm()
         if form.validate_on_submit():
             execute_query("""
@@ -771,6 +971,22 @@ def delete_current_student(id):
     return redirect(url_for('professor.scholarship'))
 
 
+@professor_bp.route('/scholarship/duplicate/current_student/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_current_student(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        'SELECT * FROM CURRENTSTUDENTS WHERE ProfessorKey=%s AND `Student Key`=%s',
+        (pk, id), fetchone=True)
+    if row:
+        execute_query(
+            'INSERT INTO CURRENTSTUDENTS (`Student Name`, `Current Program`, `Start Date`, ProfessorKey) VALUES (%s, %s, %s, %s)',
+            (row.get('Student Name'), row.get('Current Program'), row.get('Start Date'), pk), commit=True)
+        flash('Student duplicated successfully.', 'success')
+    return redirect(url_for('professor.scholarship'))
+
+
 @professor_bp.route('/scholarship/delete/thesis/<int:id>', methods=['POST'])
 @login_required
 @professor_required
@@ -779,6 +995,23 @@ def delete_thesis(id):
     execute_query("DELETE FROM THESIS WHERE ProfessorKey = %s AND `Thesis Key` = %s", 
                   (pk, id), commit=True)
     flash('Thesis deleted successfully', 'success')
+    return redirect(url_for('professor.scholarship'))
+
+
+@professor_bp.route('/scholarship/duplicate/thesis/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_thesis(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        'SELECT * FROM THESIS WHERE ProfessorKey=%s AND `Thesis Key`=%s',
+        (pk, id), fetchone=True)
+    if row:
+        execute_query(
+            'INSERT INTO THESIS (`Student Name`, Year, Degree, Title, Comments, ProfessorKey) VALUES (%s, %s, %s, %s, %s, %s)',
+            (row.get('Student Name'), row.get('Year'), row.get('Degree'),
+             row.get('Title'), row.get('Comments'), pk), commit=True)
+        flash('Thesis duplicated successfully.', 'success')
     return redirect(url_for('professor.scholarship'))
 
 # ====================== REVIEWS ======================
@@ -806,6 +1039,15 @@ def reviews():
 def edit_review(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE REVIEWS SET Journal=%s, `Start Date`=%s, Rounds=%s
+                WHERE `Reviews Key`=%s AND ProfessorKey=%s
+            """, (request.form.get('journal'),
+                  request.form.get('start_date') or None,
+                  request.form.get('rounds') or None, id, pk), commit=True)
+            flash('Review updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='reviews'))
         form = ReviewsForm()
         if form.validate_on_submit():
             execute_query("""
@@ -836,6 +1078,23 @@ def delete_review(id):
         "DELETE FROM REVIEWS WHERE `Reviews Key`=%s AND ProfessorKey=%s",
         (id, pk), commit=True)
     flash('Review deleted successfully', 'success')
+    return redirect(url_for('professor.service', tab='reviews'))
+
+
+@professor_bp.route('/reviews/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_review(id):
+    pk = current_user.professor_key
+    row = execute_query(
+        "SELECT * FROM REVIEWS WHERE `Reviews Key`=%s AND ProfessorKey=%s",
+        (id, pk), fetchone=True)
+    if row:
+        execute_query("""
+            INSERT INTO REVIEWS (Journal, `Start Date`, Rounds, ProfessorKey)
+            VALUES (%s, %s, %s, %s)
+        """, (row.get('Journal'), row.get('Start Date'), row.get('Rounds'), pk), commit=True)
+        flash('Review duplicated successfully.', 'success')
     return redirect(url_for('professor.service', tab='reviews'))
 
 
@@ -898,6 +1157,17 @@ def professional_development():
 def edit_professional_development(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE PROFESSIONALDEVELOPMENT
+                SET Description=%s, Type=%s, Term=%s, `Calendar Year`=%s, Hours=%s
+                WHERE `Professional Development Key`=%s AND ProfessorKey=%s
+            """, (request.form.get('description'), request.form.get('type'),
+                  request.form.get('term'),
+                  request.form.get('calendar_year') or None,
+                  request.form.get('hours') or None, id, pk), commit=True)
+            flash('Entry updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='prof_dev'))
         form = ProfessionalDevelopmentForm()
         if form.validate_on_submit():
             execute_query("""
@@ -935,6 +1205,26 @@ def delete_professional_development(id):
         WHERE `Professional Development Key`=%s AND ProfessorKey=%s
     """, (id, pk), commit=True)
     flash('Entry deleted', 'success')
+    return redirect(url_for('professor.service', tab='prof_dev'))
+
+
+@professor_bp.route('/professional-development/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_professional_development(id):
+    pk = current_user.professor_key
+    row = execute_query("""
+        SELECT * FROM PROFESSIONALDEVELOPMENT
+        WHERE `Professional Development Key`=%s AND ProfessorKey=%s
+    """, (id, pk), fetchone=True)
+    if row:
+        execute_query("""
+            INSERT INTO PROFESSIONALDEVELOPMENT
+            (Description, Type, `Calendar Year`, Notes, Term, Hours, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (row.get('Description'), row.get('Type'), row.get('Calendar Year'),
+              row.get('Notes'), row.get('Term'), row.get('Hours'), pk), commit=True)
+        flash('Entry duplicated successfully.', 'success')
     return redirect(url_for('professor.service', tab='prof_dev'))
 
 
@@ -1031,6 +1321,16 @@ def undergraduate_research():
 def edit_undergraduate_research(id):
     pk = current_user.professor_key
     if request.method == 'POST':
+        if request.form.get('inline_edit'):
+            execute_query("""
+                UPDATE UNDERGRADUATERESEARCH
+                SET Students=%s, Title=%s, `Program Type`=%s, Term=%s, `Calendar Year`=%s
+                WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
+            """, (request.form.get('students'), request.form.get('title'),
+                  request.form.get('program_type'), request.form.get('term'),
+                  request.form.get('calendar_year') or None, id, pk), commit=True)
+            flash('Entry updated successfully', 'success')
+            return redirect(url_for('professor.service', tab='undergrad'))
         form = UndergraduateResearchForm()
         if form.validate_on_submit():
             execute_query("""
@@ -1067,6 +1367,26 @@ def delete_undergraduate_research(id):
         WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
     """, (id, pk), commit=True)
     flash('Entry deleted', 'success')
+    return redirect(url_for('professor.service', tab='undergrad'))
+
+
+@professor_bp.route('/undergraduate-research/duplicate/<int:id>', methods=['POST'])
+@login_required
+@professor_required
+def duplicate_undergraduate_research(id):
+    pk = current_user.professor_key
+    row = execute_query("""
+        SELECT * FROM UNDERGRADUATERESEARCH
+        WHERE `Undergraduate Research Key`=%s AND ProfessorKey=%s
+    """, (id, pk), fetchone=True)
+    if row:
+        execute_query("""
+            INSERT INTO UNDERGRADUATERESEARCH
+            (Students, Title, `Program Type`, Term, `Calendar Year`, ProfessorKey)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (row.get('Students'), row.get('Title'), row.get('Program Type'),
+              row.get('Term'), row.get('Calendar Year'), pk), commit=True)
+        flash('Entry duplicated successfully.', 'success')
     return redirect(url_for('professor.service', tab='undergrad'))
 
 

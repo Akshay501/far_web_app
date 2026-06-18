@@ -214,3 +214,18 @@ footer {
     background-color: var(--clarkson-gold);
     color: var(--clarkson-green);
 }
+/* Row highlight after inline save */
+tr.row-highlight,
+tr.row-highlight > td,
+.table tr.row-highlight,
+.table tr.row-highlight > td,
+.table-hover tr.row-highlight,
+.table-hover tr.row-highlight > td,
+.table-striped tr.row-highlight,
+.table-striped tr.row-highlight > td,
+.table-striped > tbody > tr.row-highlight > td,
+.table-hover > tbody > tr.row-highlight > td {
+    background-color: #ffcd00 !important;
+    box-shadow: inset 0 0 0 3px #004e42;
+    transition: background-color 2s ease !important;
+}

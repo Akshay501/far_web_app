@@ -13,45 +13,59 @@
 </ul>
 
 <div class="tab-content">
-    <!-- Current Students Tab -->
+
+    <!-- ===== CURRENT STUDENTS ===== -->
     <div class="tab-pane fade show active" id="students">
-        <div class="d-flex justify-content-between mb-3">
-            <h5>Current Students</h5>
-            <button class="btn btn-gold" onclick="showAddModal('current_student')">
-                <i class="bi bi-plus-circle me-1"></i>Add New Student
-            </button>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-clarkson-green text-white">
+                <h5 class="mb-0">Add New Student</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('professor.scholarship') }}">
+                    {{ current_student_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="current_student">
+                    <div class="row g-3">
+                        <div class="col-md-5">{{ current_student_form.student_name.label(class="form-label") }}{{ current_student_form.student_name(class="form-control") }}</div>
+                        <div class="col-md-5">{{ current_student_form.current_program.label(class="form-label") }}{{ current_student_form.current_program(class="form-control") }}</div>
+                        <div class="col-md-2">{{ current_student_form.start_date.label(class="form-label") }}{{ current_student_form.start_date(class="form-control") }}</div>
+                        <div class="col-12">{{ current_student_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>Student Name</th>
-                            <th>Current Program</th>
-                            <th>Start Date</th>
-                            <th width="140">Actions</th>
-                        </tr>
+                        <tr><th>Student Name</th><th>Current Program</th><th>Start Date</th><th width="170">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for row in current_students %}
-                        <tr>
+                        <tr id="current_student-row-{{ row['Student Key'] }}" class="align-middle">
                             <td>{{ row['Student Name'] or '—' }}</td>
                             <td>{{ row['Current Program'] or '—' }}</td>
                             <td>{{ row['Start Date'] or '—' }}</td>
                             <td>
-                                <button onclick="editRecord('current_student', {{ row['Student Key'] }})" 
-                                        class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('current_student', {{ row['Student Key'] }}, '{{ row['Student Name']|escape }}')" 
-                                        class="btn btn-sm btn-danger">Delete</button>
+                                <div class="d-flex gap-1">
+                                    <button onclick="inlineEdit('current_student', {{ row['Student Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('current_student', {{ row['Student Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('current_student', {{ row['Student Key'] }}, '{{ row['Student Name']|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="current_student-edit-{{ row['Student Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="current_student-student_name-{{ row['Student Key'] }}" value="{{ row['Student Name'] or '' }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" id="current_student-current_program-{{ row['Student Key'] }}" value="{{ row['Current Program'] or '' }}"></td>
+                            <td><input type="date" class="form-control form-control-sm" id="current_student-start_date-{{ row['Student Key'] }}" value="{{ row['Start Date'] or '' }}"></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('current_student', {{ row['Student Key'] }}, ['student_name','current_program','start_date'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('current_student', {{ row['Student Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No current students added yet. Click <strong>Add Current Student</strong> to get started.
-                            </td>
-                        </tr>
+                        <tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No current students added yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -59,49 +73,70 @@
         </div>
     </div>
 
-    <!-- Thesis Tab -->
+    <!-- ===== THESIS ===== -->
     <div class="tab-pane fade" id="thesis">
-        <div class="d-flex justify-content-between mb-3">
-            <h5>Thesis</h5>
-            <button class="btn btn-gold" onclick="showAddModal('thesis')">
-                <i class="bi bi-plus-circle me-1"></i>Add New Thesis
-            </button>
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-clarkson-green text-white">
+                <h5 class="mb-0">Add New Thesis</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('professor.scholarship') }}">
+                    {{ thesis_form.hidden_tag() }}
+                    <input type="hidden" name="form_type" value="thesis">
+                    <div class="row g-3">
+                        <div class="col-md-4">{{ thesis_form.student.label(class="form-label") }}{{ thesis_form.student(class="form-control") }}</div>
+                        <div class="col-md-4">{{ thesis_form.title.label(class="form-label") }}{{ thesis_form.title(class="form-control") }}</div>
+                        <div class="col-md-2">{{ thesis_form.year.label(class="form-label") }}{{ thesis_form.year(class="form-control") }}</div>
+                        <div class="col-md-2">{{ thesis_form.degree.label(class="form-label") }}{{ thesis_form.degree(class="form-select") }}</div>
+                        <div class="col-12">{{ thesis_form.comments.label(class="form-label") }}{{ thesis_form.comments(class="form-control", rows=2) }}</div>
+                        <div class="col-12">{{ thesis_form.submit(class="btn btn-gold") }}</div>
+                    </div>
+                </form>
+            </div>
         </div>
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>Student</th>
-                            <th>Year</th>
-                            <th>Degree</th>
-                            <th>Title</th>
-                            <th>Comments</th>
-                            <th width="140">Actions</th>
-                        </tr>
+                        <tr><th>Student</th><th>Year</th><th>Degree</th><th>Title</th><th>Comments</th><th width="170">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for row in theses %}
-                        <tr>
+                        <tr id="thesis-row-{{ row['Thesis Key'] }}" class="align-middle">
                             <td>{{ row.get('Student Name') or row.get('StudentName') or '—' }}</td>
-                            <td>{{ row.Year }}</td>
-                            <td>{{ row.Degree }}</td>
-                            <td>{{ row.Title }}</td>
+                            <td>{{ row.Year or '—' }}</td>
+                            <td>{{ row.Degree or '—' }}</td>
+                            <td>{{ row.Title or '—' }}</td>
                             <td>{{ row.Comments or '—' }}</td>
                             <td>
-                                <button onclick="editRecord('thesis', {{ row['Thesis Key'] }})" 
-                                        class="btn btn-sm btn-warning me-1">Edit</button>
-                                <button onclick="deleteRecord('thesis', {{ row['Thesis Key'] }}, '{{ row.Title|escape }}')" 
-                                        class="btn btn-sm btn-danger">Delete</button>
+                                <div class="d-flex gap-1">
+                                    <button onclick="inlineEdit('thesis', {{ row['Thesis Key'] }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="duplicateRecord('thesis', {{ row['Thesis Key'] }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <button onclick="deleteRecord('thesis', {{ row['Thesis Key'] }}, '{{ row.Title|escape }}')" class="btn btn-sm btn-danger">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="thesis-edit-{{ row['Thesis Key'] }}" class="d-none table-warning align-middle">
+                            <td><input type="text" class="form-control form-control-sm" id="thesis-student-{{ row['Thesis Key'] }}" value="{{ row.get('Student Name') or '' }}"></td>
+                            <td><input type="number" class="form-control form-control-sm" id="thesis-year-{{ row['Thesis Key'] }}" value="{{ row.Year or '' }}" style="width:90px"></td>
+                            <td>
+                                <select class="form-select form-select-sm" id="thesis-degree-{{ row['Thesis Key'] }}">
+                                    {% for opt in ['PhD','MS','BS','BS Honors','Other'] %}
+                                    <option value="{{ opt }}" {% if row.Degree == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm" id="thesis-title-{{ row['Thesis Key'] }}" value="{{ row.Title or '' }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" id="thesis-comments-{{ row['Thesis Key'] }}" value="{{ row.Comments or '' }}"></td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saveInlineEdit('thesis', {{ row['Thesis Key'] }}, ['student','year','degree','title','comments'])" class="btn btn-sm btn-success">Save</button>
+                                    <button onclick="cancelInlineEdit('thesis', {{ row['Thesis Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                                </div>
                             </td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No thesis records added yet. Click <strong>Add Thesis</strong> to get started.
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No thesis records added yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
