@@ -2,7 +2,11 @@
 {% block content %}
 
 <h2 class="mb-4">Teaching Evaluations</h2>
-<p class="text-muted mb-4">Student feedback summaries.</p>
+
+<div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+    <div>This data is imported automatically from the university system and is <strong>read-only</strong>. Contact the department administrator to make corrections.</div>
+</div>
 
 <div class="card shadow-sm">
     <div class="card-body p-0">
@@ -18,7 +22,6 @@
                     <th class="text-center">Mean 19</th>
                     <th class="text-center">Count 20</th>
                     <th class="text-center">Mean 20</th>
-                    <th width="130px" class="text-center">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -33,12 +36,6 @@
                     <td class="text-center fw-medium">{{ item.mean_19|default(0)|round(2) }}</td>
                     <td class="text-center">{{ item.count_20 or 0 }}</td>
                     <td class="text-center fw-medium">{{ item.mean_20|default(0)|round(2) }}</td>
-                    <td class="text-center">
-                        <button onclick="editRecord('teaching', {{ item.Key }})" 
-                                class="btn btn-sm btn-warning me-1">Edit</button>
-                        <button onclick="deleteRecord('teaching', {{ item.Key }}, '{{ (item.course_title or item.CourseTitle)|escape|default('') }}')" 
-                                class="btn btn-sm btn-danger">Delete</button>
-                    </td>
                 </tr>
                 {% else %}
                 <tr>

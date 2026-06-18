@@ -932,7 +932,7 @@ def edit_thesis(id):
                   request.form.get('comments'),
                   current_user.professor_key, id), commit=True)
             flash('Thesis updated successfully', 'success')
-            return redirect(url_for('professor.scholarship'))
+            return redirect(url_for('professor.scholarship') + '?tab=thesis')
         form = ThesisForm()
         if form.validate_on_submit():
             execute_query("""
@@ -1012,7 +1012,7 @@ def duplicate_thesis(id):
             (row.get('Student Name'), row.get('Year'), row.get('Degree'),
              row.get('Title'), row.get('Comments'), pk), commit=True)
         flash('Thesis duplicated successfully.', 'success')
-    return redirect(url_for('professor.scholarship'))
+    return redirect(url_for('professor.scholarship') + '?tab=thesis')
 
 # ====================== REVIEWS ======================
 @professor_bp.route('/reviews', methods=['GET', 'POST'])

@@ -5,17 +5,17 @@
 
 <ul class="nav nav-tabs mb-4" id="scholarshipTabs">
     <li class="nav-item">
-        <a class="nav-link active" data-bs-toggle="tab" href="#students">Current Students</a>
+        <a class="nav-link {% if request.args.get('tab') != 'thesis' %}active{% endif %}" data-bs-toggle="tab" href="#students">Current Students</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" data-bs-toggle="tab" href="#thesis">Thesis</a>
+        <a class="nav-link {% if request.args.get('tab') == 'thesis' %}active{% endif %}" data-bs-toggle="tab" href="#thesis">Thesis</a>
     </li>
 </ul>
 
 <div class="tab-content">
 
     <!-- ===== CURRENT STUDENTS ===== -->
-    <div class="tab-pane fade show active" id="students">
+    <div class="tab-pane fade {% if request.args.get('tab') != 'thesis' %}show active{% endif %}" id="students">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-clarkson-green text-white">
                 <h5 class="mb-0">Add New Student</h5>
@@ -81,7 +81,7 @@
     </div>
 
     <!-- ===== THESIS ===== -->
-    <div class="tab-pane fade" id="thesis">
+    <div class="tab-pane fade {% if request.args.get('tab') == 'thesis' %}show active{% endif %}" id="thesis">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-clarkson-green text-white">
                 <h5 class="mb-0">Add New Thesis</h5>
@@ -111,8 +111,13 @@
                     <td>{{ row.get('Student Name') or '—' }}</td>
                     <td>{{ row.Year or '—' }}</td>
                     <td>{{ row.Degree or '—' }}</td>
+<<<<<<< HEAD
+                    <td title="{{ row.Title or '' }}">{{ row.Title|truncate(40) if row.Title else '—' }}</td>
+                    <td title="{{ row.Comments or '' }}">{{ row.Comments|truncate(40) if row.Comments else '—' }}</td>
+=======
                     <td>{{ row.Title|truncate(40) if row.Title else '—' }}</td>
                     <td>{{ row.Comments|truncate(40) if row.Comments else '—' }}</td>
+>>>>>>> b6ca855c5faa0012fd959bfe46ec40310122b215
                     <td>
                         <div class="d-flex gap-1">
                             <button onclick="inlineEdit('thesis', {{ row['Thesis Key'] }})" class="btn btn-sm btn-warning">Edit</button>

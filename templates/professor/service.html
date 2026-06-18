@@ -59,7 +59,7 @@
                         {% for item in service_data %}
                         <tr id="service-row-{{ item['Service Key'] }}" class="align-middle">
                             {# VIEW MODE — shown by default #}
-                            <td class="view-cell">{{ item.Description|truncate(60) if item.Description else '—' }}</td>
+                            <td class="view-cell"><span title="{{ item.Description or '' }}">{{ item.Description|truncate(60) if item.Description else '—' }}</span></td>
                             <td class="view-cell">{{ item.Type or '—' }}</td>
                             <td class="view-cell">{{ item.Term or '—' }}</td>
                             <td class="view-cell text-center">{{ item['Calendar Year'] or '—' }}</td>

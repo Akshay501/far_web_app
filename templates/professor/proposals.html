@@ -37,7 +37,7 @@
         {% for item in data %}
         {# ── VIEW ROW ── #}
         <tr id="proposal-row-{{ item['Proposal Key'] }}" class="align-middle">
-            <td>{{ item.Title or '—' }}</td>
+            <td title="{{ item.Title or '' }}">{{ item.Title or '—' }}</td>
             <td>{{ item.Sponsor or '—' }}</td>
             <td>${{ item['Allocated Amount']|default(0)|round(2) }}</td>
             <td>${{ item['Total Cost']|default(0)|round(2) }}</td>
