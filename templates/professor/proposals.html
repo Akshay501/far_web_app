@@ -35,6 +35,7 @@
     </thead>
     <tbody>
         {% for item in data %}
+        {# ── VIEW ROW ── #}
         <tr id="proposal-row-{{ item['Proposal Key'] }}" class="align-middle">
             <td>{{ item.Title or '—' }}</td>
             <td>{{ item.Sponsor or '—' }}</td>
@@ -52,24 +53,53 @@
                 </div>
             </td>
         </tr>
-        <tr id="proposal-edit-{{ item['Proposal Key'] }}" class="d-none table-warning align-middle">
-            <td><input type="text" class="form-control form-control-sm" id="proposal-title-{{ item['Proposal Key'] }}" value="{{ item.Title or '' }}"></td>
-            <td><input type="text" class="form-control form-control-sm" id="proposal-sponsor-{{ item['Proposal Key'] }}" value="{{ item.Sponsor or '' }}"></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm" id="proposal-allocated_amount-{{ item['Proposal Key'] }}" value="{{ item['Allocated Amount'] or '' }}"></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm" id="proposal-total_cost-{{ item['Proposal Key'] }}" value="{{ item['Total Cost'] or '' }}"></td>
-            <td>
-                <select class="form-select form-select-sm" id="proposal-funded-{{ item['Proposal Key'] }}">
-                    <option value="1" {% if item['Funded?'] in (1, '1', True) %}selected{% endif %}>Yes</option>
-                    <option value="0" {% if item['Funded?'] in (0, '0', False, None) %}selected{% endif %}>No</option>
-                </select>
-            </td>
-            <td><input type="date" class="form-control form-control-sm" id="proposal-begin_date-{{ item['Proposal Key'] }}" value="{{ item['Begin Date'] or '' }}"></td>
-            <td><input type="date" class="form-control form-control-sm" id="proposal-end_date-{{ item['Proposal Key'] }}" value="{{ item['End Date'] or '' }}"></td>
-            <td><input type="date" class="form-control form-control-sm" id="proposal-submit_date-{{ item['Proposal Key'] }}" value="{{ item['Submit Date'] or '' }}"></td>
-            <td>
-                <div class="d-flex gap-1">
-                    <button onclick="saveInlineEdit('proposal', {{ item['Proposal Key'] }}, ['title','sponsor','allocated_amount','total_cost','funded','begin_date','end_date','submit_date'])" class="btn btn-sm btn-success">Save</button>
-                    <button onclick="cancelInlineEdit('proposal', {{ item['Proposal Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+        {# ── EDIT ROW — full width ── #}
+        <tr id="proposal-edit-{{ item['Proposal Key'] }}" class="d-none">
+            <td colspan="9" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label fw-medium mb-1">Title</label>
+                        <input type="text" class="form-control" id="proposal-title-{{ item['Proposal Key'] }}" value="{{ item.Title or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium mb-1">Sponsor</label>
+                        <input type="text" class="form-control" id="proposal-sponsor-{{ item['Proposal Key'] }}" value="{{ item.Sponsor or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">Allocated Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="proposal-allocated_amount-{{ item['Proposal Key'] }}" value="{{ item['Allocated Amount'] or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">Total Cost</label>
+                        <input type="number" step="0.01" class="form-control" id="proposal-total_cost-{{ item['Proposal Key'] }}" value="{{ item['Total Cost'] or '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-medium mb-1">Funded?</label>
+                        <select class="form-select" id="proposal-funded-{{ item['Proposal Key'] }}">
+                            <option value="1" {% if item['Funded?'] in (1, '1', True) %}selected{% endif %}>Yes</option>
+                            <option value="0" {% if item['Funded?'] in (0, '0', False, None) %}selected{% endif %}>No</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">Begin Date</label>
+                        <input type="date" class="form-control" id="proposal-begin_date-{{ item['Proposal Key'] }}" value="{{ item['Begin Date'] or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">End Date</label>
+                        <input type="date" class="form-control" id="proposal-end_date-{{ item['Proposal Key'] }}" value="{{ item['End Date'] or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium mb-1">Submit Date</label>
+                        <input type="date" class="form-control" id="proposal-submit_date-{{ item['Proposal Key'] }}" value="{{ item['Submit Date'] or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-medium mb-1">Principal Investigators</label>
+                        <input type="text" class="form-control" id="proposal-principal_investigators-{{ item['Proposal Key'] }}" value="{{ item['Principal Investigator'] or '' }}">
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-1">
+                        <button onclick="saveInlineEdit('proposal', {{ item['Proposal Key'] }}, ['title','sponsor','allocated_amount','total_cost','funded','begin_date','end_date','submit_date','principal_investigators'])" class="btn btn-success btn-sm">Save</button>
+                        <button onclick="cancelInlineEdit('proposal', {{ item['Proposal Key'] }})" class="btn btn-secondary btn-sm">Cancel</button>
+                    </div>
                 </div>
             </td>
         </tr>

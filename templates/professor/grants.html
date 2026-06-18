@@ -34,15 +34,15 @@
     </thead>
     <tbody>
         {% for item in data %}
+        {# ── VIEW ROW ── #}
         <tr id="grant-row-{{ item.GrantKey }}" class="align-middle">
             <td>{{ item.Title or '—' }}</td>
             <td>{{ item.Sponsor or '—' }}</td>
             <td>${{ (item['Allocated Amount']|default(0)|round(2)) }}</td>
             <td>${{ (item['Total Cost']|default(0)|round(2)) }}</td>
-            <td>{{ item['Funded'] or '—' }}</td>
             <td>{{ item['Begin Date'] or '—' }}</td>
             <td>{{ item['End Date'] or '—' }}</td>
-            <td>{{ item['Principal Investigators']|truncate(30) or '—' }}</td>
+            <td>{{ item['Principal Investigators']|truncate(30) if item['Principal Investigators'] else '—' }}</td>
             <td>{{ item.Role or '—' }}</td>
             <td>
                 <div class="d-flex gap-1">
@@ -52,30 +52,51 @@
                 </div>
             </td>
         </tr>
-        <tr id="grant-edit-{{ item.GrantKey }}" class="d-none table-warning align-middle">
-            <td><input type="text" class="form-control form-control-sm" id="grant-title-{{ item.GrantKey }}" value="{{ item.Title or '' }}"></td>
-            <td><input type="text" class="form-control form-control-sm" id="grant-sponsor-{{ item.GrantKey }}" value="{{ item.Sponsor or '' }}"></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm" id="grant-allocated_amount-{{ item.GrantKey }}" value="{{ item['Allocated Amount'] or '' }}"></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm" id="grant-total_cost-{{ item.GrantKey }}" value="{{ item['Total Cost'] or '' }}"></td>
-            <td>
-                <select class="form-select form-select-sm" id="grant-funded-{{ item.GrantKey }}">
-                    <option value="Y" {% if item['Funded'] == 'Y' %}selected{% endif %}>Y</option>
-                    <option value="N" {% if item['Funded'] == 'N' %}selected{% endif %}>N</option>
-                </select>
-            </td>
-            <td><input type="date" class="form-control form-control-sm" id="grant-begin_date-{{ item.GrantKey }}" value="{{ item['Begin Date'] or '' }}"></td>
-            <td><input type="date" class="form-control form-control-sm" id="grant-end_date-{{ item.GrantKey }}" value="{{ item['End Date'] or '' }}"></td>
-            <td><input type="text" class="form-control form-control-sm" id="grant-principal_investigators-{{ item.GrantKey }}" value="{{ item['Principal Investigators'] or '' }}"></td>
-            <td><input type="text" class="form-control form-control-sm" id="grant-role-{{ item.GrantKey }}" value="{{ item.Role or '' }}"></td>
-            <td>
-                <div class="d-flex gap-1">
-                    <button onclick="saveInlineEdit('grant', {{ item.GrantKey }}, ['title','sponsor','allocated_amount','total_cost','begin_date','end_date','principal_investigators','role'])" class="btn btn-sm btn-success">Save</button>
-                    <button onclick="cancelInlineEdit('grant', {{ item.GrantKey }})" class="btn btn-sm btn-secondary">Cancel</button>
+        {# ── EDIT ROW — full width form using colspan ── #}
+        <tr id="grant-edit-{{ item.GrantKey }}" class="d-none">
+            <td colspan="9" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label fw-medium mb-1">Title</label>
+                        <input type="text" class="form-control" id="grant-title-{{ item.GrantKey }}" value="{{ item.Title or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium mb-1">Sponsor</label>
+                        <input type="text" class="form-control" id="grant-sponsor-{{ item.GrantKey }}" value="{{ item.Sponsor or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">Allocated Amount</label>
+                        <input type="number" step="0.01" class="form-control" id="grant-allocated_amount-{{ item.GrantKey }}" value="{{ item['Allocated Amount'] or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-medium mb-1">Total Cost</label>
+                        <input type="number" step="0.01" class="form-control" id="grant-total_cost-{{ item.GrantKey }}" value="{{ item['Total Cost'] or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium mb-1">Begin Date</label>
+                        <input type="date" class="form-control" id="grant-begin_date-{{ item.GrantKey }}" value="{{ item['Begin Date'] or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium mb-1">End Date</label>
+                        <input type="date" class="form-control" id="grant-end_date-{{ item.GrantKey }}" value="{{ item['End Date'] or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-medium mb-1">Role</label>
+                        <input type="text" class="form-control" id="grant-role-{{ item.GrantKey }}" value="{{ item.Role or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-medium mb-1">Principal Investigators</label>
+                        <input type="text" class="form-control" id="grant-principal_investigators-{{ item.GrantKey }}" value="{{ item['Principal Investigators'] or '' }}">
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-1">
+                        <button onclick="saveInlineEdit('grant', {{ item.GrantKey }}, ['title','sponsor','allocated_amount','total_cost','begin_date','end_date','role','principal_investigators'])" class="btn btn-success btn-sm">Save</button>
+                        <button onclick="cancelInlineEdit('grant', {{ item.GrantKey }})" class="btn btn-secondary btn-sm">Cancel</button>
+                    </div>
                 </div>
             </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No grants added yet.</td></tr>
+        <tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No grants added yet.</td></tr>
         {% endfor %}
     </tbody>
 </table>

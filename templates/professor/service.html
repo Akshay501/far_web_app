@@ -73,28 +73,41 @@
                             </td>
                         </tr>
                         {# EDIT MODE ROW — hidden by default, same number of columns #}
-                        <tr id="service-edit-{{ item['Service Key'] }}" class="d-none table-warning align-middle">
-                            <td><input type="text" class="form-control form-control-sm" id="service-description-{{ item['Service Key'] }}" value="{{ item.Description or '' }}"></td>
-                            <td>
-                                <select class="form-select form-select-sm" id="service-type-{{ item['Service Key'] }}">
-                                    {% for opt in ['Committee Work','Journal Review','Outreach/Seminar','University Committee','Accreditation','Other'] %}
-                                    <option value="{{ opt }}" {% if item.Type == opt %}selected{% endif %}>{{ opt }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td>
-                                <select class="form-select form-select-sm" id="service-term-{{ item['Service Key'] }}">
-                                    {% for opt in ['Full Year','Fall','Spring','Summer'] %}
-                                    <option value="{{ opt }}" {% if item.Term == opt %}selected{% endif %}>{{ opt }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td><input type="number" class="form-control form-control-sm" id="service-calendar_year-{{ item['Service Key'] }}" value="{{ item['Calendar Year'] or '' }}"></td>
-                            <td><input type="number" step="0.5" class="form-control form-control-sm" id="service-hours-{{ item['Service Key'] }}" value="{{ item['Hours/Semester'] or '' }}"></td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    <button onclick="saveInlineEdit('service', {{ item['Service Key'] }}, ['description','type','term','calendar_year','hours'])" class="btn btn-sm btn-success">Save</button>
-                                    <button onclick="cancelInlineEdit('service', {{ item['Service Key'] }})" class="btn btn-sm btn-secondary">Cancel</button>
+                        <tr id="service-edit-{{ item['Service Key'] }}" class="d-none">
+                            <td colspan="6" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label class="form-label fw-medium mb-1">Description</label>
+                                        <input type="text" class="form-control" id="service-description-{{ item['Service Key'] }}" value="{{ item.Description or '' }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-medium mb-1">Type</label>
+                                        <select class="form-select" id="service-type-{{ item['Service Key'] }}">
+                                            {% for opt in ['Committee Work','Journal Review','Outreach/Seminar','University Committee','Accreditation','Other'] %}
+                                            <option value="{{ opt }}" {% if item.Type == opt %}selected{% endif %}>{{ opt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-medium mb-1">Term</label>
+                                        <select class="form-select" id="service-term-{{ item['Service Key'] }}">
+                                            {% for opt in ['Full Year','Fall','Spring','Summer'] %}
+                                            <option value="{{ opt }}" {% if item.Term == opt %}selected{% endif %}>{{ opt }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-medium mb-1">Year</label>
+                                        <input type="number" class="form-control" id="service-calendar_year-{{ item['Service Key'] }}" value="{{ item['Calendar Year'] or '' }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-medium mb-1">Hours/Semester</label>
+                                        <input type="number" step="0.5" class="form-control" id="service-hours-{{ item['Service Key'] }}" value="{{ item['Hours/Semester'] or '' }}">
+                                    </div>
+                                    <div class="col-12 d-flex gap-2 mt-1">
+                                        <button onclick="saveInlineEdit('service', {{ item['Service Key'] }}, ['description','type','term','calendar_year','hours'])" class="btn btn-success btn-sm">Save</button>
+                                        <button onclick="cancelInlineEdit('service', {{ item['Service Key'] }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
