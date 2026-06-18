@@ -111,13 +111,8 @@
                     <td>{{ row.get('Student Name') or '—' }}</td>
                     <td>{{ row.Year or '—' }}</td>
                     <td>{{ row.Degree or '—' }}</td>
-<<<<<<< HEAD
                     <td title="{{ row.Title or '' }}">{{ row.Title|truncate(40) if row.Title else '—' }}</td>
                     <td title="{{ row.Comments or '' }}">{{ row.Comments|truncate(40) if row.Comments else '—' }}</td>
-=======
-                    <td>{{ row.Title|truncate(40) if row.Title else '—' }}</td>
-                    <td>{{ row.Comments|truncate(40) if row.Comments else '—' }}</td>
->>>>>>> b6ca855c5faa0012fd959bfe46ec40310122b215
                     <td>
                         <div class="d-flex gap-1">
                             <button onclick="inlineEdit('thesis', {{ row['Thesis Key'] }})" class="btn btn-sm btn-warning">Edit</button>

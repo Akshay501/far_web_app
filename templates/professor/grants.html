@@ -42,11 +42,7 @@
             <td>${{ (item['Total Cost']|default(0)|round(2)) }}</td>
             <td>{{ item['Begin Date'] or '—' }}</td>
             <td>{{ item['End Date'] or '—' }}</td>
-<<<<<<< HEAD
             <td title="{{ item['Principal Investigators'] or '' }}">{{ item['Principal Investigators']|truncate(30) if item['Principal Investigators'] else '—' }}</td>
-=======
-            <td>{{ item['Principal Investigators']|truncate(30) if item['Principal Investigators'] else '—' }}</td>
->>>>>>> b6ca855c5faa0012fd959bfe46ec40310122b215
             <td>{{ item.Role or '—' }}</td>
             <td>
                 <div class="d-flex gap-1">
