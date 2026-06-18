@@ -301,7 +301,7 @@ def duplicate_personal_award(id):
             'INSERT INTO PERSONALAWARDS (`Award Key`, ProfessorKey) VALUES (%s, %s)',
             (new_award_key, pk), commit=True)
         flash('Personal award duplicated successfully.', 'success')
-    return redirect(url_for('professor.awards'))
+    return redirect(url_for('professor.awards') + f'?_t={__import__("time").time_ns()}&highlight=personal_award-{new_award_key}')
 
 
 # ====================== STUDENT AWARDS EDIT/DELETE ======================
@@ -400,7 +400,7 @@ def duplicate_student_award(id):
             'INSERT INTO STUDENTAWARDS (`Award Key`, Student, Amount, Category) VALUES (%s, %s, %s, %s)',
             (new_award_key, row.get('Student'), row.get('Amount'), row.get('Category')), commit=True)
         flash('Student award duplicated successfully.', 'success')
-    return redirect(url_for('professor.awards', tab='student') + '#student-awards')
+    return redirect(url_for('professor.awards', tab='student') + f'?tab=student&_t={__import__("time").time_ns()}&highlight=student_award-{new_award_key}')
 
 
 # ====================== SERVICE (tabbed: Service, Reviews, Prof Dev, Undergrad Research) ======================
@@ -632,8 +632,9 @@ def duplicate_proposal(id):
             (row.get('Title'), row.get('Sponsor'), row.get('Allocated Amount'), row.get('Total Cost'),
              row.get('Funded?'), row.get('Begin Date'), row.get('End Date'),
              row.get('Submit Date'), row.get('Principal Investigator'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Proposal duplicated successfully.', 'success')
-    return redirect(url_for('professor.proposals'))
+    return redirect(url_for('professor.proposals') + f'?_t={__import__("time").time_ns()}&highlight=proposal-{new_id}')
 
 
 # ====================== SERVICE EDIT/DELETE ======================
@@ -706,8 +707,9 @@ def duplicate_service(id):
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (row.get('Description'), row.get('Type'), row.get('Term'),
               row.get('Calendar Year'), row.get('Hours/Semester'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Service activity duplicated successfully.', 'success')
-    return redirect(url_for('professor.service', tab='service'))
+    return redirect(url_for('professor.service', tab='service') + f'&_t={__import__("time").time_ns()}&highlight=service-{new_id}')
 
 
 @professor_bp.route('/grants/edit/<int:id>', methods=['GET', 'POST'])
@@ -786,8 +788,9 @@ def duplicate_grant(id):
             (row.get('Title'), row.get('Sponsor'), row.get('Allocated Amount'), row.get('Total Cost'),
              row.get('Begin Date'), row.get('End Date'), row.get('Role'),
              row.get('Principal Investigators'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Grant duplicated successfully.', 'success')
-    return redirect(url_for('professor.grants'))
+    return redirect(url_for('professor.grants') + f'?_t={__import__("time").time_ns()}&highlight=grant-{new_id}')
 
 
 # ====================== CV ======================
@@ -983,8 +986,9 @@ def duplicate_current_student(id):
         execute_query(
             'INSERT INTO CURRENTSTUDENTS (`Student Name`, `Current Program`, `Start Date`, ProfessorKey) VALUES (%s, %s, %s, %s)',
             (row.get('Student Name'), row.get('Current Program'), row.get('Start Date'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Student duplicated successfully.', 'success')
-    return redirect(url_for('professor.scholarship'))
+    return redirect(url_for('professor.scholarship') + f'?_t={__import__("time").time_ns()}&highlight=current_student-{new_id}')
 
 
 @professor_bp.route('/scholarship/delete/thesis/<int:id>', methods=['POST'])
@@ -1011,8 +1015,9 @@ def duplicate_thesis(id):
             'INSERT INTO THESIS (`Student Name`, Year, Degree, Title, Comments, ProfessorKey) VALUES (%s, %s, %s, %s, %s, %s)',
             (row.get('Student Name'), row.get('Year'), row.get('Degree'),
              row.get('Title'), row.get('Comments'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Thesis duplicated successfully.', 'success')
-    return redirect(url_for('professor.scholarship') + '?tab=thesis')
+    return redirect(url_for('professor.scholarship') + f'?tab=thesis&_t={__import__("time").time_ns()}&highlight=thesis-{new_id}')
 
 # ====================== REVIEWS ======================
 @professor_bp.route('/reviews', methods=['GET', 'POST'])
@@ -1094,8 +1099,9 @@ def duplicate_review(id):
             INSERT INTO REVIEWS (Journal, `Start Date`, Rounds, ProfessorKey)
             VALUES (%s, %s, %s, %s)
         """, (row.get('Journal'), row.get('Start Date'), row.get('Rounds'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Review duplicated successfully.', 'success')
-    return redirect(url_for('professor.service', tab='reviews'))
+    return redirect(url_for('professor.service', tab='reviews') + f'&_t={__import__("time").time_ns()}&highlight=review-{new_id}')
 
 
 # ====================== ADVISEE COUNT ======================
@@ -1224,8 +1230,9 @@ def duplicate_professional_development(id):
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (row.get('Description'), row.get('Type'), row.get('Calendar Year'),
               row.get('Notes'), row.get('Term'), row.get('Hours'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Entry duplicated successfully.', 'success')
-    return redirect(url_for('professor.service', tab='prof_dev'))
+    return redirect(url_for('professor.service', tab='prof_dev') + f'&_t={__import__("time").time_ns()}&highlight=prof_dev-{new_id}')
 
 
 # ====================== PROSPECTIVE VISIT ======================
@@ -1386,8 +1393,9 @@ def duplicate_undergraduate_research(id):
             VALUES (%s, %s, %s, %s, %s, %s)
         """, (row.get('Students'), row.get('Title'), row.get('Program Type'),
               row.get('Term'), row.get('Calendar Year'), pk), commit=True)
+        new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
         flash('Entry duplicated successfully.', 'success')
-    return redirect(url_for('professor.service', tab='undergrad'))
+    return redirect(url_for('professor.service', tab='undergrad') + f'&_t={__import__("time").time_ns()}&highlight=undergrad-{new_id}')
 
 
 # ====================== ADVISING EVALUATION (Read-only) ======================

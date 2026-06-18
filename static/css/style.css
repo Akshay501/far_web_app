@@ -231,12 +231,12 @@ tr.row-highlight > td,
 }
 
 /* ── Instant tooltip for truncated table cells ── */
-td[title] {
+td[title], span[title] {
     position: relative;
     cursor: default;
 }
 
-td[title]:hover::after {
+td[title]:hover::after, span[title]:hover::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
