@@ -18,13 +18,13 @@ from flask import (Blueprint, render_template, redirect, url_for,
 
 from app.standalone_excel import (
     get_file_inventory,
-    read_grants, append_grant, update_grant, delete_grant,
-    read_proposals, append_proposal, update_proposal, delete_proposal,
-    read_service, append_service, update_service, delete_service,
-    read_personal_awards, append_personal_award, update_personal_award, delete_personal_award,
-    read_student_awards, append_student_award, update_student_award, delete_student_award,
-    read_current_students, append_current_student, update_current_student, delete_current_student,
-    read_thesis, append_thesis, update_thesis, delete_thesis,
+    read_grants, append_grant, update_grant, delete_grant, duplicate_grant,
+    read_proposals, append_proposal, update_proposal, delete_proposal, duplicate_proposal,
+    read_service, append_service, update_service, delete_service, duplicate_service,
+    read_personal_awards, append_personal_award, update_personal_award, delete_personal_award, duplicate_personal_award,
+    read_student_awards, append_student_award, update_student_award, delete_student_award, duplicate_student_award,
+    read_current_students, append_current_student, update_current_student, delete_current_student, duplicate_current_student,
+    read_thesis, append_thesis, update_thesis, delete_thesis, duplicate_thesis,
     read_teaching,
 )
 
@@ -204,6 +204,14 @@ def grants():
             idx = int(request.form.get('row_idx', 0))
             update_grant(folder, idx, request.form)
             flash('Grant updated successfully.', 'success')
+            return redirect(url_for('standalone.grants') + f'?highlight=sa-grant-row-{idx}')
+        elif action == 'duplicate':
+            idx = int(request.form.get('row_idx', 0))
+            rows = read_grants(folder)
+            new_idx = len(rows)
+            duplicate_grant(folder, idx)
+            flash('Grant duplicated.', 'success')
+            return redirect(url_for('standalone.grants') + f'?highlight=sa-grant-row-{new_idx}')
         return redirect(url_for('standalone.grants'))
 
     rows = read_grants(folder)
@@ -231,6 +239,14 @@ def proposals():
             idx = int(request.form.get('row_idx', 0))
             update_proposal(folder, idx, request.form)
             flash('Proposal updated successfully.', 'success')
+            return redirect(url_for('standalone.proposals') + f'?highlight=sa-proposal-row-{idx}')
+        elif action == 'duplicate':
+            idx = int(request.form.get('row_idx', 0))
+            rows = read_proposals(folder)
+            new_idx = len(rows)
+            duplicate_proposal(folder, idx)
+            flash('Proposal duplicated.', 'success')
+            return redirect(url_for('standalone.proposals') + f'?highlight=sa-proposal-row-{new_idx}')
         return redirect(url_for('standalone.proposals'))
 
     rows = read_proposals(folder)
@@ -258,6 +274,14 @@ def service():
             idx = int(request.form.get('row_idx', 0))
             update_service(folder, idx, request.form)
             flash('Service entry updated successfully.', 'success')
+            return redirect(url_for('standalone.service') + f'?highlight=sa-service-row-{idx}')
+        elif action == 'duplicate':
+            idx = int(request.form.get('row_idx', 0))
+            rows = read_service(folder)
+            new_idx = len(rows)
+            duplicate_service(folder, idx)
+            flash('Service entry duplicated.', 'success')
+            return redirect(url_for('standalone.service') + f'?highlight=sa-service-row-{new_idx}')
         return redirect(url_for('standalone.service'))
 
     rows = read_service(folder)
@@ -289,6 +313,14 @@ def awards():
                 idx = int(request.form.get('row_idx', 0))
                 update_personal_award(folder, idx, request.form)
                 flash('Personal award updated.', 'success')
+                return redirect(url_for('standalone.awards') + f'?highlight=sa-personal-row-{idx}')
+            elif action == 'duplicate':
+                idx = int(request.form.get('row_idx', 0))
+                rows = read_personal_awards(folder)
+                new_idx = len(rows)
+                duplicate_personal_award(folder, idx)
+                flash('Personal award duplicated.', 'success')
+                return redirect(url_for('standalone.awards') + f'?highlight=sa-personal-row-{new_idx}')
         else:
             if action == 'add':
                 append_student_award(folder, request.form)
@@ -301,7 +333,16 @@ def awards():
                 idx = int(request.form.get('row_idx', 0))
                 update_student_award(folder, idx, request.form)
                 flash('Student award updated.', 'success')
-        return redirect(url_for('standalone.awards'))
+                return redirect(url_for('standalone.awards') + f'?tab=student&highlight=sa-student-row-{idx}')
+            elif action == 'duplicate':
+                idx = int(request.form.get('row_idx', 0))
+                rows = read_student_awards(folder)
+                new_idx = len(rows)
+                duplicate_student_award(folder, idx)
+                flash('Student award duplicated.', 'success')
+                return redirect(url_for('standalone.awards') + f'?tab=student&highlight=sa-student-row-{new_idx}')
+        tab_param = '?tab=student' if award_type_tab == 'student' else ''
+        return redirect(url_for('standalone.awards') + tab_param)
 
     personal_awards = read_personal_awards(folder)
     student_awards = read_student_awards(folder)
@@ -335,6 +376,14 @@ def scholarship():
                 idx = int(request.form.get('row_idx', 0))
                 update_current_student(folder, idx, request.form)
                 flash('Student updated.', 'success')
+                return redirect(url_for('standalone.scholarship') + f'?highlight=sa-student-row-{idx}')
+            elif action == 'duplicate':
+                idx = int(request.form.get('row_idx', 0))
+                rows = read_current_students(folder)
+                new_idx = len(rows)
+                duplicate_current_student(folder, idx)
+                flash('Student duplicated.', 'success')
+                return redirect(url_for('standalone.scholarship') + f'?highlight=sa-student-row-{new_idx}')
         else:
             if action == 'add':
                 append_thesis(folder, request.form)
@@ -347,7 +396,16 @@ def scholarship():
                 idx = int(request.form.get('row_idx', 0))
                 update_thesis(folder, idx, request.form)
                 flash('Thesis updated.', 'success')
-        return redirect(url_for('standalone.scholarship'))
+                return redirect(url_for('standalone.scholarship') + f'?tab=thesis&highlight=sa-thesis-row-{idx}')
+            elif action == 'duplicate':
+                idx = int(request.form.get('row_idx', 0))
+                rows = read_thesis(folder)
+                new_idx = len(rows)
+                duplicate_thesis(folder, idx)
+                flash('Thesis duplicated.', 'success')
+                return redirect(url_for('standalone.scholarship') + f'?tab=thesis&highlight=sa-thesis-row-{new_idx}')
+        tab_param = '?tab=thesis' if tab == 'thesis' else ''
+        return redirect(url_for('standalone.scholarship') + tab_param)
 
     current_students = read_current_students(folder)
     theses = read_thesis(folder)

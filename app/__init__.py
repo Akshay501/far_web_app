@@ -17,7 +17,11 @@ def create_app():
 
     # Initialize CSRF protection globally
     # This makes csrf_token() available in all Jinja2 templates
-    CSRFProtect(app)
+    csrf = CSRFProtect(app)
+
+    # Exempt the standalone blueprint — no login required, uses its own session
+    from .routes.standalone import standalone_bp as _standalone_bp
+    csrf.exempt(_standalone_bp)
 
     cfg = load_config()
     app.config['DB_CONFIG'] = cfg['db']

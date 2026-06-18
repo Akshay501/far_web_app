@@ -156,6 +156,16 @@ def delete_grant(folder, row_idx):
     _delete_row(_get_path(folder, *GRANTS_FILE), row_idx)
 
 
+def duplicate_grant(folder, row_idx):
+    rows = read_grants(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *GRANTS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
+
+
 # ─── Proposals ────────────────────────────────────────────────────────────────
 
 PROPOSALS_FILE = ('Proposals & Grants', 'proposals & grants.xlsx')
@@ -204,6 +214,16 @@ def delete_proposal(folder, row_idx):
     _delete_row(_get_path(folder, *PROPOSALS_FILE), row_idx)
 
 
+def duplicate_proposal(folder, row_idx):
+    rows = read_proposals(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *PROPOSALS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
+
+
 # ─── Service ──────────────────────────────────────────────────────────────────
 
 SERVICE_FILE = ('Service', 'service data.xlsx')
@@ -247,6 +267,16 @@ def delete_service(folder, row_idx):
     _delete_row(_get_path(folder, *SERVICE_FILE), row_idx)
 
 
+def duplicate_service(folder, row_idx):
+    rows = read_service(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *SERVICE_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
+
+
 # ─── Awards (Personal) ────────────────────────────────────────────────────────
 
 PERSONAL_AWARDS_FILE = ('Awards', 'personal awards data.xlsx')
@@ -277,6 +307,16 @@ def update_personal_award(folder, row_idx, form):
 
 def delete_personal_award(folder, row_idx):
     _delete_row(_get_path(folder, *PERSONAL_AWARDS_FILE), row_idx)
+
+
+def duplicate_personal_award(folder, row_idx):
+    rows = read_personal_awards(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *PERSONAL_AWARDS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
 
 
 # ─── Awards (Student) ─────────────────────────────────────────────────────────
@@ -317,6 +357,16 @@ def delete_student_award(folder, row_idx):
     _delete_row(_get_path(folder, *STUDENT_AWARDS_FILE), row_idx)
 
 
+def duplicate_student_award(folder, row_idx):
+    rows = read_student_awards(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *STUDENT_AWARDS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
+
+
 # ─── Scholarship (Current Students) ──────────────────────────────────────────
 
 CURRENT_STUDENTS_FILE = ('Scholarship', 'current student data.xlsx')
@@ -347,6 +397,16 @@ def update_current_student(folder, row_idx, form):
 
 def delete_current_student(folder, row_idx):
     _delete_row(_get_path(folder, *CURRENT_STUDENTS_FILE), row_idx)
+
+
+def duplicate_current_student(folder, row_idx):
+    rows = read_current_students(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *CURRENT_STUDENTS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
 
 
 # ─── Scholarship (Thesis) ─────────────────────────────────────────────────────
@@ -387,6 +447,16 @@ def update_thesis(folder, row_idx, form):
 
 def delete_thesis(folder, row_idx):
     _delete_row(_get_path(folder, *THESIS_FILE), row_idx)
+
+
+def duplicate_thesis(folder, row_idx):
+    rows = read_thesis(folder)
+    if 0 <= row_idx < len(rows):
+        row = rows[row_idx]
+        path = _get_path(folder, *THESIS_FILE)
+        headers = list(row.keys())
+        values = list(row.values())
+        _append_row(path, headers, values)
 
 
 # ─── Teaching (Read-only) ─────────────────────────────────────────────────────

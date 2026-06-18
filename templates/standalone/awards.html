@@ -3,21 +3,21 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Awards</h2>
-    <a href="{{ url_for('standalone.dashboard') }}"
-       class="btn btn-outline-secondary btn-sm">
+    <a href="{{ url_for('standalone.dashboard') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
     </a>
 </div>
 
-<!-- Tabs -->
 <ul class="nav nav-tabs mb-4" id="awardsTab">
     <li class="nav-item">
-        <a class="nav-link active" data-bs-toggle="tab" href="#personal">
+        <a class="nav-link {% if request.args.get('tab') != 'student' %}active{% endif %}"
+           data-bs-toggle="tab" href="#personal">
             <i class="bi bi-person-badge me-1"></i>Personal Awards
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" data-bs-toggle="tab" href="#student">
+        <a class="nav-link {% if request.args.get('tab') == 'student' %}active{% endif %}"
+           data-bs-toggle="tab" href="#student">
             <i class="bi bi-mortarboard me-1"></i>Student Awards
         </a>
     </li>
@@ -25,12 +25,10 @@
 
 <div class="tab-content">
 
-    <!-- Personal Awards Tab -->
-    <div class="tab-pane fade show active" id="personal">
-        <!-- Add Personal Award -->
+    <!-- ===== PERSONAL AWARDS ===== -->
+    <div class="tab-pane fade {% if request.args.get('tab') != 'student' %}show active{% endif %}" id="personal">
         <div class="card shadow-sm mb-4">
-            <div class="card-header text-white fw-semibold"
-                 style="background-color: var(--clarkson-green);">
+            <div class="card-header text-white fw-semibold" style="background-color: var(--clarkson-green);">
                 <i class="bi bi-plus-circle me-2"></i>Add Personal Award
             </div>
             <div class="card-body">
@@ -38,113 +36,76 @@
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="award_tab" value="personal">
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Title</label>
-                            <input type="text" name="title" class="form-control" required>
+                        <div class="col-md-6"><label class="form-label fw-semibold">Title</label><input type="text" name="title" class="form-control" required></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Type</label>
+                            <select name="type" class="form-select">{% for t in award_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}</select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Type</label>
-                            <select name="type" class="form-select">
-                                {% for t in award_types %}
-                                <option value="{{ t }}">{{ t }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Year</label>
-                            <input type="number" name="year" class="form-control" value="2025">
-                        </div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Year</label><input type="number" name="year" class="form-control" value="2025"></div>
                     </div>
-                    <button type="submit" class="btn btn-gold fw-semibold mt-3">
-                        <i class="bi bi-save me-1"></i>Save Personal Award
-                    </button>
+                    <button type="submit" class="btn btn-gold fw-semibold mt-3"><i class="bi bi-save me-1"></i>Save Personal Award</button>
                 </form>
             </div>
         </div>
 
-        <!-- Personal Awards Table -->
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Title</th>
-                            <th>Type</th>
-                            <th>Year</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
+                        <tr><th>#</th><th>Title</th><th>Type</th><th>Year</th><th width="190">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for i, row in personal_awards|enumerate %}
-                        <tr>
+                        <tr id="sa-personal-row-{{ i }}" class="align-middle">
                             <td>{{ i + 1 }}</td>
-                            <td>{{ row.get('Title') or '—' }}</td>
+                            <td title="{{ row.get('Title','') }}">{{ (row.get('Title') or '—')|truncate(40) }}</td>
                             <td>{{ row.get('Type') or '—' }}</td>
                             <td>{{ row.get('Year') or '—' }}</td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-warning me-1"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#editPersonalModal{{ i }}">Edit</button>
-                                <form method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete this award?')">
-                                    <input type="hidden" name="action" value="delete">
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saInlineEdit('personal', {{ i }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="saDuplicate('personal', {{ i }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this award?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="award_tab" value="personal">
+                                        <input type="hidden" name="row_idx" value="{{ i }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="sa-personal-edit-{{ i }}" class="d-none">
+                            <td colspan="5" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="award_tab" value="personal">
                                     <input type="hidden" name="row_idx" value="{{ i }}">
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-medium mb-1">Title</label>
+                                            <input type="text" name="title" class="form-control" value="{{ row.get('Title','') }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Type</label>
+                                            <select name="type" class="form-select">
+                                                {% for t in award_types %}
+                                                <option value="{{ t }}" {% if row.get('Type') == t %}selected{% endif %}>{{ t }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Year</label>
+                                            <input type="number" name="year" class="form-control" value="{{ row.get('Year','') }}">
+                                        </div>
+                                        <div class="col-12 d-flex gap-2 mt-1">
+                                            <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                            <button type="button" onclick="saCancelEdit('personal', {{ i }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                        </div>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
-                        <!-- Edit Modal -->
-                        <div class="modal fade" id="editPersonalModal{{ i }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header"
-                                         style="background-color: var(--clarkson-green);">
-                                        <h5 class="modal-title text-white">Edit Personal Award</h5>
-                                        <button type="button" class="btn-close btn-close-white"
-                                                data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <form method="POST">
-                                            <input type="hidden" name="action" value="edit">
-                                            <input type="hidden" name="award_tab" value="personal">
-                                            <input type="hidden" name="row_idx" value="{{ i }}">
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold">Title</label>
-                                                <input type="text" name="title" class="form-control"
-                                                       value="{{ row.get('Title') or '' }}">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold">Type</label>
-                                                <select name="type" class="form-select">
-                                                    {% for t in award_types %}
-                                                    <option value="{{ t }}" {% if row.get('Type') == t %}selected{% endif %}>{{ t }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold">Year</label>
-                                                <input type="number" name="year" class="form-control"
-                                                       value="{{ row.get('Year') or '' }}">
-                                            </div>
-                                            <div class="d-flex gap-2">
-                                                <button type="submit" class="btn btn-gold fw-semibold">Save</button>
-                                                <button type="button" class="btn btn-outline-secondary"
-                                                        data-bs-dismiss="modal">Cancel</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No personal awards yet. Add one above.
-                            </td>
-                        </tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No personal awards yet. Add one above.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -152,12 +113,10 @@
         </div>
     </div>
 
-    <!-- Student Awards Tab -->
-    <div class="tab-pane fade" id="student">
-        <!-- Add Student Award -->
+    <!-- ===== STUDENT AWARDS ===== -->
+    <div class="tab-pane fade {% if request.args.get('tab') == 'student' %}show active{% endif %}" id="student">
         <div class="card shadow-sm mb-4">
-            <div class="card-header text-white fw-semibold"
-                 style="background-color: var(--clarkson-green);">
+            <div class="card-header text-white fw-semibold" style="background-color: var(--clarkson-green);">
                 <i class="bi bi-plus-circle me-2"></i>Add Student Award
             </div>
             <div class="card-body">
@@ -165,84 +124,93 @@
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="award_tab" value="student">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Student Name</label>
-                            <input type="text" name="student" class="form-control" required>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Student Name</label><input type="text" name="student" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Award Title</label><input type="text" name="title" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Amount ($)</label><input type="number" step="0.01" name="amount" class="form-control"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Category</label><input type="text" name="category" class="form-control" placeholder="e.g. Undergraduate, Graduate"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Type</label>
+                            <select name="type" class="form-select">{% for t in award_types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}</select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Award Title</label>
-                            <input type="text" name="title" class="form-control" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Amount ($)</label>
-                            <input type="number" step="0.01" name="amount" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Category</label>
-                            <input type="text" name="category" class="form-control"
-                                   placeholder="e.g. Undergraduate, Graduate">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Type</label>
-                            <select name="type" class="form-select">
-                                {% for t in award_types %}
-                                <option value="{{ t }}">{{ t }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Year</label>
-                            <input type="number" name="year" class="form-control" value="2025">
-                        </div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Year</label><input type="number" name="year" class="form-control" value="2025"></div>
                     </div>
-                    <button type="submit" class="btn btn-gold fw-semibold mt-3">
-                        <i class="bi bi-save me-1"></i>Save Student Award
-                    </button>
+                    <button type="submit" class="btn btn-gold fw-semibold mt-3"><i class="bi bi-save me-1"></i>Save Student Award</button>
                 </form>
             </div>
         </div>
 
-        <!-- Student Awards Table -->
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Student</th>
-                            <th>Title</th>
-                            <th>Amount</th>
-                            <th>Category</th>
-                            <th>Year</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
+                        <tr><th>#</th><th>Student</th><th>Title</th><th>Amount</th><th>Category</th><th>Year</th><th width="190">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for i, row in student_awards|enumerate %}
-                        <tr>
+                        <tr id="sa-student-row-{{ i }}" class="align-middle">
                             <td>{{ i + 1 }}</td>
                             <td>{{ row.get('Student') or '—' }}</td>
-                            <td>{{ row.get('Title') or '—' }}</td>
+                            <td title="{{ row.get('Title','') }}">{{ (row.get('Title') or '—')|truncate(30) }}</td>
                             <td>${{ row.get('Amount') or 0 }}</td>
                             <td>{{ row.get('Category') or '—' }}</td>
                             <td>{{ row.get('Year') or '—' }}</td>
-                            <td class="text-center">
-                                <form method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete this award?')">
-                                    <input type="hidden" name="action" value="delete">
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saInlineEdit('student', {{ i }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="saDuplicate('student', {{ i }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this award?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="award_tab" value="student">
+                                        <input type="hidden" name="row_idx" value="{{ i }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="sa-student-edit-{{ i }}" class="d-none">
+                            <td colspan="7" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="award_tab" value="student">
                                     <input type="hidden" name="row_idx" value="{{ i }}">
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Student Name</label>
+                                            <input type="text" name="student" class="form-control" value="{{ row.get('Student','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Award Title</label>
+                                            <input type="text" name="title" class="form-control" value="{{ row.get('Title','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Amount ($)</label>
+                                            <input type="number" step="0.01" name="amount" class="form-control" value="{{ row.get('Amount','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Category</label>
+                                            <input type="text" name="category" class="form-control" value="{{ row.get('Category','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Type</label>
+                                            <select name="type" class="form-select">
+                                                {% for t in award_types %}
+                                                <option value="{{ t }}" {% if row.get('Type') == t %}selected{% endif %}>{{ t }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Year</label>
+                                            <input type="number" name="year" class="form-control" value="{{ row.get('Year','') }}">
+                                        </div>
+                                        <div class="col-12 d-flex gap-2 mt-1">
+                                            <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                            <button type="button" onclick="saCancelEdit('student', {{ i }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                        </div>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No student awards yet. Add one above.
-                            </td>
-                        </tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No student awards yet. Add one above.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -252,4 +220,34 @@
 
 </div>
 
+<script>
+function saInlineEdit(type, i) {
+    document.getElementById('sa-' + type + '-row-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-edit-' + i).classList.remove('d-none');
+}
+function saCancelEdit(type, i) {
+    document.getElementById('sa-' + type + '-edit-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-row-' + i).classList.remove('d-none');
+}
+function saDuplicate(type, i) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    const tab = type === 'student' ? 'student' : 'personal';
+    form.innerHTML = '<input name="action" value="duplicate"><input name="award_tab" value="' + tab + '"><input name="row_idx" value="' + i + '">';
+    document.body.appendChild(form);
+    form.submit();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const p = new URLSearchParams(window.location.search);
+    const h = p.get('highlight');
+    if (h) {
+        const row = document.getElementById(h);
+        if (row) {
+            row.classList.add('row-highlight');
+            setTimeout(() => row.classList.remove('row-highlight'), 3000);
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+});
+</script>
 {% endblock %}

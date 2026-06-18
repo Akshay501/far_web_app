@@ -89,12 +89,18 @@ function deleteRecord(type, id, label) {
     }).then(() => location.reload());
 }
 
-// Initialize DataTables
+// Initialize DataTables — only on tables with .datatable class
+// Skip any table that contains inline edit rows (d-none rows with colspan)
 $(document).ready(function() {
-    $('.datatable').DataTable({
-        pageLength: 10,
-        ordering: true,
-        searching: true
+    $('.datatable').each(function() {
+        // Don't initialize if table has any edit rows (they break DataTables)
+        if ($(this).find('tr[id*="-edit-"]').length === 0) {
+            $(this).DataTable({
+                pageLength: 10,
+                ordering: true,
+                searching: true
+            });
+        }
     });
 });
 

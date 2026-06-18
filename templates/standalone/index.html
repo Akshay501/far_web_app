@@ -67,6 +67,7 @@
                 </h5>
                 <form method="POST" action="{{ url_for('standalone.upload') }}"
                       enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <input type="file" name="zip_file" accept=".zip"
                                class="form-control form-control-lg"

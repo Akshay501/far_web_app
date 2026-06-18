@@ -3,20 +3,21 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Scholarship</h2>
-    <a href="{{ url_for('standalone.dashboard') }}"
-       class="btn btn-outline-secondary btn-sm">
+    <a href="{{ url_for('standalone.dashboard') }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
     </a>
 </div>
 
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
-        <a class="nav-link active" data-bs-toggle="tab" href="#students">
+        <a class="nav-link {% if request.args.get('tab') != 'thesis' %}active{% endif %}"
+           data-bs-toggle="tab" href="#students">
             <i class="bi bi-people me-1"></i>Current Students
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" data-bs-toggle="tab" href="#thesis">
+        <a class="nav-link {% if request.args.get('tab') == 'thesis' %}active{% endif %}"
+           data-bs-toggle="tab" href="#thesis">
             <i class="bi bi-journal-text me-1"></i>Thesis
         </a>
     </li>
@@ -24,11 +25,10 @@
 
 <div class="tab-content">
 
-    <!-- Current Students -->
-    <div class="tab-pane fade show active" id="students">
+    <!-- ===== CURRENT STUDENTS ===== -->
+    <div class="tab-pane fade {% if request.args.get('tab') != 'thesis' %}show active{% endif %}" id="students">
         <div class="card shadow-sm mb-4">
-            <div class="card-header text-white fw-semibold"
-                 style="background-color: var(--clarkson-green);">
+            <div class="card-header text-white fw-semibold" style="background-color: var(--clarkson-green);">
                 <i class="bi bi-plus-circle me-2"></i>Add Current Student
             </div>
             <div class="card-body">
@@ -36,63 +36,70 @@
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="scholarship_tab" value="students">
                     <div class="row g-3">
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">Student Name</label>
-                            <input type="text" name="student_name" class="form-control" required>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">Current Program</label>
-                            <input type="text" name="current_program" class="form-control"
-                                   placeholder="e.g. PhD in Electrical Engineering">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-semibold">Start Date</label>
-                            <input type="date" name="start_date" class="form-control">
-                        </div>
+                        <div class="col-md-5"><label class="form-label fw-semibold">Student Name</label><input type="text" name="student_name" class="form-control" required></div>
+                        <div class="col-md-5"><label class="form-label fw-semibold">Current Program</label><input type="text" name="current_program" class="form-control" placeholder="e.g. PhD in Electrical Engineering"></div>
+                        <div class="col-md-2"><label class="form-label fw-semibold">Start Date</label><input type="date" name="start_date" class="form-control"></div>
                     </div>
-                    <button type="submit" class="btn btn-gold fw-semibold mt-3">
-                        <i class="bi bi-save me-1"></i>Save Student
-                    </button>
+                    <button type="submit" class="btn btn-gold fw-semibold mt-3"><i class="bi bi-save me-1"></i>Save Student</button>
                 </form>
             </div>
         </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Student Name</th>
-                            <th>Current Program</th>
-                            <th>Start Date</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
+                        <tr><th>#</th><th>Student Name</th><th>Current Program</th><th>Start Date</th><th width="190">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for i, row in current_students|enumerate %}
-                        <tr>
+                        <tr id="sa-student-row-{{ i }}" class="align-middle">
                             <td>{{ i + 1 }}</td>
                             <td>{{ row.get('Student Name') or '—' }}</td>
                             <td>{{ row.get('Current Program') or '—' }}</td>
                             <td>{{ row.get('Start Date') or '—' }}</td>
-                            <td class="text-center">
-                                <form method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete this student?')">
-                                    <input type="hidden" name="action" value="delete">
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saInlineEdit('student', {{ i }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="saDuplicate('student', {{ i }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this student?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="scholarship_tab" value="students">
+                                        <input type="hidden" name="row_idx" value="{{ i }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="sa-student-edit-{{ i }}" class="d-none">
+                            <td colspan="5" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="scholarship_tab" value="students">
                                     <input type="hidden" name="row_idx" value="{{ i }}">
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    <div class="row g-2">
+                                        <div class="col-md-5">
+                                            <label class="form-label fw-medium mb-1">Student Name</label>
+                                            <input type="text" name="student_name" class="form-control" value="{{ row.get('Student Name','') }}">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <label class="form-label fw-medium mb-1">Current Program</label>
+                                            <input type="text" name="current_program" class="form-control" value="{{ row.get('Current Program','') }}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label fw-medium mb-1">Start Date</label>
+                                            <input type="date" name="start_date" class="form-control" value="{{ row.get('Start Date','') }}">
+                                        </div>
+                                        <div class="col-12 d-flex gap-2 mt-1">
+                                            <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                            <button type="button" onclick="saCancelEdit('student', {{ i }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                        </div>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No current students yet. Add one above.
-                            </td>
-                        </tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No current students yet. Add one above.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -100,11 +107,10 @@
         </div>
     </div>
 
-    <!-- Thesis -->
-    <div class="tab-pane fade" id="thesis">
+    <!-- ===== THESIS ===== -->
+    <div class="tab-pane fade {% if request.args.get('tab') == 'thesis' %}show active{% endif %}" id="thesis">
         <div class="card shadow-sm mb-4">
-            <div class="card-header text-white fw-semibold"
-                 style="background-color: var(--clarkson-green);">
+            <div class="card-header text-white fw-semibold" style="background-color: var(--clarkson-green);">
                 <i class="bi bi-plus-circle me-2"></i>Add Thesis
             </div>
             <div class="card-body">
@@ -112,88 +118,98 @@
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="scholarship_tab" value="thesis">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Student Name</label>
-                            <input type="text" name="student" class="form-control" required>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Student Name</label><input type="text" name="student" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Thesis Title</label><input type="text" name="title" class="form-control"></div>
+                        <div class="col-md-4"><label class="form-label fw-semibold">Advisor</label><input type="text" name="advisor" class="form-control"></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Start Year</label><input type="number" name="start_date_year" class="form-control" value="2024"></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Graduation Year</label><input type="number" name="year" class="form-control" value="2026"></div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Degree</label>
+                            <select name="degree" class="form-select">{% for d in degree_types %}<option value="{{ d }}">{{ d }}</option>{% endfor %}</select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Thesis Title</label>
-                            <input type="text" name="title" class="form-control">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Advisor</label>
-                            <input type="text" name="advisor" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Start Year</label>
-                            <input type="number" name="start_date_year" class="form-control"
-                                   value="2024">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Graduation Year</label>
-                            <input type="number" name="year" class="form-control"
-                                   value="2026">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Degree</label>
-                            <select name="degree" class="form-select">
-                                {% for d in degree_types %}
-                                <option value="{{ d }}">{{ d }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold">Comments</label>
-                            <input type="text" name="comments" class="form-control">
-                        </div>
+                        <div class="col-md-3"><label class="form-label fw-semibold">Comments</label><input type="text" name="comments" class="form-control"></div>
                     </div>
-                    <button type="submit" class="btn btn-gold fw-semibold mt-3">
-                        <i class="bi bi-save me-1"></i>Save Thesis
-                    </button>
+                    <button type="submit" class="btn btn-gold fw-semibold mt-3"><i class="bi bi-save me-1"></i>Save Thesis</button>
                 </form>
             </div>
         </div>
 
         <div class="card shadow-sm">
             <div class="card-body p-0">
-                <table class="table table-hover mb-0 datatable">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Student</th>
-                            <th>Title</th>
-                            <th>Degree</th>
-                            <th>Year</th>
-                            <th>Advisor</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
+                        <tr><th>#</th><th>Student</th><th>Title</th><th>Degree</th><th>Year</th><th>Advisor</th><th width="190">Actions</th></tr>
                     </thead>
                     <tbody>
                         {% for i, row in theses|enumerate %}
-                        <tr>
+                        <tr id="sa-thesis-row-{{ i }}" class="align-middle">
                             <td>{{ i + 1 }}</td>
                             <td>{{ row.get('Student') or '—' }}</td>
-                            <td>{{ (row.get('Title') or '')[:50] }}{% if (row.get('Title') or '')|length > 50 %}...{% endif %}</td>
+                            <td title="{{ row.get('Title','') }}">{{ (row.get('Title') or '—')|truncate(30) }}</td>
                             <td>{{ row.get('Degree') or '—' }}</td>
                             <td>{{ row.get('Year') or '—' }}</td>
                             <td>{{ row.get('Advisor') or '—' }}</td>
-                            <td class="text-center">
-                                <form method="POST" class="d-inline"
-                                      onsubmit="return confirm('Delete this thesis?')">
-                                    <input type="hidden" name="action" value="delete">
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button onclick="saInlineEdit('thesis', {{ i }})" class="btn btn-sm btn-warning">Edit</button>
+                                    <button onclick="saDuplicate('thesis', {{ i }})" class="btn btn-sm btn-info text-white">Duplicate</button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete this thesis?')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="scholarship_tab" value="thesis">
+                                        <input type="hidden" name="row_idx" value="{{ i }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="sa-thesis-edit-{{ i }}" class="d-none">
+                            <td colspan="7" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                                <form method="POST">
+                                    <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="scholarship_tab" value="thesis">
                                     <input type="hidden" name="row_idx" value="{{ i }}">
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Student Name</label>
+                                            <input type="text" name="student" class="form-control" value="{{ row.get('Student','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Thesis Title</label>
+                                            <input type="text" name="title" class="form-control" value="{{ row.get('Title','') }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-medium mb-1">Advisor</label>
+                                            <input type="text" name="advisor" class="form-control" value="{{ row.get('Advisor','') }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Start Year</label>
+                                            <input type="number" name="start_date_year" class="form-control" value="{{ row.get('Start Date Year','') }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Graduation Year</label>
+                                            <input type="number" name="year" class="form-control" value="{{ row.get('Year','') }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Degree</label>
+                                            <select name="degree" class="form-select">
+                                                {% for d in degree_types %}
+                                                <option value="{{ d }}" {% if row.get('Degree') == d %}selected{% endif %}>{{ d }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-medium mb-1">Comments</label>
+                                            <input type="text" name="comments" class="form-control" value="{{ row.get('Comments','') }}">
+                                        </div>
+                                        <div class="col-12 d-flex gap-2 mt-1">
+                                            <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                            <button type="button" onclick="saCancelEdit('thesis', {{ i }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                        </div>
+                                    </div>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-                                No thesis records yet. Add one above.
-                            </td>
-                        </tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>No thesis records yet. Add one above.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -203,4 +219,34 @@
 
 </div>
 
+<script>
+function saInlineEdit(type, i) {
+    document.getElementById('sa-' + type + '-row-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-edit-' + i).classList.remove('d-none');
+}
+function saCancelEdit(type, i) {
+    document.getElementById('sa-' + type + '-edit-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-row-' + i).classList.remove('d-none');
+}
+function saDuplicate(type, i) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    const tab = type === 'thesis' ? 'thesis' : 'students';
+    form.innerHTML = '<input name="action" value="duplicate"><input name="scholarship_tab" value="' + tab + '"><input name="row_idx" value="' + i + '">';
+    document.body.appendChild(form);
+    form.submit();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const p = new URLSearchParams(window.location.search);
+    const h = p.get('highlight');
+    if (h) {
+        const row = document.getElementById(h);
+        if (row) {
+            row.classList.add('row-highlight');
+            setTimeout(() => row.classList.remove('row-highlight'), 3000);
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+});
+</script>
 {% endblock %}
