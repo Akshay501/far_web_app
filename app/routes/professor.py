@@ -59,6 +59,11 @@ def dashboard():
     except:
         pass
 
+    try:
+        counts['publications'] = len(execute_query("SELECT 1 FROM PUBLICATIONS WHERE ProfessorKey = %s", (pk,)))
+    except:
+        pass
+
     # Fetch Personal Information for the dashboard card
     try:
         professor = execute_query("""
@@ -1409,3 +1414,269 @@ def advising_evaluation():
         WHERE ProfessorKey = %s ORDER BY EvaluationYear DESC, Term
     """, (pk,))
     return render_template('professor/advising_evaluation.html', data=data)
+
+
+# ─── Publications ─────────────────────────────────────────────────────────────
+
+@professor_bp.route('/publications', methods=['GET', 'POST'])
+@login_required
+@professor_required
+def publications():
+    from app.bibtex_parser import (
+        parse_bib_file, export_bib_file, group_by_category,
+        get_category_label, entry_to_bibtex_string,
+        CATEGORY_ORDER, CATEGORY_MAP
+    )
+    import copy, tempfile, os
+
+    professor_key = current_user.professor_key
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        # ── Upload .bib file ──────────────────────────────────────────────
+        if action == 'upload_bib':
+            bib_file = request.files.get('bib_file')
+            if not bib_file or not bib_file.filename.endswith('.bib'):
+                flash('Please upload a valid .bib file.', 'danger')
+                return redirect(url_for('professor.publications'))
+
+            # Parse the uploaded file
+            with tempfile.NamedTemporaryFile(suffix='.bib', delete=False) as tmp:
+                bib_file.save(tmp.name)
+                pubs, err = parse_bib_file(tmp.name)
+                os.unlink(tmp.name)
+
+            if err:
+                flash(f'Error parsing .bib file: {err}', 'danger')
+                return redirect(url_for('professor.publications'))
+
+            # Clear existing publications for this professor
+            execute_query(
+                'DELETE FROM PUBLICATIONS WHERE ProfessorKey = %s',
+                (professor_key,), commit=True
+            )
+
+            # Insert all parsed publications
+            for pub in pubs:
+                execute_query('''
+                    INSERT INTO PUBLICATIONS
+                        (ProfessorKey, BibKey, Type, Title, Authors, Year,
+                         Journal, Booktitle, Volume, Issue, Pages, DOI, URL,
+                         Publisher, Keywords, Citations, Abstract, RawBibtex)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ''', (
+                    professor_key,
+                    pub.get('bibkey', ''),
+                    pub.get('type', 'misc'),
+                    pub.get('title', ''),
+                    pub.get('authors', ''),
+                    pub.get('year') or None,
+                    pub.get('journal', ''),
+                    pub.get('booktitle', ''),
+                    pub.get('volume', ''),
+                    pub.get('issue', ''),
+                    pub.get('pages', ''),
+                    pub.get('doi', ''),
+                    pub.get('url', ''),
+                    pub.get('publisher', ''),
+                    pub.get('keywords', ''),
+                    pub.get('citations', 0) or 0,
+                    pub.get('abstract', ''),
+                    pub.get('raw_bibtex', ''),
+                ), commit=True)
+
+            flash(f'Successfully imported {len(pubs)} publications.', 'success')
+            return redirect(url_for('professor.publications'))
+
+        # Load all pubs from DB for remaining actions
+        rows = execute_query(
+            'SELECT * FROM PUBLICATIONS WHERE ProfessorKey = %s ORDER BY PublicationKey',
+            (professor_key,)
+        ) or []
+
+        # ── Add new publication ───────────────────────────────────────────
+        if action == 'add':
+            new_pub = {
+                'bibkey':    request.form.get('bibkey', '').strip(),
+                'type':      request.form.get('type', 'article'),
+                'title':     request.form.get('title', ''),
+                'authors':   request.form.get('authors', ''),
+                'year':      request.form.get('year') or None,
+                'journal':   request.form.get('journal', ''),
+                'booktitle': request.form.get('booktitle', ''),
+                'volume':    request.form.get('volume', ''),
+                'issue':     request.form.get('issue', ''),
+                'pages':     request.form.get('pages', ''),
+                'doi':       request.form.get('doi', ''),
+                'url':       request.form.get('url', ''),
+                'publisher': request.form.get('publisher', ''),
+                'keywords':  request.form.get('keywords', 'journal'),
+                'citations': 0,
+                'abstract':  request.form.get('abstract', ''),
+            }
+            new_pub['raw_bibtex'] = entry_to_bibtex_string(new_pub)
+            new_cat = new_pub['keywords'].split(';')[0].strip()
+
+            result = execute_query('''
+                INSERT INTO PUBLICATIONS
+                    (ProfessorKey, BibKey, Type, Title, Authors, Year,
+                     Journal, Booktitle, Volume, Issue, Pages, DOI, URL,
+                     Publisher, Keywords, Citations, Abstract, RawBibtex)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            ''', (
+                professor_key,
+                new_pub['bibkey'], new_pub['type'], new_pub['title'],
+                new_pub['authors'], new_pub['year'], new_pub['journal'],
+                new_pub['booktitle'], new_pub['volume'], new_pub['issue'],
+                new_pub['pages'], new_pub['doi'], new_pub['url'],
+                new_pub['publisher'], new_pub['keywords'], 0,
+                new_pub['abstract'], new_pub['raw_bibtex'],
+            ), commit=True)
+
+            flash('Publication added.', 'success')
+            new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
+            return redirect(url_for('professor.publications') + f'?cat={new_cat}&highlight=pub-row-{new_id}')
+
+        # ── Edit publication ──────────────────────────────────────────────
+        elif action == 'edit':
+            pub_id = int(request.form.get('pub_id', 0))
+            keywords = request.form.get('keywords', 'journal')
+            new_cat = keywords.split(';')[0].strip()
+
+            updated = {
+                'bibkey':    request.form.get('bibkey', ''),
+                'type':      request.form.get('type', 'article'),
+                'title':     request.form.get('title', ''),
+                'authors':   request.form.get('authors', ''),
+                'year':      request.form.get('year') or None,
+                'journal':   request.form.get('journal', ''),
+                'booktitle': request.form.get('booktitle', ''),
+                'volume':    request.form.get('volume', ''),
+                'issue':     request.form.get('issue', ''),
+                'pages':     request.form.get('pages', ''),
+                'doi':       request.form.get('doi', ''),
+                'url':       request.form.get('url', ''),
+                'publisher': request.form.get('publisher', ''),
+                'keywords':  keywords,
+                'abstract':  request.form.get('abstract', ''),
+            }
+            updated['raw_bibtex'] = entry_to_bibtex_string(updated)
+
+            execute_query('''
+                UPDATE PUBLICATIONS SET
+                    BibKey=%s, Type=%s, Title=%s, Authors=%s, Year=%s,
+                    Journal=%s, Booktitle=%s, Volume=%s, Issue=%s, Pages=%s,
+                    DOI=%s, URL=%s, Publisher=%s, Keywords=%s, Abstract=%s,
+                    RawBibtex=%s
+                WHERE PublicationKey=%s AND ProfessorKey=%s
+            ''', (
+                updated['bibkey'], updated['type'], updated['title'],
+                updated['authors'], updated['year'], updated['journal'],
+                updated['booktitle'], updated['volume'], updated['issue'],
+                updated['pages'], updated['doi'], updated['url'],
+                updated['publisher'], updated['keywords'], updated['abstract'],
+                updated['raw_bibtex'], pub_id, professor_key
+            ), commit=True)
+
+            flash('Publication updated.', 'success')
+            return redirect(url_for('professor.publications') + f'?cat={new_cat}&highlight=pub-row-{pub_id}')
+
+        # ── Delete publication ────────────────────────────────────────────
+        elif action == 'delete':
+            pub_id = int(request.form.get('pub_id', 0))
+            active_cat = request.form.get('active_cat', 'journal')
+            execute_query(
+                'DELETE FROM PUBLICATIONS WHERE PublicationKey=%s AND ProfessorKey=%s',
+                (pub_id, professor_key), commit=True
+            )
+            flash('Publication deleted.', 'success')
+            return redirect(url_for('professor.publications') + f'?cat={active_cat}')
+
+        # ── Duplicate publication ─────────────────────────────────────────
+        elif action == 'duplicate':
+            pub_id = int(request.form.get('pub_id', 0))
+            active_cat = request.form.get('active_cat', 'journal')
+            row = execute_query(
+                'SELECT * FROM PUBLICATIONS WHERE PublicationKey=%s AND ProfessorKey=%s',
+                (pub_id, professor_key)
+            )
+            if row:
+                p = row[0]
+                # Unique bibkey
+                base_key = p['BibKey'].replace('_copy', '') if p['BibKey'] else 'pub'
+                new_key = base_key + '_copy'
+                existing = {r['BibKey'] for r in rows}
+                counter = 1
+                while new_key in existing:
+                    new_key = f'{base_key}_copy{counter}'
+                    counter += 1
+
+                execute_query('''
+                    INSERT INTO PUBLICATIONS
+                        (ProfessorKey, BibKey, Type, Title, Authors, Year,
+                         Journal, Booktitle, Volume, Issue, Pages, DOI, URL,
+                         Publisher, Keywords, Citations, Abstract, RawBibtex)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ''', (
+                    professor_key, new_key,
+                    p['Type'], p['Title'], p['Authors'], p['Year'],
+                    p['Journal'], p['Booktitle'], p['Volume'], p['Issue'],
+                    p['Pages'], p['DOI'], p['URL'], p['Publisher'],
+                    p['Keywords'], p['Citations'] or 0, p['Abstract'], p['RawBibtex']
+                ), commit=True)
+
+                flash('Publication duplicated.', 'success')
+                new_id = execute_query('SELECT LAST_INSERT_ID() AS new_id', fetchone=True).get('new_id')
+                return redirect(url_for('professor.publications') + f'?cat={active_cat}&highlight=pub-row-{new_id}')
+
+        return redirect(url_for('professor.publications'))
+
+    # ── GET — load and display ────────────────────────────────────────────────
+    rows = execute_query(
+        'SELECT * FROM PUBLICATIONS WHERE ProfessorKey = %s ORDER BY Year DESC, PublicationKey',
+        (professor_key,)
+    ) or []
+
+    # Convert DB rows to pub dicts for grouping
+    pubs = []
+    for r in rows:
+        from app.bibtex_parser import _get_category
+        pubs.append({
+            'id':        r['PublicationKey'],
+            'bibkey':    r['BibKey'] or '',
+            'type':      r['Type'] or 'misc',
+            'title':     r['Title'] or '',
+            'authors':   r['Authors'] or '',
+            'year':      r['Year'],
+            'journal':   r['Journal'] or '',
+            'booktitle': r['Booktitle'] or '',
+            'volume':    r['Volume'] or '',
+            'issue':     r['Issue'] or '',
+            'pages':     r['Pages'] or '',
+            'doi':       r['DOI'] or '',
+            'url':       r['URL'] or '',
+            'publisher': r['Publisher'] or '',
+            'keywords':  r['Keywords'] or '',
+            'category':  _get_category(r['Keywords'] or ''),
+            'citations': r['Citations'] or 0,
+            'abstract':  r['Abstract'] or '',
+            'raw_bibtex': r['RawBibtex'] or '',
+        })
+
+    groups = group_by_category(pubs)
+    active_cat = request.args.get('cat', 'journal')
+    # Default to first non-empty category if journal is empty
+    if not groups.get(active_cat):
+        for cat in CATEGORY_ORDER:
+            if groups.get(cat):
+                active_cat = cat
+                break
+
+    return render_template('professor/publications.html',
+                           groups=groups,
+                           active_cat=active_cat,
+                           category_order=CATEGORY_ORDER,
+                           category_map=CATEGORY_MAP,
+                           total_pubs=len(pubs),
+                           has_pubs=len(pubs) > 0)

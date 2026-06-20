@@ -25,6 +25,15 @@
                    class="list-group-item list-group-item-action d-flex align-items-center">
                     <i class="bi bi-currency-dollar me-3"></i> Grants
                 </a>
+                <a href="{{ url_for('professor.publications') }}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-journal-bookmark me-2"></i>Publications</span>
+                    {% if counts.get('publications', 0) > 0 %}
+                    <span class="badge bg-success">{{ counts.publications }}</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">Upload .bib</span>
+                    {% endif %}
+                </a>
                 <a href="{{ url_for('professor.scholarship') }}" 
                    class="list-group-item list-group-item-action d-flex align-items-center">
                     <i class="bi bi-mortarboard me-3"></i> Scholarship
