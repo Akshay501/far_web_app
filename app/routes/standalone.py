@@ -26,6 +26,11 @@ from app.standalone_excel import (
     read_current_students, append_current_student, update_current_student, delete_current_student, duplicate_current_student,
     read_thesis, append_thesis, update_thesis, delete_thesis, duplicate_thesis,
     read_teaching,
+    get_bib_path, bib_exists,
+)
+from app.bibtex_parser import (
+    parse_bib_file, export_bib_file, group_by_category,
+    get_category_label, entry_to_bibtex_string, CATEGORY_ORDER, CATEGORY_MAP
 )
 
 standalone_bp = Blueprint('standalone', __name__, url_prefix='/standalone')
@@ -180,6 +185,7 @@ def dashboard():
         return redirect(url_for('standalone.index'))
 
     inventory = get_file_inventory(folder)
+    inventory['scholarship_bib'] = {'exists': bib_exists(folder)}
     return render_template('standalone/dashboard.html', inventory=inventory)
 
 
@@ -416,6 +422,154 @@ def scholarship():
 
 
 # ─── Teaching (read-only) ─────────────────────────────────────────────────────
+
+
+@standalone_bp.route('/publications', methods=['GET', 'POST'])
+def publications():
+    folder = require_folder()
+    if not folder:
+        return redirect(url_for('standalone.index'))
+
+    bib_path = get_bib_path(folder)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        # Handle .bib file upload
+        if action == 'upload_bib':
+            bib_file = request.files.get('bib_file')
+            if bib_file and bib_file.filename.endswith('.bib'):
+                import os
+                os.makedirs(os.path.dirname(bib_path), exist_ok=True)
+                bib_file.save(bib_path)
+                flash('Bibliography file uploaded successfully.', 'success')
+            else:
+                flash('Please upload a valid .bib file.', 'danger')
+            return redirect(url_for('standalone.publications'))
+
+        # Load existing publications
+        pubs, err = parse_bib_file(bib_path) if bib_exists(folder) else ([], None)
+
+        if action == 'add':
+            new_pub = {
+                'bibkey':    request.form.get('bibkey', '').strip(),
+                'type':      request.form.get('type', 'article'),
+                'title':     request.form.get('title', ''),
+                'authors':   request.form.get('authors', ''),
+                'year':      request.form.get('year', ''),
+                'journal':   request.form.get('journal', ''),
+                'booktitle': request.form.get('booktitle', ''),
+                'volume':    request.form.get('volume', ''),
+                'issue':     request.form.get('issue', ''),
+                'pages':     request.form.get('pages', ''),
+                'doi':       request.form.get('doi', ''),
+                'url':       request.form.get('url', ''),
+                'publisher': request.form.get('publisher', ''),
+                'keywords':  request.form.get('keywords', ''),
+                'citations': 0,
+                'abstract':  request.form.get('abstract', ''),
+                'raw_bibtex': '',
+                'category':  request.form.get('keywords', 'journal').split(';')[0].strip(),
+            }
+            new_pub['raw_bibtex'] = entry_to_bibtex_string(new_pub)
+            pubs.append(new_pub)
+            export_bib_file(pubs, bib_path)
+            flash('Publication added successfully.', 'success')
+            new_idx = len(pubs) - 1
+            return redirect(url_for('standalone.publications') + f'?cat={new_pub["category"]}&highlight=sa-pub-row-{new_idx}')
+
+        elif action == 'edit':
+            idx = int(request.form.get('row_idx', 0))
+            active_cat = request.form.get('active_cat', 'journal')
+            # row_idx is position within category group — find global index
+            cat_pubs = group_by_category(pubs).get(active_cat, [])
+            if 0 <= idx < len(cat_pubs):
+                target_bibkey = cat_pubs[idx]['bibkey']
+                global_idx = next((i for i, p in enumerate(pubs) if p['bibkey'] == target_bibkey), None)
+                if global_idx is not None:
+                    pubs[global_idx].update({
+                        'bibkey':    request.form.get('bibkey', pubs[global_idx]['bibkey']),
+                        'type':      request.form.get('type', pubs[global_idx]['type']),
+                        'title':     request.form.get('title', ''),
+                        'authors':   request.form.get('authors', ''),
+                        'year':      int(request.form.get('year') or 0) or None,
+                        'journal':   request.form.get('journal', ''),
+                        'booktitle': request.form.get('booktitle', ''),
+                        'volume':    request.form.get('volume', ''),
+                        'issue':     request.form.get('issue', ''),
+                        'pages':     request.form.get('pages', ''),
+                        'doi':       request.form.get('doi', ''),
+                        'url':       request.form.get('url', ''),
+                        'publisher': request.form.get('publisher', ''),
+                        'keywords':  request.form.get('keywords', ''),
+                        'abstract':  request.form.get('abstract', ''),
+                        'category':  request.form.get('keywords', pubs[global_idx]['category']).split(';')[0].strip(),
+                    })
+                    pubs[global_idx]['raw_bibtex'] = entry_to_bibtex_string(pubs[global_idx])
+                    export_bib_file(pubs, bib_path)
+                    flash('Publication updated successfully.', 'success')
+                    new_cat = pubs[global_idx]['category']
+                    new_groups = group_by_category(pubs)
+                    new_cat_pubs = new_groups.get(new_cat, [])
+                    cat_idx = next((i for i, p in enumerate(new_cat_pubs) if p['bibkey'] == pubs[global_idx]['bibkey']), 0)
+                    return redirect(url_for('standalone.publications') + f'?cat={new_cat}&highlight=sa-pub-row-{cat_idx}')
+
+        elif action == 'delete':
+            idx = int(request.form.get('row_idx', 0))
+            active_cat = request.form.get('active_cat', 'journal')
+            # row_idx is position within category group — find global index
+            cat_pubs = group_by_category(pubs).get(active_cat, [])
+            if 0 <= idx < len(cat_pubs):
+                target_bibkey = cat_pubs[idx]['bibkey']
+                global_idx = next((i for i, p in enumerate(pubs) if p['bibkey'] == target_bibkey), None)
+                if global_idx is not None:
+                    pubs.pop(global_idx)
+                    export_bib_file(pubs, bib_path)
+                    flash('Publication deleted.', 'success')
+            return redirect(url_for('standalone.publications') + f'?cat={active_cat}')
+
+        elif action == 'duplicate':
+            idx = int(request.form.get('row_idx', 0))
+            active_cat = request.form.get('active_cat', 'journal')
+            cat_pubs = group_by_category(pubs).get(active_cat, [])
+            if 0 <= idx < len(cat_pubs):
+                import copy
+                dup = copy.deepcopy(cat_pubs[idx])
+                # Make bibkey unique by adding _copy suffix (add number if already exists)
+                base_key = dup['bibkey'].replace('_copy', '')
+                new_key = base_key + '_copy'
+                existing_keys = {p['bibkey'] for p in pubs}
+                counter = 1
+                while new_key in existing_keys:
+                    new_key = f'{base_key}_copy{counter}'
+                    counter += 1
+                dup['bibkey'] = new_key
+                dup['raw_bibtex'] = entry_to_bibtex_string(dup)
+                pubs.append(dup)
+                export_bib_file(pubs, bib_path)
+                flash('Publication duplicated.', 'success')
+                # Find actual position of duplicate after re-sort
+                new_groups = group_by_category(pubs)
+                new_cat_pubs = new_groups.get(active_cat, [])
+                dup_idx = next((i for i, p in enumerate(new_cat_pubs) if p['bibkey'] == dup['bibkey']), len(new_cat_pubs) - 1)
+                return redirect(url_for('standalone.publications') + f'?cat={active_cat}&highlight=sa-pub-row-{dup_idx}')
+
+        return redirect(url_for('standalone.publications'))
+
+    # GET — load and display
+    pubs, err = parse_bib_file(bib_path) if bib_exists(folder) else ([], None)
+    groups = group_by_category(pubs)
+    active_cat = request.args.get('cat', 'journal')
+
+    return render_template('standalone/publications.html',
+                           groups=groups,
+                           active_cat=active_cat,
+                           category_order=CATEGORY_ORDER,
+                           category_map=CATEGORY_MAP,
+                           bib_exists=bib_exists(folder),
+                           total_pubs=len(pubs),
+                           parse_error=err)
+
 
 @standalone_bp.route('/teaching')
 def teaching():

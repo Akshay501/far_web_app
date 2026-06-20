@@ -11,6 +11,7 @@
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-4">
           <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
               <label for="years" class="form-label fw-semibold">Years of Data</label>
               <select class="form-select" id="years" name="years">

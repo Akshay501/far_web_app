@@ -12,7 +12,7 @@
       <div class="card shadow-sm border-0">
         <div class="card-body p-4">
           <form method="POST" enctype="multipart/form-data" id="generateForm">
-            {{ csrf_token() if csrf_token is defined }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <!-- Document Type -->
             <div class="mb-4">

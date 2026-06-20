@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Publications</h2>
+    <a href="{{ url_for('standalone.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
+</div>
+
+{% if not bib_exists %}
+<!-- No .bib file yet — show upload prompt -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-file-earmark-text fs-1 text-muted mb-3 d-block"></i>
+        <h5 class="mb-2">No bibliography file found</h5>
+        <p class="text-muted mb-4">Upload your <code>scholarship.bib</code> file to manage your publications here.</p>
+        <form method="POST" enctype="multipart/form-data" class="d-inline-block">
+            <input type="hidden" name="action" value="upload_bib">
+            <div class="input-group" style="max-width: 400px;">
+                <input type="file" name="bib_file" accept=".bib" class="form-control" required>
+                <button type="submit" class="btn btn-gold fw-semibold">
+                    <i class="bi bi-upload me-1"></i>Upload .bib
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% else %}
+
+{% if parse_error %}
+<div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    Error parsing .bib file: {{ parse_error }}
+</div>
+{% endif %}
+
+<!-- Stats bar -->
+<div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+    <span class="badge bg-clarkson-green fs-6">{{ total_pubs }} Publications</span>
+    {% for cat in category_order %}
+        {% if groups[cat] %}
+        <span class="badge bg-secondary">{{ category_map[cat] }}: {{ groups[cat]|length }}</span>
+        {% endif %}
+    {% endfor %}
+    <!-- Re-upload .bib -->
+    <form method="POST" enctype="multipart/form-data" class="ms-auto d-flex gap-2 align-items-center">
+        <input type="hidden" name="action" value="upload_bib">
+        <input type="file" name="bib_file" accept=".bib" class="form-control form-control-sm" style="max-width:200px">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-repeat me-1"></i>Re-upload .bib
+        </button>
+    </form>
+</div>
+
+<!-- Add New Publication -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header text-white fw-semibold" style="background-color: var(--clarkson-green);">
+        <i class="bi bi-plus-circle me-2"></i>Add New Publication
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label fw-medium mb-1">Entry Type</label>
+                    <select name="type" class="form-select">
+                        <option value="article">@article (Journal)</option>
+                        <option value="inproceedings">@inproceedings (Conference)</option>
+                        <option value="conference">@conference (Conference)</option>
+                        <option value="misc">@misc (Invited/Patent)</option>
+                        <option value="book">@book</option>
+                        <option value="incollection">@incollection (Book Chapter)</option>
+                        <option value="techreport">@techreport</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium mb-1">Category (keywords)</label>
+                    <select name="keywords" class="form-select">
+                        <option value="journal">Journal Article</option>
+                        <option value="refereed">Refereed Conference Paper</option>
+                        <option value="conference">Conference Presentation</option>
+                        <option value="book">Book / Book Chapter</option>
+                        <option value="patent">Patent</option>
+                        <option value="invited">Invited Talk</option>
+                        <option value="techreport">Technical Report</option>
+                        <option value="arxiv">arXiv Paper</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium mb-1">Cite Key</label>
+                    <input type="text" name="bibkey" class="form-control" placeholder="e.g. Smith2025AI" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium mb-1">Year</label>
+                    <input type="number" name="year" class="form-control" placeholder="2025">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-medium mb-1">Title</label>
+                    <input type="text" name="title" class="form-control" placeholder="Publication title" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-medium mb-1">Authors</label>
+                    <input type="text" name="authors" class="form-control" placeholder="Last, First and Last2, First2">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium mb-1">Journal / Booktitle</label>
+                    <input type="text" name="journal" class="form-control" placeholder="Journal or conference name">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-medium mb-1">Volume</label>
+                    <input type="text" name="volume" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-medium mb-1">Issue</label>
+                    <input type="text" name="issue" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium mb-1">Pages</label>
+                    <input type="text" name="pages" class="form-control" placeholder="e.g. 1234--1245">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium mb-1">DOI</label>
+                    <input type="text" name="doi" class="form-control" placeholder="10.1016/...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium mb-1">URL</label>
+                    <input type="text" name="url" class="form-control">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-gold fw-semibold mt-3">
+                <i class="bi bi-save me-1"></i>Add Publication
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Category Tabs -->
+<ul class="nav nav-tabs mb-3" id="pubTabs">
+    {% for cat in category_order %}
+    {% if groups[cat] %}
+    <li class="nav-item">
+        <a class="nav-link {% if active_cat == cat %}active{% endif %}"
+           href="{{ url_for('standalone.publications') }}?cat={{ cat }}">
+            {{ category_map[cat] }}
+            <span class="badge bg-secondary ms-1">{{ groups[cat]|length }}</span>
+        </a>
+    </li>
+    {% endif %}
+    {% endfor %}
+</ul>
+
+<!-- Publications Table for Active Category -->
+{% set active_pubs = groups[active_cat] %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Authors</th>
+                    <th>Year</th>
+                    <th>Journal / Venue</th>
+                    <th class="text-center">Citations</th>
+                    <th width="190">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i, pub in active_pubs|enumerate %}
+                {% set global_idx = groups[active_cat].index(pub) %}
+                {# Calculate real index in full pubs list #}
+                <tr id="sa-pub-row-{{ loop.index0 }}" class="align-middle">
+                    <td class="text-muted small">{{ loop.index }}</td>
+                    <td>
+                        <span title="{{ pub.title }}">{{ pub.title|truncate(60) }}</span>
+                        {% if pub.doi %}
+                        <a href="https://doi.org/{{ pub.doi }}" target="_blank" class="ms-1 text-muted small">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        {% endif %}
+                        <div class="text-muted small fst-italic">{{ pub.bibkey }}</div>
+                    </td>
+                    <td>
+                        <span title="{{ pub.authors }}">{{ pub.authors|truncate(40) if pub.authors else '—' }}</span>
+                    </td>
+                    <td>{{ pub.year or '—' }}</td>
+                    <td>
+                        <span title="{{ pub.journal or pub.booktitle }}">
+                            {{ (pub.journal or pub.booktitle or '—')|truncate(35) }}
+                        </span>
+                        {% if pub.volume %}<div class="text-muted small">Vol. {{ pub.volume }}{% if pub.pages %}, pp. {{ pub.pages }}{% endif %}</div>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if pub.citations %}
+                        <span class="badge bg-info text-dark">{{ pub.citations }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button onclick="saInlineEdit('pub', {{ loop.index0 }})" class="btn btn-sm btn-warning">Edit</button>
+                            <button onclick="saDuplicate({{ loop.index0 }}, '{{ active_cat }}')" class="btn btn-sm btn-info text-white">Dup</button>
+                            <form method="POST" class="d-inline" onsubmit="return confirm('Delete this publication?')">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="row_idx" value="{{ loop.index0 }}">
+                                <input type="hidden" name="active_cat" value="{{ active_cat }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <!-- Edit Row -->
+                <tr id="sa-pub-edit-{{ loop.index0 }}" class="d-none">
+                    <td colspan="7" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                        <form method="POST">
+                            <input type="hidden" name="action" value="edit">
+                            <input type="hidden" name="row_idx" value="{{ loop.index0 }}">
+                            <input type="hidden" name="active_cat" value="{{ active_cat }}">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium mb-1">Entry Type</label>
+                                    <select name="type" class="form-select">
+                                        {% for t in ['article','inproceedings','conference','misc','book','incollection','techreport'] %}
+                                        <option value="{{ t }}" {% if pub.type == t %}selected{% endif %}>@{{ t }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium mb-1">Category</label>
+                                    <select name="keywords" class="form-select">
+                                        {% for k, label in category_map.items() %}
+                                        <option value="{{ k }}" {% if pub.keywords == k or pub.category == k %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium mb-1">Cite Key</label>
+                                    <input type="text" name="bibkey" class="form-control" value="{{ pub.bibkey }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-medium mb-1">Year</label>
+                                    <input type="number" name="year" class="form-control" value="{{ pub.year or '' }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-medium mb-1">Title</label>
+                                    <input type="text" name="title" class="form-control" value="{{ pub.title or '' }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-medium mb-1">Authors</label>
+                                    <input type="text" name="authors" class="form-control" value="{{ pub.authors or '' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium mb-1">Journal</label>
+                                    <input type="text" name="journal" class="form-control" value="{{ pub.journal or '' }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-medium mb-1">Booktitle / Venue</label>
+                                    <input type="text" name="booktitle" class="form-control" value="{{ pub.booktitle or '' }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label fw-medium mb-1">Vol</label>
+                                    <input type="text" name="volume" class="form-control" value="{{ pub.volume or '' }}">
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label fw-medium mb-1">Issue</label>
+                                    <input type="text" name="issue" class="form-control" value="{{ pub.issue or '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium mb-1">Pages</label>
+                                    <input type="text" name="pages" class="form-control" value="{{ pub.pages or '' }}">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label fw-medium mb-1">DOI</label>
+                                    <input type="text" name="doi" class="form-control" value="{{ pub.doi or '' }}">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label fw-medium mb-1">URL</label>
+                                    <input type="text" name="url" class="form-control" value="{{ pub.url or '' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-medium mb-1">Publisher</label>
+                                    <input type="text" name="publisher" class="form-control" value="{{ pub.publisher or '' }}">
+                                </div>
+                                <div class="col-12 d-flex gap-2 mt-1">
+                                    <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                    <button type="button" onclick="saCancelEdit('pub', {{ loop.index0 }})" class="btn btn-secondary btn-sm">Cancel</button>
+                                </div>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        No {{ category_map.get(active_cat, 'publications') }} yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function saInlineEdit(type, i) {
+    document.getElementById('sa-' + type + '-row-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-edit-' + i).classList.remove('d-none');
+}
+function saCancelEdit(type, i) {
+    document.getElementById('sa-' + type + '-edit-' + i).classList.add('d-none');
+    document.getElementById('sa-' + type + '-row-' + i).classList.remove('d-none');
+}
+function saDuplicate(i, cat) {
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.innerHTML = '<input name="action" value="duplicate"><input name="row_idx" value="' + i + '"><input name="active_cat" value="' + cat + '">';
+    document.body.appendChild(f);
+    f.submit();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const p = new URLSearchParams(window.location.search);
+    const h = p.get('highlight');
+    if (h) {
+        const row = document.getElementById(h);
+        if (row) {
+            row.classList.add('row-highlight');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => row.classList.remove('row-highlight'), 3000);
+        }
+        const url = new URL(window.location);
+        url.searchParams.delete('highlight');
+        window.history.replaceState({}, '', url);
+    }
+});
+</script>
+{% endblock %}

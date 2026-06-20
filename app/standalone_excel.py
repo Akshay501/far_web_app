@@ -518,3 +518,16 @@ def _to_int(val):
         return int(val) if val else None
     except (ValueError, TypeError):
         return None
+
+
+# ─── Publications (.bib) ──────────────────────────────────────────────────────
+
+BIB_FILE = ('Scholarship', 'scholarship.bib')
+
+
+def get_bib_path(folder):
+    return _get_path(folder, *BIB_FILE)
+
+
+def bib_exists(folder):
+    return os.path.exists(get_bib_path(folder))
