@@ -1441,11 +1441,17 @@ def publications():
                 flash('Please upload a valid .bib file.', 'danger')
                 return redirect(url_for('professor.publications'))
 
-            # Parse the uploaded file
+            # Save .bib file to temp, parse it, keep content for filesystem copy
             with tempfile.NamedTemporaryFile(suffix='.bib', delete=False) as tmp:
                 bib_file.save(tmp.name)
-                pubs, err = parse_bib_file(tmp.name)
-                os.unlink(tmp.name)
+                tmp_path = tmp.name
+
+            pubs, err = parse_bib_file(tmp_path)
+
+            # Read raw content before deleting temp file
+            with open(tmp_path, 'rb') as f:
+                bib_raw_content = f.read()
+            os.unlink(tmp_path)
 
             if err:
                 flash(f'Error parsing .bib file: {err}', 'danger')
@@ -1457,7 +1463,7 @@ def publications():
                 (professor_key,), commit=True
             )
 
-            # Insert all parsed publications
+            # Insert all parsed publications into DB
             for pub in pubs:
                 execute_query('''
                     INSERT INTO PUBLICATIONS
@@ -1485,6 +1491,23 @@ def publications():
                     pub.get('abstract', ''),
                     pub.get('raw_bibtex', ''),
                 ), commit=True)
+
+            # DB import succeeded — now copy .bib to professor's Scholarship
+            # folder so make_cv can find it when generating the FAR
+            try:
+                from app.routes.generate import get_professor_folder
+                prof_folder, _ = get_professor_folder(professor_key)
+                if prof_folder and os.path.isabs(prof_folder) and os.path.isdir(prof_folder):
+                    scholarship_dir = os.path.join(prof_folder, 'Scholarship')
+                    os.makedirs(scholarship_dir, exist_ok=True)
+                    with open(os.path.join(scholarship_dir, 'scholarship.bib'), 'wb') as f:
+                        f.write(bib_raw_content)
+                    current_app.logger.info(f'Copied scholarship.bib to {scholarship_dir}')
+                else:
+                    current_app.logger.info('Professor folder not found on filesystem — skipping .bib copy')
+            except Exception as e:
+                current_app.logger.warning(f'Could not copy .bib to Scholarship folder: {e}')
+                # Non-fatal — DB import already succeeded, UI works fine
 
             flash(f'Successfully imported {len(pubs)} publications.', 'success')
             return redirect(url_for('professor.publications'))

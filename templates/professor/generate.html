@@ -77,6 +77,76 @@
               </small>
             </div>
 
+            <!-- Display Options -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Display Options</label>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="includecitationcounts" id="opt_citations" checked>
+                    <label class="form-check-label" for="opt_citations">Include citation counts</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="includestudentmarkers" id="opt_markers" checked>
+                    <label class="form-check-label" for="opt_markers">Include student markers (†‡)</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="shortteachingtable" id="opt_shortteaching" checked>
+                    <label class="form-check-label" for="opt_shortteaching">Short teaching table</label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="hideteachingevals" id="opt_hideevals">
+                    <label class="form-check-label" for="opt_hideevals">Hide teaching evaluations</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section Toggles -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Sections to Include</label>
+              <small class="text-muted d-block mb-2">Uncheck to exclude a section from the output.</small>
+              <div class="row g-1">
+                {% set sections = [
+                  ('journal',           'Journal Articles'),
+                  ('refereed',          'Refereed Conference Papers'),
+                  ('conference',        'Conference Presentations'),
+                  ('invited',           'Invited Talks'),
+                  ('book',              'Books & Chapters'),
+                  ('patent',            'Patents'),
+                  ('arxiv',             'arXiv Papers'),
+                  ('grants',            'Grants'),
+                  ('proposals',         'Proposals'),
+                  ('teaching',          'Teaching'),
+                  ('service',           'Service'),
+                  ('reviews',           'Reviews'),
+                  ('studentawards',     'Student Awards'),
+                  ('personalawards',    'Personal Awards'),
+                  ('gradadvisees',      'Grad Advisees'),
+                  ('undergradresearch', 'Undergrad Research'),
+                  ('profdevelopment',   'Prof. Development'),
+                ] %}
+                {% for key, label in sections %}
+                <div class="col-md-4 col-6">
+                  <div class="form-check">
+                    <input class="form-check-input section-toggle" type="checkbox"
+                           id="sec_{{ key }}" value="{{ key }}"
+                           onchange="updateExcluded()" checked>
+                    <label class="form-check-label small" for="sec_{{ key }}">{{ label }}</label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <!-- Hidden field collects excluded sections -->
+              <div id="excluded_container"></div>
+            </div>
+
             <!-- Submit -->
             <div class="d-grid">
               <button type="submit" id="generateBtn" class="btn btn-lg fw-semibold text-dark"
@@ -105,6 +175,18 @@
 </div>
 
 <script>
+function updateExcluded() {
+    const container = document.getElementById('excluded_container');
+    container.innerHTML = '';
+    document.querySelectorAll('.section-toggle:not(:checked)').forEach(function(cb) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'excluded_sections';
+        input.value = cb.value;
+        container.appendChild(input);
+    });
+}
+
 document.getElementById('generateForm').addEventListener('submit', function() {
     var btn = document.getElementById('generateBtn');
     btn.innerHTML = '⏳ Generating...';

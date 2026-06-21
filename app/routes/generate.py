@@ -132,22 +132,18 @@ def fetch_all_db_data(professor_key):
     }
 
 
-def ensure_config_updated(far_folder):
+def ensure_config_updated(far_folder, options=None):
     """
     Auto-update make_cv.cfg in the given folder so it has all required keys.
+    Optionally applies user-selected options from the Generate page.
 
-    WHY THIS EXISTS:
-    make_cv is actively developed by Prof. Brian. When he releases a new version,
-    new required keys are added to make_cv.cfg. Old professor folders were created
-    with older versions and don't have those keys. make_far detects this and asks:
-        "UseWebScraper is missing. Would you like to update? [Y/N]"
-    In a web app there is no keyboard so it hangs forever.
-
-    THE FIX:
-    We call make_cv's own create_config() function BEFORE running make_far.
-    create_config() merges the old config with all required keys (preserving
-    existing values like years, latexfile, section toggles) and saves it.
-    make_far then finds all keys and never asks the question.
+    options dict keys (all optional):
+        years               int  — number of years (-1 = all)
+        includestudentmarkers  bool
+        includecitationcounts  bool
+        shortteachingtable     bool
+        hideteachingevals      bool
+        excluded_sections   list — section names to set False
     """
     import configparser
     cfg_path = os.path.join(far_folder, 'make_cv.cfg')
@@ -161,23 +157,51 @@ def ensure_config_updated(far_folder):
         old_config = configparser.ConfigParser()
         old_config.read(cfg_path)
 
-        # Check if it already has all required keys
-        if verify_config(old_config):
-            return  # already up to date — nothing to do
+        # Update if keys are missing
+        if not verify_config(old_config):
+            current_dir = os.getcwd()
+            os.chdir(far_folder)
+            try:
+                create_config('make_cv.cfg', old_config)
+                current_app.logger.info(f'Updated make_cv.cfg in {far_folder}')
+                old_config = configparser.ConfigParser()
+                old_config.read(cfg_path)
+            finally:
+                os.chdir(current_dir)
 
-        # It's missing keys — update it silently using make_cv's own function
-        # create_config() merges old values with new required keys
-        current_dir = os.getcwd()
-        os.chdir(far_folder)  # create_config writes relative to cwd
-        try:
-            create_config('make_cv.cfg', old_config)
-            current_app.logger.info(f'Updated make_cv.cfg in {far_folder}')
-        finally:
-            os.chdir(current_dir)
+        # Apply user options if provided
+        if options:
+            section = list(old_config.sections())[0] if old_config.sections() else 'CV'
+
+            # Years (-1 = all, positive = last N years)
+            if 'years' in options:
+                old_config.set(section, 'years', str(options['years']))
+
+            # Display options
+            for key in ('includestudentmarkers', 'includecitationcounts',
+                        'shortteachingtable', 'hideteachingevals'):
+                if key in options:
+                    old_config.set(section, key, 'true' if options[key] else 'false')
+
+            # Section toggles — set excluded sections to false, rest to true
+            all_sections = [
+                'journal', 'arxiv', 'refereed', 'book', 'patent',
+                'conference', 'invited', 'grants', 'proposals', 'teaching',
+                'service', 'reviews', 'profdevelopment', 'studentawards',
+                'personalawards', 'gradadvisees', 'undergradresearch',
+            ]
+            excluded = options.get('excluded_sections', [])
+            for sec in all_sections:
+                val = 'false' if sec in excluded else 'true'
+                if old_config.has_option(section, sec):
+                    old_config.set(section, sec, val)
+
+            # Write updated config back
+            with open(cfg_path, 'w') as f:
+                old_config.write(f)
+            current_app.logger.info(f'Applied user options to make_cv.cfg in {far_folder}')
 
     except Exception as e:
-        # If anything goes wrong, log it but don't crash
-        # make_far will still try to run and may succeed
         current_app.logger.warning(f'Could not update make_cv.cfg: {e}')
 
 
@@ -344,6 +368,18 @@ def generate():
         fmt        = request.form.get('format', 'pdf')      # pdf | docx | both
         bib_file   = request.files.get('bib_file')
 
+        # Build options dict from form
+        years_int = int(years) if years != '0' else -1
+        excluded_sections = request.form.getlist('excluded_sections')
+        options = {
+            'years':                  years_int,
+            'includestudentmarkers':  'includestudentmarkers'  in request.form,
+            'includecitationcounts':  'includecitationcounts'  in request.form,
+            'shortteachingtable':     'shortteachingtable'     in request.form,
+            'hideteachingevals':      'hideteachingevals'      in request.form,
+            'excluded_sections':      excluded_sections,
+        }
+
         pk = current_user.professor_key
         professor_folder, prof = get_professor_folder(pk)
 
@@ -391,7 +427,7 @@ def generate():
         if doc_type in ('far', 'both'):
             if fmt in ('pdf', 'both'):
                 far_folder = os.path.join(make_cv_folder, 'FAR')
-                ensure_config_updated(far_folder)   # silently fix missing config keys
+                ensure_config_updated(far_folder, options)   # silently fix missing config keys
                 ok, err = run_make_far(far_folder, use_pandoc=False)
                 if ok:
                     pdf = os.path.join(far_folder, 'far.pdf')
@@ -403,7 +439,7 @@ def generate():
 
             if fmt in ('docx', 'both'):
                 far_docx_folder = os.path.join(make_cv_folder, 'FAR_docx')
-                ensure_config_updated(far_docx_folder)  # silently fix missing config keys
+                ensure_config_updated(far_docx_folder, options)  # silently fix missing config keys
                 ok, err = run_make_far(far_docx_folder, use_pandoc=True)
                 if ok:
                     docx = os.path.join(far_docx_folder, 'far.docx')
@@ -415,7 +451,7 @@ def generate():
 
         if doc_type in ('cv', 'both'):
             cv_folder = os.path.join(make_cv_folder, 'CV')
-            ensure_config_updated(cv_folder)        # silently fix any missing config keys
+            ensure_config_updated(cv_folder, options)        # silently fix any missing config keys
             ok, err = run_make_cv(cv_folder)
             if ok:
                 pdf = os.path.join(cv_folder, 'cv.pdf')
