@@ -9,9 +9,11 @@ Handles make_cv's scholarship.bib format including:
 """
 
 import re
+import io
 import bibtexparser
 from bibtexparser.bparser import BibTexParser
 from bibtexparser.customization import convert_to_unicode
+from bibtexparser.latexenc import latex_to_unicode
 
 
 # ── Category mapping ────────────────────────────────────────────────────────
@@ -94,28 +96,49 @@ def parse_bib_file(filepath):
         category, citations, abstract, raw_bibtex, extra_fields
     """
     try:
-        parser = BibTexParser(common_strings=True)
-        parser.customization = convert_to_unicode
-        parser.ignore_nonstandard_types = False
-
         with open(filepath, encoding='utf-8', errors='replace') as f:
-            bib_database = bibtexparser.load(f, parser=parser)
+            text = f.read()
+
+        # Parse 1 — with unicode conversion. Used for the DISPLAY fields
+        # shown in the browser (accents become real unicode characters).
+        disp_parser = BibTexParser(common_strings=True)
+        disp_parser.customization = convert_to_unicode
+        disp_parser.ignore_nonstandard_types = False
+        disp_db = bibtexparser.load(io.StringIO(text), parser=disp_parser)
+
+        # Parse 2 — NO customization. Used to build the faithful RawBibtex
+        # stored in the DB. This is essential: convert_to_unicode treats the
+        # make_cv undergraduate marker \us as a LaTeX breve accent and corrupts
+        # it into "s̆". Parsing without customization keeps \gs and \us intact.
+        raw_parser = BibTexParser(common_strings=True)
+        raw_parser.ignore_nonstandard_types = False
+        raw_db = bibtexparser.load(io.StringIO(text), parser=raw_parser)
+        raw_by_id = {e.get('ID', ''): e for e in raw_db.entries}
 
         publications = []
-        for entry in bib_database.entries:
-            # Generate raw bibtex for this entry
-            raw = _entry_to_raw_bibtex(entry)
+        for entry in disp_db.entries:
+            ekey = entry.get('ID', '')
+            # Faithful raw entry (markers preserved); fall back to display entry
+            raw_entry = raw_by_id.get(ekey, entry)
+            raw = _entry_to_raw_bibtex(raw_entry)
 
             # Extract category from keywords
             keywords_raw = entry.get('keywords', '')
             category = _get_category(keywords_raw)
 
-            # Build clean publication dict
+            # Author display: take the FAITHFUL raw author (markers intact),
+            # strip \gs/\us first, THEN convert accents. Doing it in this order
+            # avoids \us being mis-read as a breve accent (which would leave a
+            # stray "s̆" in the displayed name).
+            raw_author = raw_entry.get('author', '') or entry.get('author', '')
+            disp_author = _strip_braces(latex_to_unicode(_strip_markers(raw_author)))
+
+            # Build clean publication dict (display fields stripped of markers)
             pub = {
                 'bibkey':       entry.get('ID', ''),
                 'type':         entry.get('ENTRYTYPE', 'misc'),
                 'title':        _strip_braces(entry.get('title', '')),
-                'authors':      _strip_markers(_strip_braces(entry.get('author', ''))),
+                'authors':      disp_author,
                 'year':         _parse_year(entry.get('year', '')),
                 'journal':      _strip_braces(entry.get('journal', '') or entry.get('journaltitle', '')),
                 'booktitle':    _strip_braces(entry.get('booktitle', '') or entry.get('address', '')),
@@ -198,6 +221,48 @@ def entry_to_bibtex_string(pub_dict):
 
     lines.append('}')
     return '\n'.join(lines)
+
+
+def patch_raw_bibtex(raw_bibtex, updates, new_id=None, set_author=None):
+    """
+    Surgically update an existing RawBibtex entry WITHOUT going through
+    convert_to_unicode, so make_cv markers (\\gs, \\us) and every extra
+    BibDesk/JabRef field (month, address, editor, bdsk-*, etc.) are preserved.
+
+    Parameters:
+        raw_bibtex : the existing RawBibtex string for one entry
+        updates    : {bibtex_field: value} to set. Empty/None value removes
+                     the field. Use bibtex field names (e.g. 'number' not 'issue').
+        new_id     : if given, replace the cite key (used by duplicate).
+        set_author : if not None, overwrite the author field with this exact
+                     string. Only pass this when the professor actually changed
+                     the authors — otherwise the author line is left untouched
+                     so markers survive.
+
+    Returns the new RawBibtex string. On any parse failure, returns the
+    original unchanged (safe fallback).
+    """
+    try:
+        parser = BibTexParser(common_strings=True)
+        parser.ignore_nonstandard_types = False
+        db = bibtexparser.load(io.StringIO(raw_bibtex), parser=parser)
+        if not db.entries:
+            return raw_bibtex
+        entry = db.entries[0]
+
+        if new_id:
+            entry['ID'] = new_id
+        if set_author is not None:
+            entry['author'] = set_author
+        for field, value in updates.items():
+            if value is None or value == '':
+                entry.pop(field, None)
+            else:
+                entry[field] = str(value)
+
+        return _entry_to_raw_bibtex(entry)
+    except Exception:
+        return raw_bibtex
 
 
 def export_bib_file(publications, filepath, include_jabref_header=True):

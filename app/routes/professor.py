@@ -1424,7 +1424,7 @@ def advising_evaluation():
 def publications():
     from app.bibtex_parser import (
         parse_bib_file, export_bib_file, group_by_category,
-        get_category_label, entry_to_bibtex_string,
+        get_category_label, entry_to_bibtex_string, patch_raw_bibtex,
         CATEGORY_ORDER, CATEGORY_MAP
     )
     import copy, tempfile, os
@@ -1567,24 +1567,58 @@ def publications():
             keywords = request.form.get('keywords', 'journal')
             new_cat = keywords.split(';')[0].strip()
 
-            updated = {
-                'bibkey':    request.form.get('bibkey', ''),
-                'type':      request.form.get('type', 'article'),
+            form_authors = request.form.get('authors', '')
+            new_bibkey = request.form.get('bibkey', '')
+
+            # Fetch the existing row so we can patch RawBibtex in place
+            existing = execute_query(
+                'SELECT RawBibtex, Authors, BibKey FROM PUBLICATIONS '
+                'WHERE PublicationKey=%s AND ProfessorKey=%s',
+                (pub_id, professor_key), fetchone=True
+            )
+
+            # Decide whether the professor actually changed the authors.
+            # The form always sends the marker-free display version, so we
+            # compare it against the stored display Authors. Only if they
+            # differ do we overwrite the author line (which loses markers).
+            authors_changed = bool(existing) and (form_authors.strip() != (existing.get('Authors') or '').strip())
+
+            # Map form fields → bibtex field names for the patch
+            updates = {
                 'title':     request.form.get('title', ''),
-                'authors':   request.form.get('authors', ''),
-                'year':      request.form.get('year') or None,
+                'year':      request.form.get('year') or '',
                 'journal':   request.form.get('journal', ''),
                 'booktitle': request.form.get('booktitle', ''),
                 'volume':    request.form.get('volume', ''),
-                'issue':     request.form.get('issue', ''),
-                'pages':     request.form.get('pages', ''),
+                'number':    request.form.get('issue', ''),
+                'pages':     (request.form.get('pages', '') or '').replace('–', '--'),
                 'doi':       request.form.get('doi', ''),
                 'url':       request.form.get('url', ''),
                 'publisher': request.form.get('publisher', ''),
                 'keywords':  keywords,
-                'abstract':  request.form.get('abstract', ''),
             }
-            updated['raw_bibtex'] = entry_to_bibtex_string(updated)
+
+            if existing and existing.get('RawBibtex'):
+                # Patch the faithful RawBibtex: preserves \gs/\us and all
+                # extra fields. Only rewrite author if it actually changed.
+                new_raw = patch_raw_bibtex(
+                    existing['RawBibtex'],
+                    updates,
+                    new_id=new_bibkey if new_bibkey and new_bibkey != existing.get('BibKey') else None,
+                    set_author=form_authors if authors_changed else None,
+                )
+            else:
+                # No raw on file (e.g. manually added entry) — build fresh
+                new_raw = entry_to_bibtex_string({
+                    'bibkey': new_bibkey, 'type': request.form.get('type', 'article'),
+                    'title': updates['title'], 'authors': form_authors,
+                    'year': updates['year'], 'journal': updates['journal'],
+                    'booktitle': updates['booktitle'], 'volume': updates['volume'],
+                    'issue': updates['number'], 'pages': request.form.get('pages', ''),
+                    'doi': updates['doi'], 'url': updates['url'],
+                    'publisher': updates['publisher'], 'keywords': keywords,
+                    'abstract': request.form.get('abstract', ''),
+                })
 
             execute_query('''
                 UPDATE PUBLICATIONS SET
@@ -1594,15 +1628,20 @@ def publications():
                     RawBibtex=%s
                 WHERE PublicationKey=%s AND ProfessorKey=%s
             ''', (
-                updated['bibkey'], updated['type'], updated['title'],
-                updated['authors'], updated['year'], updated['journal'],
-                updated['booktitle'], updated['volume'], updated['issue'],
-                updated['pages'], updated['doi'], updated['url'],
-                updated['publisher'], updated['keywords'], updated['abstract'],
-                updated['raw_bibtex'], pub_id, professor_key
+                new_bibkey, request.form.get('type', 'article'),
+                updates['title'], form_authors, (updates['year'] or None),
+                updates['journal'], updates['booktitle'], updates['volume'],
+                request.form.get('issue', ''), request.form.get('pages', ''),
+                updates['doi'], updates['url'], updates['publisher'],
+                keywords, request.form.get('abstract', ''),
+                new_raw, pub_id, professor_key
             ), commit=True)
 
-            flash('Publication updated.', 'success')
+            if authors_changed:
+                flash('Publication updated. Note: editing the author list removes '
+                      'student markers (†/‡). Re-upload your .bib to restore them.', 'warning')
+            else:
+                flash('Publication updated.', 'success')
             return redirect(url_for('professor.publications') + f'?cat={new_cat}&highlight=pub-row-{pub_id}')
 
         # ── Delete publication ────────────────────────────────────────────
@@ -1635,6 +1674,12 @@ def publications():
                     new_key = f'{base_key}_copy{counter}'
                     counter += 1
 
+                # Rewrite the cite key inside RawBibtex too, otherwise the
+                # generated .bib has two entries with the same key and biber
+                # fails. patch_raw_bibtex preserves markers and extra fields.
+                dup_raw = patch_raw_bibtex(p['RawBibtex'] or '', {}, new_id=new_key) \
+                    if p['RawBibtex'] else ''
+
                 execute_query('''
                     INSERT INTO PUBLICATIONS
                         (ProfessorKey, BibKey, Type, Title, Authors, Year,
@@ -1646,7 +1691,7 @@ def publications():
                     p['Type'], p['Title'], p['Authors'], p['Year'],
                     p['Journal'], p['Booktitle'], p['Volume'], p['Issue'],
                     p['Pages'], p['DOI'], p['URL'], p['Publisher'],
-                    p['Keywords'], p['Citations'] or 0, p['Abstract'], p['RawBibtex']
+                    p['Keywords'], p['Citations'] or 0, p['Abstract'], dup_raw
                 ), commit=True)
 
                 flash('Publication duplicated.', 'success')

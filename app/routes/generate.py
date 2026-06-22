@@ -404,11 +404,34 @@ def generate():
                 flash(err, 'danger')
             return redirect(url_for('generate.generate'))
 
-        # Save uploaded .bib file into Scholarship/
+        # Provide scholarship.bib for make_cv.
+        bib_path = os.path.join(professor_folder, 'Scholarship', 'scholarship.bib')
         if bib_file and bib_file.filename.endswith('.bib'):
-            bib_path = os.path.join(professor_folder, 'Scholarship', 'scholarship.bib')
+            # A fresh .bib was uploaded on this request — use it verbatim.
             os.makedirs(os.path.dirname(bib_path), exist_ok=True)
             bib_file.save(bib_path)
+        else:
+            # No upload — rebuild scholarship.bib from the DB so that any edits
+            # the professor made on the Publications page are reflected in the
+            # FAR. We write each entry's RawBibtex (markers + all fields intact).
+            try:
+                pub_rows = execute_query(
+                    'SELECT RawBibtex FROM PUBLICATIONS '
+                    'WHERE ProfessorKey=%s AND RawBibtex IS NOT NULL AND RawBibtex <> %s '
+                    'ORDER BY Year DESC, PublicationKey',
+                    (pk, ''),
+                ) or []
+                if pub_rows:
+                    os.makedirs(os.path.dirname(bib_path), exist_ok=True)
+                    with open(bib_path, 'w', encoding='utf-8') as bf:
+                        bf.write('\n\n'.join(r['RawBibtex'] for r in pub_rows))
+                        bf.write('\n')
+                    current_app.logger.info(
+                        f'Wrote {len(pub_rows)} publications to {bib_path} from DB'
+                    )
+            except Exception as e:
+                current_app.logger.warning(f'Could not write scholarship.bib from DB: {e}')
+                # Non-fatal — fall back to whatever .bib is already on disk
 
         # Fetch DB data and write Excel files
         try:
