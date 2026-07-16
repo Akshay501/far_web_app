@@ -1567,7 +1567,32 @@ def publications():
             keywords = request.form.get('keywords', 'journal')
             new_cat = keywords.split(';')[0].strip()
 
-            form_authors = request.form.get('authors', '')
+            # Reconstruct author string from per-author rows
+            # form sends parallel arrays: author_names[] and author_markers[]
+            author_names   = request.form.getlist('author_names[]')
+            author_markers = request.form.getlist('author_markers[]')
+            if author_names:
+                parts = []
+                for name, marker in zip(author_names, author_markers):
+                    name = name.strip()
+                    if not name:
+                        continue
+                    if marker == 'gs':
+                        parts.append(f'\\gs {name}')
+                    elif marker == 'us':
+                        parts.append(f'\\us {name}')
+                    else:
+                        parts.append(name)
+                authors_bib = ' and '.join(parts)
+                # Display version (no markers) for the Authors DB column
+                form_authors = ' and '.join(
+                    name.strip() for name in author_names if name.strip()
+                )
+            else:
+                # Fallback: plain text field (shouldn't happen with new UI)
+                form_authors = request.form.get('authors', '')
+                authors_bib  = form_authors
+
             new_bibkey = request.form.get('bibkey', '')
 
             # Fetch the existing row so we can patch RawBibtex in place
@@ -1577,11 +1602,19 @@ def publications():
                 (pub_id, professor_key), fetchone=True
             )
 
-            # Decide whether the professor actually changed the authors.
-            # The form always sends the marker-free display version, so we
-            # compare it against the stored display Authors. Only if they
-            # differ do we overwrite the author line (which loses markers).
-            authors_changed = bool(existing) and (form_authors.strip() != (existing.get('Authors') or '').strip())
+            # Reconstruct existing author-with-markers from RawBibtex
+            existing_authors_bib = ''
+            if existing and existing.get('RawBibtex'):
+                try:
+                    import bibtexparser as _btp2, io as _io2
+                    from bibtexparser.bparser import BibTexParser as _BTP2
+                    _p2 = _BTP2(common_strings=True)
+                    _p2.ignore_nonstandard_types = False
+                    _db2 = _btp2.load(_io2.StringIO(existing['RawBibtex']), parser=_p2)
+                    if _db2.entries:
+                        existing_authors_bib = _db2.entries[0].get('author', '')
+                except Exception:
+                    pass
 
             # Map form fields → bibtex field names for the patch
             updates = {
@@ -1605,7 +1638,7 @@ def publications():
                     existing['RawBibtex'],
                     updates,
                     new_id=new_bibkey if new_bibkey and new_bibkey != existing.get('BibKey') else None,
-                    set_author=form_authors if authors_changed else None,
+                    set_author=authors_bib,
                 )
             else:
                 # No raw on file (e.g. manually added entry) — build fresh
@@ -1637,11 +1670,7 @@ def publications():
                 new_raw, pub_id, professor_key
             ), commit=True)
 
-            if authors_changed:
-                flash('Publication updated. Note: editing the author list removes '
-                      'student markers (†/‡). Re-upload your .bib to restore them.', 'warning')
-            else:
-                flash('Publication updated.', 'success')
+            flash('Publication updated.', 'success')
             return redirect(url_for('professor.publications') + f'?cat={new_cat}&highlight=pub-row-{pub_id}')
 
         # ── Delete publication ────────────────────────────────────────────
@@ -1710,26 +1739,60 @@ def publications():
     pubs = []
     for r in rows:
         from app.bibtex_parser import _get_category
+        import json as _json
+
+        # Parse authors from RawBibtex so we can show per-author marker editor
+        raw_bib = r['RawBibtex'] or ''
+        authors_parsed = []
+        if raw_bib:
+            try:
+                import bibtexparser as _btp, io as _io
+                from bibtexparser.bparser import BibTexParser as _BTP
+                _p = _BTP(common_strings=True)
+                _p.ignore_nonstandard_types = False
+                _db = _btp.load(_io.StringIO(raw_bib), parser=_p)
+                if _db.entries:
+                    raw_author = _db.entries[0].get('author', '')
+                    for part in [p.strip() for p in raw_author.split(' and ')]:
+                        if not part:
+                            continue
+                        if part.startswith('\\gs '):
+                            authors_parsed.append({'name': part[4:].strip(), 'marker': 'gs'})
+                        elif part.startswith('\\us '):
+                            authors_parsed.append({'name': part[4:].strip(), 'marker': 'us'})
+                        else:
+                            authors_parsed.append({'name': part, 'marker': 'none'})
+            except Exception:
+                pass
+
+        # Fallback: split display authors string
+        if not authors_parsed and (r['Authors'] or ''):
+            for name in [n.strip() for n in (r['Authors'] or '').split(' and ')]:
+                if name:
+                    authors_parsed.append({'name': name, 'marker': 'none'})
+
         pubs.append({
-            'id':        r['PublicationKey'],
-            'bibkey':    r['BibKey'] or '',
-            'type':      r['Type'] or 'misc',
-            'title':     r['Title'] or '',
-            'authors':   r['Authors'] or '',
-            'year':      r['Year'],
-            'journal':   r['Journal'] or '',
-            'booktitle': r['Booktitle'] or '',
-            'volume':    r['Volume'] or '',
-            'issue':     r['Issue'] or '',
-            'pages':     r['Pages'] or '',
-            'doi':       r['DOI'] or '',
-            'url':       r['URL'] or '',
-            'publisher': r['Publisher'] or '',
-            'keywords':  r['Keywords'] or '',
-            'category':  _get_category(r['Keywords'] or ''),
-            'citations': r['Citations'] or 0,
-            'abstract':  r['Abstract'] or '',
-            'raw_bibtex': r['RawBibtex'] or '',
+            'id':              r['PublicationKey'],
+            'bibkey':          r['BibKey'] or '',
+            'type':            r['Type'] or 'misc',
+            'title':           r['Title'] or '',
+            'authors':         r['Authors'] or '',
+            'authors_raw_json': _json.dumps(authors_parsed),  # kept for backwards compat
+            'authors_parsed':   authors_parsed,
+            'year':            r['Year'],
+            'journal':         r['Journal'] or '',
+            'booktitle':       r['Booktitle'] or '',
+            'volume':          r['Volume'] or '',
+            'issue':           r['Issue'] or '',
+            'pages':           r['Pages'] or '',
+            'doi':             r['DOI'] or '',
+            'url':             r['URL'] or '',
+            'publisher':       r['Publisher'] or '',
+            'keywords':        r['Keywords'] or '',
+            'category':        _get_category(r['Keywords'] or ''),
+            'citations':       r['Citations'] or 0,
+            'abstract':        r['Abstract'] or '',
+            'raw_bibtex':      raw_bib,
         })
 
     groups = group_by_category(pubs)

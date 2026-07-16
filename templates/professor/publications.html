@@ -207,6 +207,9 @@
                 <!-- Edit Row -->
                 <tr id="pub-edit-{{ pub.id }}" class="d-none">
                     <td colspan="7" class="p-3 bg-warning bg-opacity-25 border-start border-4 border-warning">
+                        <!-- Authors data stored safely as JSON element content (not in an attribute),
+                             so double-quotes in the JSON can't break the HTML. -->
+                        <script type="application/json" id="authors-data-{{ pub.id }}">{{ pub.authors_parsed | tojson }}</script>
                         <form method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="action" value="edit">
@@ -242,7 +245,17 @@
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label fw-medium mb-1">Authors</label>
-                                    <input type="text" name="authors" class="form-control" value="{{ pub.authors }}">
+                                    <div class="mb-1" style="font-size:12px;color:var(--bs-secondary-color);">
+                                        <span class="badge" style="background:#d1e7dd;color:#0a3622;font-weight:500;">† Grad</span>
+                                        = graduate student &nbsp;
+                                        <span class="badge" style="background:#cfe2ff;color:#084298;font-weight:500;">‡ Undergrad</span>
+                                        = undergraduate student
+                                    </div>
+                                    <div id="author-rows-{{ pub.id }}"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+                                            onclick="addAuthorRow('{{ pub.id }}')">
+                                        <i class="bi bi-plus me-1"></i>Add author
+                                    </button>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-medium mb-1">Journal</label>
@@ -299,13 +312,80 @@
 {% endif %}
 
 <script>
+function buildAuthorRow(pubId, name, marker) {
+    const row = document.createElement('div');
+    row.className = 'd-flex align-items-center gap-2 mb-1 author-editor-row';
+    const markerGs = marker === 'gs';
+    const markerUs = marker === 'us';
+    row.innerHTML = `
+        <input type="text" name="author_names[]" class="form-control form-control-sm"
+               value="${name.replace(/"/g,'&quot;')}" style="min-width:160px;flex:1">
+        <button type="button"
+                class="btn btn-sm ${markerGs ? 'btn-success' : 'btn-outline-secondary'} marker-btn-gs"
+                title="Graduate student (†)"
+                onclick="toggleMarker(this,'gs','${pubId}')">† Grad</button>
+        <button type="button"
+                class="btn btn-sm ${markerUs ? 'btn-primary' : 'btn-outline-secondary'} marker-btn-us"
+                title="Undergraduate (‡)"
+                onclick="toggleMarker(this,'us','${pubId}')">‡ UG</button>
+        <input type="hidden" name="author_markers[]" value="${marker}">
+        <button type="button" class="btn btn-sm btn-outline-danger"
+                onclick="this.closest('.author-editor-row').remove()"
+                aria-label="Remove author"><i class="bi bi-x"></i></button>
+    `;
+    return row;
+}
+
+function toggleMarker(btn, type, pubId) {
+    const row = btn.closest('.author-editor-row');
+    const hidden = row.querySelector('input[name="author_markers[]"]');
+    const btnGs = row.querySelector('.marker-btn-gs');
+    const btnUs = row.querySelector('.marker-btn-us');
+    const current = hidden.value;
+    const newVal = current === type ? 'none' : type;
+    hidden.value = newVal;
+    btnGs.className = 'btn btn-sm ' + (newVal === 'gs' ? 'btn-success' : 'btn-outline-secondary') + ' marker-btn-gs';
+    btnUs.className = 'btn btn-sm ' + (newVal === 'us' ? 'btn-primary' : 'btn-outline-secondary') + ' marker-btn-us';
+}
+
+function addAuthorRow(pubId) {
+    const container = document.getElementById('author-rows-' + pubId);
+    container.appendChild(buildAuthorRow(pubId, '', 'none'));
+}
+
+function initAuthorEditor(pubId, authorsJson) {
+    const container = document.getElementById('author-rows-' + pubId);
+    if (!container) return;
+    let authors = [];
+    try {
+        authors = JSON.parse(authorsJson);
+    } catch (e) {
+        authors = [];
+    }
+    authors.forEach(a => container.appendChild(buildAuthorRow(pubId, a.name, a.marker)));
+}
+
 function pubInlineEdit(id) {
     document.getElementById('pub-row-' + id).classList.add('d-none');
-    document.getElementById('pub-edit-' + id).classList.remove('d-none');
+    const editRow = document.getElementById('pub-edit-' + id);
+    editRow.classList.remove('d-none');
+    const container = document.getElementById('author-rows-' + id);
+    if (container && container.children.length === 0) {
+        // Read the authors JSON from the hidden data element (safe from quote issues).
+        const dataEl = document.getElementById('authors-data-' + id);
+        const authorsJson = dataEl ? dataEl.textContent : '[]';
+        initAuthorEditor(id, authorsJson);
+    }
 }
 function pubCancelEdit(id) {
     document.getElementById('pub-edit-' + id).classList.add('d-none');
     document.getElementById('pub-row-' + id).classList.remove('d-none');
+    // Clear the author rows so reopening rebuilds them fresh from saved data,
+    // discarding any uncommitted typing from this canceled edit.
+    const container = document.getElementById('author-rows-' + id);
+    if (container) {
+        container.innerHTML = '';
+    }
 }
 function pubDuplicate(id, cat) {
     const f = document.createElement('form');
