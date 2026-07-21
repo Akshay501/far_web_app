@@ -180,3 +180,4 @@ cython_debug/
 .cursorignore
 .cursorindexingignoreconfig.yml
 *.yml
+tests/MANUAL_CHECKS.md

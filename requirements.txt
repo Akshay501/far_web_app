@@ -1,10 +1,23 @@
+# Web framework and extensions
 Flask==3.0.3
 Flask-Login==0.6.3
 Flask-WTF==1.2.1
-pymysql==1.1.1
-python-dotenv==1.0.1
-openpyxl==3.1.5
-Werkzeug==3.0.6
 WTForms==3.2.1
-pytest
-PyYAML
+Werkzeug==3.0.6
+
+# Database
+pymysql==1.1.1
+
+# Configuration
+python-dotenv==1.0.1
+PyYAML==6.0.2
+
+# Data export (Excel) and publication parsing
+openpyxl==3.1.5
+bibtexparser==1.4.1
+
+# Report generation engine (LaTeX pipeline)
+make_cv==1.0.4
+
+# Testing
+pytest==7.4.4

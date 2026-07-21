@@ -1,69 +1,132 @@
-# far_web_app
-A modern, full-stack web application for Clarkson University professors to manage their Faculty Activity Reports (FAR). 
-
 # Faculty Activity Report (FAR) Web App
 
-![FAR Dashboard]('/Users/akshaythugudam/Documents/GitHub/FAR/FAR_Dashboard/static/images/FAR_Loginpage.png')  
+A full-stack web application that lets university faculty manage their
+Faculty Activity Report (FAR) data and generate formatted PDF reports.
 
-A data-driven web application for professors to view, update, and export their Faculty Activity Reports. Built with Flask, MySQL, and Bootstrap, featuring login, dashboards, BibTeX imports for publications, and PDF generation.
+Professors log in, maintain their teaching, service, grants, advising, and
+scholarship data through a structured web interface, and generate a
+polished FAR on demand. The application handles data storage, publication
+management (including BibTeX import), and a LaTeX-based typesetting pipeline
+that turns the stored data into a formatted PDF.
+
+---
 
 ## Features
-- **User Authentication**: Separate logins for professors and admins 
-- **Professor Dashboard**: Tabs for Teaching, Service, Grants, and Scholarly Output (with add/import/edit).
-- **Admin Dashboard**: Search/filter/view professors.
-- **Scholarly Outputs**: Flexible JSON storage with BibTeX parsing (no rigid DB tables).
-- **PDF Export**: Generates formatted reports with dynamic TOC, sections, and counts 
-- **Database Integration**: Connects to MySQL for storing/retrieving data.
+
+- **Role-based authentication** — separate professor and admin roles, with
+  route-level access control and hashed credentials.
+- **Professor dashboard** — manage data across all FAR sections: teaching,
+  service, grants and proposals, advising, awards, and scholarship.
+- **Publication management** — import publications from BibTeX, edit them
+  in place, and categorize them (journal, conference, book, patent, etc.).
+- **Per-author student-marker editor** — mark individual co-authors as
+  graduate or undergraduate students; the markers flow through to the
+  generated report's publication list.
+- **PDF report generation** — produce a formatted FAR with a table of
+  contents, per-section tables, and a configurable year range, via a
+  LaTeX-based typesetting pipeline.
+- **Standalone mode** — a no-login flow for uploading data files, editing,
+  and generating a report without an account.
 
 ## Tech Stack
-- Python/Flask for backend.
-- MySQL/PyMySQL for database.
-- Bootstrap/Jinja for frontend.
-- fpdf for PDF generation.
-- bibtexparser for citation imports.
+
+- **Backend:** Python, Flask, Flask-Login, Flask-WTF (CSRF protection)
+- **Database:** MySQL (via PyMySQL) — 19 relational tables, one per FAR
+  data domain
+- **Frontend:** Jinja2 templates, Bootstrap 5, jQuery, DataTables
+- **Data & documents:** openpyxl (Excel export), bibtexparser (BibTeX),
+  a LaTeX-based PDF generation pipeline
+- **Testing:** pytest
+
+## Architecture
+
+The application separates concerns into three layers:
+
+1. **Web layer** — Flask routes organized into blueprints (auth, professor,
+   admin, generate, standalone), server-rendered with Jinja2.
+2. **Data layer** — a MySQL database with one table per FAR section, plus
+   professor and user tables. The app reads and writes this store as the
+   single source of truth.
+3. **Generation layer** — at report time, the app exports the relevant
+   database rows into the structured files the typesetting pipeline
+   expects, then invokes it to produce the final PDF.
+
+The everyday path (browsing and editing) touches only the web and data
+layers. The generation layer is engaged only when a report is produced,
+which keeps the interactive experience fast and the generation logic
+isolated.
+
+## Testing
+
+The project includes an automated test suite (52 tests) run with `pytest`:
+
+- **Authentication** — login success and failure, and access control on
+  protected routes.
+- **Marker editor** — verifies that student markers are stored correctly
+  and that display fields stay clean.
+- **Export contract** — verifies that every data file the generation
+  pipeline reads is produced with the correct name, location, sheet, and
+  columns. This guards against silent breakage when the pipeline changes.
+- **Smoke tests** — confirm the app builds and core pages render.
+
+Tests run against a dedicated test database, isolated from production data.
+
+Slower, environment-dependent checks — such as full PDF generation, which
+requires a LaTeX toolchain — are verified through a separate manual process.
+
+```bash
+pytest -v
+```
 
 ## Installation
+
 ### Requirements
-- Python 3.12+ (tested on 3.12).
-- MySQL database (e.g., local or remote like mysql.clarksonmsda.org).
-- The following Python packages (listed in requirements.txt):
-  - Flask==3.0.3 (web framework)
-  - Flask-Login==0.6.3 (authentication)
-  - pymysql==1.1.1 (MySQL connector)
-  - PyYAML==6.0.2 (config loading)
-  - Werkzeug==3.0.4 (utilities, including password hashing)
-  - fpdf==1.7.2 (PDF generation)
-  - bibtexparser==1.4.1 (BibTeX parsing for publications)
 
-### Setup Steps
-1. **Clone the Repository**:
+- Python 3.12+
+- A MySQL database
+- A LaTeX toolchain (`xelatex` + `biber`) for PDF generation
+- Python packages listed in `requirements.txt`
 
-git clone https://github.com/yourusername/faculty-activity-report.git
-cd faculty-activity-report
+### Setup
 
-2. **Install Dependencies**:
-Create a virtual environment (recommended) and install packages:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Akshay501/far_web_app.git
+   cd far_web_app
+   ```
 
-python -m venv venv
-source venv/bin/activate  # On Mac/Linux; on Windows: venv\Scripts\activate
-pip install -r requirements.txt
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
+3. **Create `config.yml`** in the project root (not committed to version
+   control — see `config_example.yml` for the structure). It holds the
+   database connection details and the path to the report data folder.
 
-3. **Configure the Database**:
-- Create your MySQL database (e.g., `YOURNAME_FAR`).
-- Run your SQL scripts to create tables (from ERD_Diagrams or screenshots).
-- Edit `config.yml` with your DB details (user, pw, host, db).
-- Add the ScholarlyOutputs column: `ALTER TABLE PROFESSOR ADD COLUMN ScholarlyOutputs JSON DEFAULT NULL;`
+4. **Run the app**
+   ```bash
+   python run.py
+   ```
+   The app is served at `http://localhost:5000`.
 
-4. **Run the App**:
-python app.py
+## Roadmap
 
-- Visit http://127.0.0.1:5000 in your browser.
-- Default login: Use credentials from `users` table (e.g., admin@far-system.edu / admin123)
+Planned work is tracked in
+[GitHub Issues](https://github.com/Akshay501/far_web_app/issues). Highlights:
 
+- **CV generation** — full CV output alongside the FAR.
+- **Publication sync** — pull new publications from Google Scholar, ORCID,
+  and Scopus into a professor's library.
+- **Full filesystem export** — download a professor's complete data folder
+  as a portable archive.
+- **Batch generation** — generate reports for all professors at once (admin).
+- **ProQuest thesis importer** — import thesis/advisee data from ProQuest.
+- **Application logging** — structured logging throughout.
 
-## License
-MIT License. See LICENSE file.
+## Project Status
 
-## Contributors
-- Akshay Thugudam (Clarkson University)
+Under active development as a graduate project at Clarkson University.
+The core application — authentication, data management, publication
+handling, and report generation — is functional and tested. See the
+roadmap above for planned features.
