@@ -17,7 +17,7 @@ openpyxl==3.1.5
 bibtexparser==1.4.1
 
 # Report generation engine (LaTeX pipeline)
-make_cv==1.0.4
+make_cv==1.0.5
 
 # Testing
 pytest==7.4.4
