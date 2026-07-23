@@ -1,8 +1,41 @@
 db:
-  user:      'your_username_here'
-  pw:       'your_password_here'          
+  user:     'your_username_here'
+  pw:       'your_password_here'
   host:     'your_host_here'
   db:       'your_database_name_here'
+
+far:
+  # Flat root folder containing one subfolder per professor,
+  # named by ProfessorKey (e.g. <professors_root>/42/)
+  professors_root: '/path/to/Professors'
+
+  # Server-side clone of the make_cv scaffolding repo, used as the
+  # template when creating a new professor folder
+  scaffold_template: '/path/to/scaffold_template'
+
+  # Institution details used when generating reports
+  institution:
+    name: 'Clarkson University'
+    address: '8 Clarkson Ave, Potsdam, NY 13699'
+    email_domain: 'clarkson.edu'
+
+  # Departments offered in the registration/profile dropdown
+  departments:
+    - 'Biology'
+    - 'Chemical and Biomolecular Engineering'
+    - 'Chemistry and Biochemistry'
+    - 'Civil and Environmental Engineering'
+    - 'Computer Science'
+    - 'Electrical and Computer Engineering'
+    - 'EMS Education'
+    - 'Mathematics'
+    - 'Mechanical and Aerospace Engineering'
+    - 'Occupational Therapy'
+    - 'Physical Therapy'
+    - 'Physician Assistant Studies'
+    - 'Physics'
+    - 'Psychology'
+    - 'ROTC/Military Science'
 
 tables:
   professor:                  'PROFESSOR'

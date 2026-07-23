@@ -181,3 +181,4 @@ cython_debug/
 .cursorindexingignoreconfig.yml
 *.yml
 tests/MANUAL_CHECKS.md
+DEBUGGING_LOG.md

@@ -29,10 +29,23 @@ def professor_required(f):
     return decorated
 
 
+def _folder_name_for(professor_key, prof=None):
+    """
+    On-disk folder name for a professor. Currently the bare ProfessorKey
+    (e.g. "9001"). If a human-readable hybrid is ever wanted
+    ("9001_thugudam-akshay"), this is the only function that changes.
+    """
+    return str(professor_key)
+
+
 def get_professor_folder(professor_key):
     """
-    Returns the path to the professor's data folder.
-    Format: <departments_root>/<Department>/<LastName, FirstName>
+    Returns (folder_path, professor_row) for a professor.
+    Format: <PROFESSORS_ROOT>/<ProfessorKey>
+
+    The folder is addressed by the immutable ProfessorKey only — never by
+    name or department, which can change and would break the path.
+    Returns (None, None) if the professor does not exist.
     """
     prof = execute_query(
         "SELECT FirstName, LastName, Department FROM PROFESSOR WHERE ProfessorKey = %s",
@@ -41,10 +54,8 @@ def get_professor_folder(professor_key):
     if not prof:
         return None, None
 
-    departments_root = current_app.config.get('DEPARTMENTS_ROOT', '')
-    folder_name = f"{prof['LastName']}, {prof['FirstName']}"
-    department = prof.get('Department', '')
-    professor_folder = os.path.join(departments_root, department, folder_name)
+    professors_root = current_app.config.get('PROFESSORS_ROOT', '')
+    professor_folder = os.path.join(professors_root, _folder_name_for(professor_key, prof))
     return professor_folder, prof
 
 
@@ -545,11 +556,9 @@ def generate_all():
             for prof in professors:
                 pk     = prof['ProfessorKey']
                 name   = f"{prof['LastName']}, {prof['FirstName']}"
-                dept   = prof.get('Department', '')
-                departments_root = current_app.config.get('DEPARTMENTS_ROOT', '')
-                professor_folder = os.path.join(departments_root, dept, name)
+                professor_folder, _ = get_professor_folder(pk)
 
-                if not os.path.isdir(professor_folder):
+                if not professor_folder or not os.path.isdir(professor_folder):
                     results.append({'name': name, 'status': '❌ folder not found'})
                     continue
 

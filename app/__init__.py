@@ -26,9 +26,9 @@ def create_app():
     cfg = load_config()
     app.config['DB_CONFIG'] = cfg['db']
 
-    # Phase 5 — path to Departments/ folder
+    # Flat professors root — folders are named by ProfessorKey
     far_cfg = cfg.get('far', {})
-    app.config['DEPARTMENTS_ROOT'] = far_cfg.get('departments_root', '')
+    app.config['PROFESSORS_ROOT'] = far_cfg.get('professors_root', '')
 
     # Close DB connection cleanly after every request
     app.teardown_appcontext(close_db)
