@@ -29,13 +29,9 @@ def professor_required(f):
     return decorated
 
 
-def _folder_name_for(professor_key, prof=None):
-    """
-    On-disk folder name for a professor. Currently the bare ProfessorKey
-    (e.g. "9001"). If a human-readable hybrid is ever wanted
-    ("9001_thugudam-akshay"), this is the only function that changes.
-    """
-    return str(professor_key)
+# Folder naming lives in the folder-creation service so that path
+# resolution (here) and folder creation share one definition.
+from app.folder_service import folder_name_for as _folder_name_for
 
 
 def get_professor_folder(professor_key):

@@ -182,3 +182,4 @@ cython_debug/
 *.yml
 tests/MANUAL_CHECKS.md
 DEBUGGING_LOG.md
+FEATURES_LOG.md

@@ -29,6 +29,11 @@ def create_app():
     # Flat professors root — folders are named by ProfessorKey
     far_cfg = cfg.get('far', {})
     app.config['PROFESSORS_ROOT'] = far_cfg.get('professors_root', '')
+    # Server-side scaffold template (source for new professor folders)
+    app.config['SCAFFOLD_TEMPLATE'] = far_cfg.get('scaffold_template', '')
+    # Institution details + department list (registration/profile)
+    app.config['INSTITUTION'] = far_cfg.get('institution', {})
+    app.config['DEPARTMENTS'] = far_cfg.get('departments', [])
 
     # Close DB connection cleanly after every request
     app.teardown_appcontext(close_db)
