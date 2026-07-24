@@ -43,38 +43,9 @@ VALID = dict(
 
 
 @pytest.fixture
-def reg_env(tmp_path, app):
-    """Miniature scaffold template + empty professors root in a temp dir,
-    config pointed at them, and a pinned department list — so a successful
-    registration really creates a folder, in the temp dir. Cleans up any
-    rows the tests created afterwards."""
-    tpl = tmp_path / 'template'
-    (tpl / 'make_cv' / 'PersonalData').mkdir(parents=True)
-    (tpl / 'make_cv' / 'FAR').mkdir(parents=True)
-    (tpl / 'make_cv' / 'PersonalData' / 'personal_data.txt').write_text(
-        'googleid = \nwebscraperid = \nscopusid = \norcid = \n')
-    (tpl / 'make_cv' / 'PersonalData' / 'ContactInfo.tex').write_text(
-        '\\mynames{Doe/J}\n')
-    (tpl / 'make_cv' / 'FAR' / 'make_cv.cfg').write_text(
-        '[CV]\nscopusstats = true\ngooglestats = true\n')
-
-    root = tmp_path / 'Professors'
-    root.mkdir()
-
-    app.config['SCAFFOLD_TEMPLATE'] = str(tpl)
-    app.config['PROFESSORS_ROOT'] = str(root)
-    app.config['DEPARTMENTS'] = [
-        'Electrical and Computer Engineering',
-        'Computer Science',
-    ]
-    app.config['INSTITUTION'] = {
-        'name': 'Clarkson University',
-        'address': '8 Clarkson Ave, Potsdam, NY 13699',
-        'email_domain': 'clarkson.edu',
-    }
-
-    yield {'template': tpl, 'root': root}
-
+def reg_env(scaffold, app):
+    """The shared scaffold env plus registration-specific DB cleanup."""
+    yield scaffold
     _cleanup(app)
 
 

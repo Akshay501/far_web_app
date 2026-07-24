@@ -122,6 +122,64 @@ def logged_in_client(client, seed_professor):
 
 
 @pytest.fixture
+def scaffold(tmp_path, app):
+    """A miniature scaffold template + empty professors root in a temp
+    dir, with app config pointed at them — shared by every test that
+    exercises folder creation (folder service, registration, admin
+    creation, self-healing).
+
+    Mirrors the real template's shape: PersonalData placeholders,
+    stats-enabled cfg files (with a non-stats key that must survive
+    patching), a .git dir that must NOT be copied, and a data file that
+    must be copied verbatim."""
+    tpl = tmp_path / 'template'
+    (tpl / 'make_cv' / 'PersonalData').mkdir(parents=True)
+    (tpl / 'make_cv' / 'FAR').mkdir(parents=True)
+    (tpl / 'make_cv' / 'CV').mkdir(parents=True)
+    (tpl / 'Scholarship').mkdir()
+    (tpl / '.git').mkdir()
+
+    (tpl / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+    (tpl / 'Scholarship' / 'scholarship.bib').write_text('% template bib\n')
+    (tpl / 'make_cv' / 'PersonalData' / 'personal_data.txt').write_text(
+        '# Personal data (IDs) for make_cv\n'
+        'googleid = \n'
+        'webscraperid = \n'
+        'scopusid = \n'
+        'orcid = \n'
+    )
+    (tpl / 'make_cv' / 'PersonalData' / 'ContactInfo.tex').write_text(
+        '\\mynames{Doe/J}\n'
+        '\\leftheader{{\\LARGE Jane U.\\ Doe, Ph.D.}\\\\\n'
+        'Somewhere University, Somewhere, XX 16753\\\\\n'
+        'myemail@somewhere.edu}\n'
+    )
+    for sub in ('FAR', 'CV'):
+        (tpl / 'make_cv' / sub / 'make_cv.cfg').write_text(
+            '[CV]\n'
+            'years = 1\n'
+            'googlestats = true\n'
+            'scopusstats = true\n'
+        )
+
+    root = tmp_path / 'Professors'
+    root.mkdir()
+
+    app.config['SCAFFOLD_TEMPLATE'] = str(tpl)
+    app.config['PROFESSORS_ROOT'] = str(root)
+    app.config['INSTITUTION'] = {
+        'name': 'Clarkson University',
+        'address': '8 Clarkson Ave, Potsdam, NY 13699',
+        'email_domain': 'clarkson.edu',
+    }
+    app.config['DEPARTMENTS'] = [
+        'Electrical and Computer Engineering',
+        'Computer Science',
+    ]
+    return {'template': tpl, 'root': root}
+
+
+@pytest.fixture
 def seed_publication(app, seed_professor):
     """Insert one known publication owned by the seeded professor."""
     with app.app_context():
