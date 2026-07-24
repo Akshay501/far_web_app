@@ -34,13 +34,17 @@ def close_db(e=None):
         db.close()
 
 
-def execute_query(query, args=None, fetchone=False, commit=False):
+def execute_query(query, args=None, fetchone=False, commit=False, lastrowid=False):
     db = get_db()
     cursor = db.cursor()
     cursor.execute(query, args or ())
     if commit:
         db.commit()
-    result = cursor.fetchone() if fetchone else cursor.fetchall()
+    if lastrowid:
+        # For INSERTs: the auto-generated key of the new row.
+        result = cursor.lastrowid
+    else:
+        result = cursor.fetchone() if fetchone else cursor.fetchall()
     cursor.close()
     return result
 

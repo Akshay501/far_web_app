@@ -1,6 +1,42 @@
+from flask import current_app
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, DateField, SelectField, DecimalField, TextAreaField, SubmitField
-from wtforms.validators import DataRequired, Optional
+from wtforms import StringField, IntegerField, DateField, SelectField, DecimalField, TextAreaField, SubmitField, PasswordField
+from wtforms.validators import DataRequired, Optional, Length, EqualTo, ValidationError
+
+
+class RegistrationForm(FlaskForm):
+    """Professor self-signup. Department choices are set by the route from
+    app config (DEPARTMENTS) so the list lives in exactly one place; the
+    email domain comes from config too (INSTITUTION.email_domain)."""
+    first_name = StringField('First Name',
+                             validators=[DataRequired(), Length(max=100)])
+    middle_name = StringField('Middle Name',
+                              validators=[Optional(), Length(max=100)])
+    last_name = StringField('Last Name',
+                            validators=[DataRequired(), Length(max=100)])
+    email = StringField('Clarkson Email',
+                        validators=[DataRequired(), Length(max=150)])
+    password = PasswordField('Password', validators=[
+        DataRequired(),
+        Length(min=8, message='Password must be at least 8 characters.')])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired(), EqualTo('password', message='Passwords must match.')])
+    department = SelectField('Department', validators=[DataRequired()])
+    google_id = StringField('Google Scholar ID',
+                            validators=[Optional(), Length(max=128)])
+    orcid = StringField('ORCID', validators=[Optional(), Length(max=19)])
+    scopus_id = StringField('Scopus ID',
+                            validators=[Optional(), Length(max=20)])
+    submit = SubmitField('Create Account')
+
+    def validate_email(self, field):
+        domain = (current_app.config.get('INSTITUTION', {}) or {}) \
+            .get('email_domain', 'clarkson.edu')
+        email = (field.data or '').strip().lower()
+        if not email.endswith('@' + domain):
+            raise ValidationError(
+                f'Please use your @{domain} email address.')
+
 
 class PersonalAwardForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])

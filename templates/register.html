@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header text-center bg-clarkson-green text-white">
+                <h4 class="mb-0">Clarkson University</h4>
+                <p class="mb-0 mt-1">Faculty Activity Report (FAR) &mdash; Create Your Account</p>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">First Name *</label>
+                            {{ form.first_name(class="form-control") }}
+                            {% for e in form.first_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">Middle Name</label>
+                            {{ form.middle_name(class="form-control") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">Last Name *</label>
+                            {{ form.last_name(class="form-control") }}
+                            {% for e in form.last_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Clarkson Email *</label>
+                        {{ form.email(class="form-control", placeholder="your.name@clarkson.edu") }}
+                        {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Password *</label>
+                            {{ form.password(class="form-control") }}
+                            {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-medium">Confirm Password *</label>
+                            {{ form.confirm_password(class="form-control") }}
+                            {% for e in form.confirm_password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Department *</label>
+                        {{ form.department(class="form-select") }}
+                        {% for e in form.department.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+
+                    <p class="text-muted small mb-2">
+                        Publication IDs (optional &mdash; used later to fetch your publications):
+                    </p>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">Google Scholar ID</label>
+                            {{ form.google_id(class="form-control") }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">ORCID</label>
+                            {{ form.orcid(class="form-control", placeholder="0000-0000-0000-0000") }}
+                            {% for e in form.orcid.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-medium">Scopus ID</label>
+                            {{ form.scopus_id(class="form-control") }}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold w-100 py-2 fw-bold">
+                        Create Account
+                    </button>
+
+                    <p class="text-center mt-3 mb-0 small">
+                        Already have an account?
+                        <a href="{{ url_for('auth.login') }}">Sign in</a>
+                    </p>
+                </form>
+            </div>
+
+            <div class="card-footer text-center text-muted small py-3">
+                Clarkson University
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
