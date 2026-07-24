@@ -121,6 +121,36 @@ def logged_in_client(client, seed_professor):
     return client
 
 
+# Seeded admin account for admin-only route tests.
+ADMIN_ID = 9003
+ADMIN_EMAIL = 'pytest.admin@clarkson.edu'
+ADMIN_PASSWORD = 'adminpytest123'
+
+
+@pytest.fixture
+def admin_client(app, client):
+    """A test client logged in as a seeded admin user (ProfessorKey NULL —
+    admins are not professors)."""
+    with app.app_context():
+        assert app.config['DB_CONFIG']['db'] == TEST_DB_NAME
+        execute_query('DELETE FROM users WHERE UserID=%s',
+                      (ADMIN_ID,), commit=True)
+        execute_query(
+            'INSERT INTO users (UserID, Name, Email, Password, Role, ProfessorKey) '
+            'VALUES (%s, %s, %s, %s, %s, %s)',
+            (ADMIN_ID, 'Pytest Admin', ADMIN_EMAIL,
+             generate_password_hash(ADMIN_PASSWORD), 'admin', None),
+            commit=True)
+
+    client.post('/login', data={'email': ADMIN_EMAIL,
+                                'password': ADMIN_PASSWORD})
+    yield client
+
+    with app.app_context():
+        execute_query('DELETE FROM users WHERE UserID=%s',
+                      (ADMIN_ID,), commit=True)
+
+
 @pytest.fixture
 def scaffold(tmp_path, app):
     """A miniature scaffold template + empty professors root in a temp

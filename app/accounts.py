@@ -72,3 +72,42 @@ def create_professor_account(*, first_name, last_name, email, password,
         folder_error = str(exc)
 
     return professor_key, folder_error
+
+
+def ensure_folder_for_existing(professor_key):
+    """
+    Make sure an EXISTING professor's folder is on disk, gathering their
+    identity from the database. This is the self-healing entry point:
+    called at generation time (so a folder that failed at registration
+    gets built on first use) and by the admin repair action.
+
+    Returns (status, error): ('created' | 'exists', None) on success,
+    (None, message) on failure. Never raises.
+    """
+    prof = execute_query(
+        'SELECT FirstName, LastName, GoogleID, ORCID, ScopusID '
+        'FROM PROFESSOR WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    if not prof:
+        return None, f'Professor {professor_key} not found.'
+
+    user = execute_query(
+        'SELECT Email FROM users WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    email = (user or {}).get('Email') or ''
+
+    try:
+        status = ensure_professor_folder(
+            professor_key,
+            prof.get('FirstName') or '',
+            prof.get('LastName') or '',
+            email,
+            google_id=prof.get('GoogleID'),
+            orcid=prof.get('ORCID'),
+            scopus_id=prof.get('ScopusID'))
+        return status, None
+    except FolderCreationError as exc:
+        current_app.logger.warning(
+            'Folder healing failed for professor %s: %s',
+            professor_key, exc)
+        return None, str(exc)

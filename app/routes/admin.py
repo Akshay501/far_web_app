@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from app.utils import execute_query
 from app.forms import AdminCreateProfessorForm
-from app.accounts import create_professor_account, DuplicateEmailError
+from app.accounts import create_professor_account, DuplicateEmailError, ensure_folder_for_existing
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -117,3 +117,19 @@ def new_professor():
         return redirect(url_for('admin.view_professor', pk=professor_key))
 
     return render_template('admin/add_professor.html', form=form)
+
+
+# ====================== CREATE / REPAIR FOLDER ======================
+@admin_bp.route('/professor/<int:pk>/create-folder', methods=['POST'])
+@login_required
+@admin_required
+def create_professor_folder(pk):
+    """On-demand folder healing for one professor, from their view page."""
+    status, error = ensure_folder_for_existing(pk)
+    if error:
+        flash(f'Folder could not be created: {error}', 'danger')
+    elif status == 'exists':
+        flash('The data folder already exists — nothing to repair.', 'info')
+    else:
+        flash('Data folder created.', 'success')
+    return redirect(url_for('admin.view_professor', pk=pk))

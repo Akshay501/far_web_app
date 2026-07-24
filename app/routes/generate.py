@@ -14,6 +14,7 @@ from werkzeug.utils import secure_filename
 
 from app.utils import execute_query
 from app.excel_export import export_all
+from app.accounts import ensure_folder_for_existing
 
 generate_bp = Blueprint('generate', __name__)
 
@@ -394,12 +395,17 @@ def generate():
             return redirect(url_for('generate.generate'))
 
         if not os.path.isdir(professor_folder):
-            flash(
-                'Your data folder has not been set up on this server. '
-                'Please contact your administrator to set up your profile.',
-                'danger'
-            )
-            return redirect(url_for('generate.generate'))
+            # Self-healing: the folder may never have been created (for
+            # example, the decoupled attempt at registration failed).
+            # Build it now from the scaffold template instead of sending
+            # the professor to an administrator.
+            status, heal_error = ensure_folder_for_existing(pk)
+            if heal_error:
+                flash(f'Your data folder could not be set up: {heal_error}',
+                      'danger')
+                return redirect(url_for('generate.generate'))
+            current_app.logger.info(
+                'Healed missing folder for professor %s (%s)', pk, status)
 
         # Check prerequisites BEFORE running make_far
         # This gives clear error messages immediately instead of

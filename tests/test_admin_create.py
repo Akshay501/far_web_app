@@ -21,13 +21,8 @@ The contract they define:
 Integration tests against the TEST database; all created rows removed.
 """
 import pytest
-from werkzeug.security import generate_password_hash
 
 from app.utils import execute_query
-
-ADMIN_ID = 9003
-ADMIN_EMAIL = 'pytest.admin@clarkson.edu'
-ADMIN_PASSWORD = 'adminpytest123'
 
 NEW_EMAIL = 'pytest.admincreated@clarkson.edu'
 
@@ -55,30 +50,6 @@ def admin_env(scaffold, app):
         if row and row.get('ProfessorKey'):
             execute_query('DELETE FROM PROFESSOR WHERE ProfessorKey=%s',
                           (row['ProfessorKey'],), commit=True)
-
-
-@pytest.fixture
-def admin_client(app, client):
-    """A client logged in as a seeded admin user.
-    Note: seeds ProfessorKey=NULL — admins are not professors. If the
-    column is NOT NULL this fixture will error and we adapt."""
-    with app.app_context():
-        execute_query('DELETE FROM users WHERE UserID=%s',
-                      (ADMIN_ID,), commit=True)
-        execute_query(
-            'INSERT INTO users (UserID, Name, Email, Password, Role, ProfessorKey) '
-            'VALUES (%s, %s, %s, %s, %s, %s)',
-            (ADMIN_ID, 'Pytest Admin', ADMIN_EMAIL,
-             generate_password_hash(ADMIN_PASSWORD), 'admin', None),
-            commit=True)
-
-    client.post('/login', data={'email': ADMIN_EMAIL,
-                                'password': ADMIN_PASSWORD})
-    yield client
-
-    with app.app_context():
-        execute_query('DELETE FROM users WHERE UserID=%s',
-                      (ADMIN_ID,), commit=True)
 
 
 def _rows(app, email=NEW_EMAIL):
