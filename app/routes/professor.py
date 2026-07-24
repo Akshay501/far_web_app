@@ -184,17 +184,25 @@ def awards():
         flash('Personal Award added successfully', 'success')
         return redirect(url_for('professor.awards'))
 
-    # === Handle Student Award submission (with new fields) ===
+    # === Handle Student Award submission ===
     if student_form.validate_on_submit() and request.form.get('form_type') == 'student':
-        execute_query("""
-            INSERT INTO STUDENTAWARDS (Student, AwardTitle, Amount, Category, Type, Year)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (student_form.student_name.data,
-              student_form.award_title.data,
-              student_form.amount.data,
-              student_form.category.data,
-              student_form.type.data,
-              student_form.year.data), commit=True)
+        # Two-table insert: Title/Type/Year live in the AWARDS parent;
+        # the STUDENTAWARDS child carries ownership (ProfessorKey).
+        award_key = execute_query(
+            'INSERT INTO AWARDS (Title, Year, `Award Type`) VALUES (%s, %s, %s)',
+            (student_form.award_title.data,
+             student_form.year.data,
+             student_form.type.data),
+            commit=True, lastrowid=True)
+        execute_query(
+            'INSERT INTO STUDENTAWARDS '
+            '(`Award Key`, ProfessorKey, Student, Amount, Category) '
+            'VALUES (%s, %s, %s, %s, %s)',
+            (award_key, pk,
+             student_form.student_name.data,
+             student_form.amount.data,
+             student_form.category.data),
+            commit=True)
         flash('Student Award added successfully', 'success')
         return redirect(url_for('professor.awards'))
 
@@ -212,8 +220,9 @@ def awards():
                sa.Amount, sa.Category, a.`Award Type`
         FROM STUDENTAWARDS sa
         JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
+        WHERE sa.ProfessorKey = %s
         ORDER BY a.Year DESC
-    """, ())
+    """, (pk,))
 
     return render_template('professor/awards.html',
                            personal_awards=personal_awards,
@@ -314,6 +323,18 @@ def duplicate_personal_award(id):
 @login_required
 @professor_required
 def edit_student_award(id):
+    pk = current_user.professor_key
+
+    # Ownership gate: the award must exist AND belong to this professor.
+    # (Same "not found" for missing and foreign — don't reveal existence.)
+    owned = execute_query(
+        'SELECT `Award Key` FROM STUDENTAWARDS '
+        'WHERE `Award Key` = %s AND ProfessorKey = %s',
+        (id, pk), fetchone=True)
+    if not owned:
+        flash('Student award not found.', 'danger')
+        return redirect(url_for('professor.awards'))
+
     if request.method == 'POST':
         if request.form.get('inline_edit'):
             # Title, Award Type and Year live in AWARDS; Student/Amount/Category in STUDENTAWARDS
@@ -333,37 +354,37 @@ def edit_student_award(id):
             return redirect(url_for('professor.awards', tab='student') + '#student-awards')
         form = StudentAwardForm()
         if form.validate_on_submit():
+            # Same split as the inline path: parent fields, then child fields.
             execute_query("""
-                UPDATE STUDENTAWARDS 
-                SET Student = %s,
-                    AwardTitle = %s,
-                    Amount = %s,
-                    Category = %s,
-                    Type = %s,
-                    Year = %s
-                WHERE `Award Key` = %s
-            """, (form.student_name.data,
-                  form.award_title.data,
-                  form.amount.data,
-                  form.category.data,
-                  form.type.data,
-                  form.year.data,
-                  id), commit=True)
+                UPDATE AWARDS
+                SET Title=%s, `Award Type`=%s, Year=%s
+                WHERE `Award Key`=%s
+            """, (form.award_title.data, form.type.data,
+                  form.year.data, id), commit=True)
+            execute_query("""
+                UPDATE STUDENTAWARDS
+                SET Student=%s, Amount=%s, Category=%s
+                WHERE `Award Key`=%s
+            """, (form.student_name.data, form.amount.data,
+                  form.category.data, id), commit=True)
             flash('Student Award updated successfully', 'success')
             return redirect(url_for('professor.awards', tab='student') + '#student-awards')
     else:
         award = execute_query("""
-            SELECT * FROM STUDENTAWARDS 
-            WHERE `Award Key` = %s
+            SELECT sa.Student, sa.Amount, sa.Category,
+                   a.Title, a.`Award Type`, a.Year
+            FROM STUDENTAWARDS sa
+            JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
+            WHERE sa.`Award Key` = %s
         """, (id,), fetchone=True)
-        
+
         if award:
             form = StudentAwardForm()
             form.student_name.data = award.get('Student')
-            form.award_title.data = award.get('AwardTitle')
+            form.award_title.data = award.get('Title')
             form.amount.data = award.get('Amount')
             form.category.data = award.get('Category')
-            form.type.data = award.get('Type')
+            form.type.data = award.get('Award Type')
             form.year.data = award.get('Year')
             return render_template('professor/partials/student_award_form.html', 
                                    form=form, id=id)
@@ -375,7 +396,24 @@ def edit_student_award(id):
 @login_required
 @professor_required
 def delete_student_award(id):
+    pk = current_user.professor_key
+
+    owned = execute_query(
+        'SELECT `Award Key` FROM STUDENTAWARDS '
+        'WHERE `Award Key` = %s AND ProfessorKey = %s',
+        (id, pk), fetchone=True)
+    if not owned:
+        flash('Student award not found.', 'danger')
+        return redirect(url_for('professor.awards'))
+
     execute_query("DELETE FROM STUDENTAWARDS WHERE `Award Key` = %s", (id,), commit=True)
+    # Remove the AWARDS parent too — unless a personal award shares it
+    # (some legacy rows do), in which case it must survive.
+    shared = execute_query(
+        'SELECT 1 FROM PERSONALAWARDS WHERE `Award Key` = %s',
+        (id,), fetchone=True)
+    if not shared:
+        execute_query('DELETE FROM AWARDS WHERE `Award Key` = %s', (id,), commit=True)
     flash('Student Award deleted successfully', 'success')
     return redirect(url_for('professor.awards'))
 
@@ -384,27 +422,30 @@ def delete_student_award(id):
 @login_required
 @professor_required
 def duplicate_student_award(id):
-    # STUDENTAWARDS stores: Award Key, Student, Amount, Category
-    # Title, Award Type, Year live in AWARDS — need two-step insert
+    pk = current_user.professor_key
+    # STUDENTAWARDS stores: Award Key, ProfessorKey, Student, Amount, Category
+    # Title, Award Type, Year live in AWARDS — two-step insert.
+    # Ownership is enforced in the SELECT: you can only duplicate your own.
     row = execute_query("""
         SELECT a.Title, a.Year, a.`Award Type`, sa.Student, sa.Amount, sa.Category
         FROM STUDENTAWARDS sa
         JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
-        WHERE sa.`Award Key`=%s
-    """, (id,), fetchone=True)
-    if row:
-        # Step 1: Insert into AWARDS to get new Award Key
-        execute_query(
-            'INSERT INTO AWARDS (Title, Year, `Award Type`) VALUES (%s, %s, %s)',
-            (row.get('Title'), row.get('Year'), row.get('Award Type')), commit=True)
-        # Step 2: Get the new Award Key
-        new_award_key = execute_query(
-            'SELECT LAST_INSERT_ID() AS new_key', fetchone=True).get('new_key')
-        # Step 3: Insert into STUDENTAWARDS with new Award Key
-        execute_query(
-            'INSERT INTO STUDENTAWARDS (`Award Key`, Student, Amount, Category) VALUES (%s, %s, %s, %s)',
-            (new_award_key, row.get('Student'), row.get('Amount'), row.get('Category')), commit=True)
-        flash('Student award duplicated successfully.', 'success')
+        WHERE sa.`Award Key`=%s AND sa.ProfessorKey=%s
+    """, (id, pk), fetchone=True)
+    if not row:
+        flash('Student award not found.', 'danger')
+        return redirect(url_for('professor.awards', tab='student'))
+
+    new_award_key = execute_query(
+        'INSERT INTO AWARDS (Title, Year, `Award Type`) VALUES (%s, %s, %s)',
+        (row.get('Title'), row.get('Year'), row.get('Award Type')),
+        commit=True, lastrowid=True)
+    execute_query(
+        'INSERT INTO STUDENTAWARDS (`Award Key`, ProfessorKey, Student, Amount, Category) '
+        'VALUES (%s, %s, %s, %s, %s)',
+        (new_award_key, pk, row.get('Student'), row.get('Amount'), row.get('Category')),
+        commit=True)
+    flash('Student award duplicated successfully.', 'success')
     return redirect(url_for('professor.awards', tab='student') + f'?tab=student&_t={__import__("time").time_ns()}&highlight=student_award-{new_award_key}')
 
 

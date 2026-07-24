@@ -74,13 +74,12 @@ def fetch_all_db_data(professor_key):
         WHERE pa.ProfessorKey = %s
     """)
 
-    # Student awards: join STUDENTAWARDS with AWARDS via PERSONALAWARDS to filter by professor
+    # Student awards, scoped directly by owner
     student_awards = q("""
         SELECT a.Title, a.Year, a.`Award Type`, sa.Student, sa.Amount, sa.Category
         FROM STUDENTAWARDS sa
         JOIN AWARDS a ON sa.`Award Key` = a.`Award Key`
-        JOIN PERSONALAWARDS pa ON pa.`Award Key` = a.`Award Key`
-        WHERE pa.ProfessorKey = %s
+        WHERE sa.ProfessorKey = %s
     """)
 
     proposals = q("""SELECT `Proposal ID`, Role, `Funded?`, `Principal Investigator`,
