@@ -1,7 +1,11 @@
 # app/routes/admin.py
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+import secrets
+
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from app.utils import execute_query
+from app.forms import AdminCreateProfessorForm
+from app.accounts import create_professor_account, DuplicateEmailError
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -72,3 +76,44 @@ def view_professor(pk):
     }
 
     return render_template('admin/view_professor.html', professor=professor, data=data)
+
+
+# ====================== ADD PROFESSOR ======================
+@admin_bp.route('/professor/new', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def new_professor():
+    """Admin creates a professor account. Same rules as self-registration
+    (shared creation logic, same email-domain restriction and department
+    list); the password is generated server-side and shown once."""
+    form = AdminCreateProfessorForm()
+    form.department.choices = [
+        (d, d) for d in current_app.config.get('DEPARTMENTS', [])]
+
+    if form.validate_on_submit():
+        temp_password = secrets.token_urlsafe(9)
+        try:
+            professor_key, folder_error = create_professor_account(
+                first_name=form.first_name.data,
+                last_name=form.last_name.data,
+                email=form.email.data,
+                password=temp_password,
+                department=form.department.data,
+                middle_name=form.middle_name.data,
+                google_id=form.google_id.data,
+                orcid=form.orcid.data,
+                scopus_id=form.scopus_id.data)
+        except DuplicateEmailError:
+            flash('An account with that email already exists.', 'danger')
+            return render_template('admin/add_professor.html', form=form)
+
+        flash(f'Professor account created. Temporary password: '
+              f'{temp_password} — share it securely; it is shown only '
+              f'this once.', 'success')
+        if folder_error:
+            flash('The data folder could not be set up yet; it will be '
+                  'created automatically at first report generation.',
+                  'warning')
+        return redirect(url_for('admin.view_professor', pk=professor_key))
+
+    return render_template('admin/add_professor.html', form=form)

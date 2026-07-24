@@ -38,6 +38,15 @@ class RegistrationForm(FlaskForm):
                 f'Please use your @{domain} email address.')
 
 
+class AdminCreateProfessorForm(RegistrationForm):
+    """Admin add-professor: same fields and rules as self-registration,
+    minus the password fields — a temporary password is generated
+    server-side and shown to the admin once."""
+    password = None
+    confirm_password = None
+    submit = SubmitField('Create Professor')
+
+
 class PersonalAwardForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     type = SelectField('Type', choices=[

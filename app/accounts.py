@@ -1,0 +1,74 @@
+"""
+Shared professor account creation.
+
+Used by both self-registration (/register) and the admin add-professor
+path, so the sequence is defined exactly once:
+
+  1. refuse duplicate emails
+  2. INSERT the PROFESSOR row (lastrowid -> the new ProfessorKey)
+  3. INSERT the linked users row (password hashed here)
+     -- both committed: the account exists from this point on --
+  4. attempt folder creation, decoupled: a failure is logged and
+     reported back to the caller, but never undoes the account
+     (creation is retried at first generation)
+"""
+from flask import current_app
+from werkzeug.security import generate_password_hash
+
+from app.utils import execute_query
+from app.folder_service import ensure_professor_folder, FolderCreationError
+
+
+class DuplicateEmailError(Exception):
+    """An account with this email already exists."""
+
+
+def create_professor_account(*, first_name, last_name, email, password,
+                             department, middle_name=None, google_id=None,
+                             orcid=None, scopus_id=None):
+    """
+    Create a professor account and attempt its on-disk folder.
+
+    Returns (professor_key, folder_error): folder_error is None when the
+    folder was created, else the error message (the account still exists).
+    Raises DuplicateEmailError if the email is already registered.
+    """
+    email = email.strip().lower()
+    first = first_name.strip()
+    last = last_name.strip()
+    middle = (middle_name or '').strip() or None
+    google_id = (google_id or '').strip() or None
+    orcid = (orcid or '').strip() or None
+    scopus_id = (scopus_id or '').strip() or None
+
+    existing = execute_query(
+        'SELECT UserID FROM users WHERE Email = %s',
+        (email,), fetchone=True)
+    if existing:
+        raise DuplicateEmailError(email)
+
+    professor_key = execute_query(
+        'INSERT INTO PROFESSOR '
+        '(FirstName, MiddleName, LastName, Department, GoogleID, ORCID, ScopusID) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s)',
+        (first, middle, last, department, google_id, orcid, scopus_id),
+        commit=True, lastrowid=True)
+    execute_query(
+        'INSERT INTO users (Name, Email, Password, Role, ProfessorKey) '
+        'VALUES (%s, %s, %s, %s, %s)',
+        (f'{first} {last}', email, generate_password_hash(password),
+         'professor', professor_key),
+        commit=True)
+
+    folder_error = None
+    try:
+        ensure_professor_folder(
+            professor_key, first, last, email,
+            google_id=google_id, orcid=orcid, scopus_id=scopus_id)
+    except FolderCreationError as exc:
+        current_app.logger.warning(
+            'Folder creation failed for professor %s: %s',
+            professor_key, exc)
+        folder_error = str(exc)
+
+    return professor_key, folder_error
