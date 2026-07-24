@@ -22,6 +22,8 @@ Design properties:
 import os
 import re
 import shutil
+import subprocess
+from datetime import datetime, timezone
 
 from flask import current_app
 
@@ -168,6 +170,63 @@ def _disable_stats_flags(folder):
 
 
 # ---------------------------------------------------------------------------
+# Scaffold version stamp
+# ---------------------------------------------------------------------------
+
+# App-managed metadata file recording which template version a folder was
+# created from. Distinctly named so it cannot collide with any version file
+# make_cv itself may define later; trivially renamed to match that format
+# if/when it exists.
+SCAFFOLD_VERSION_FILE = '.scaffold_version'
+
+
+def _template_commit(template):
+    """Current commit hash of the scaffold template clone, or 'unknown' if
+    it cannot be determined (not a git repo, git unavailable). Never raises
+    and never blocks: the stamp is bookkeeping, not the critical path —
+    hence the timeout on even this instant local command."""
+    try:
+        out = subprocess.run(
+            ['git', '-C', template, 'rev-parse', 'HEAD'],
+            capture_output=True, text=True, timeout=10)
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return 'unknown'
+
+
+def _write_scaffold_version(dest, template):
+    """Record the template version this folder was created from."""
+    lines = [
+        '# Scaffold template version this folder was created from '
+        '(app-managed).',
+        f'commit = {_template_commit(template)}',
+        f"created = {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+    ]
+    path = os.path.join(dest, SCAFFOLD_VERSION_FILE)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(lines) + '\n')
+
+
+def read_scaffold_version(professor_folder):
+    """Commit hash recorded when the folder was created, or None if the
+    stamp is absent or unreadable. This is the hook for the future
+    version check (compare against the template before generating) and
+    for propagation ("which folders are behind?")."""
+    path = os.path.join(professor_folder, SCAFFOLD_VERSION_FILE)
+    try:
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                key, sep, value = line.partition('=')
+                if sep and key.strip() == 'commit':
+                    return value.strip() or None
+    except OSError:
+        return None
+    return None
+
+
+# ---------------------------------------------------------------------------
 # The service
 # ---------------------------------------------------------------------------
 
@@ -210,6 +269,7 @@ def ensure_professor_folder(professor_key, first_name, last_name, email,
             os.path.join(personal, 'ContactInfo.tex'),
             first_name, last_name, email)
         _disable_stats_flags(dest)
+        _write_scaffold_version(dest, template)
 
         return 'created'
     except Exception as exc:

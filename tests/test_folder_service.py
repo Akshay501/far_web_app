@@ -15,6 +15,9 @@ No database is involved: the service takes all identity data as parameters
 and touches only the filesystem, so these tests run without MySQL.
 """
 import os
+import shutil as _shutil
+import subprocess as _sp
+
 import pytest
 
 from app.folder_service import ensure_professor_folder, FolderCreationError
@@ -191,3 +194,50 @@ def test_missing_template_fails_cleanly(app, scaffold):
 
     # No partial folder left behind.
     assert not (scaffold['root'] / '42').exists()
+
+
+# ------------------------------------------------------------ version stamp
+
+def test_scaffold_version_stamp_is_written(app, scaffold):
+    """Every created folder records which template version built it —
+    the bookkeeping the future version check and propagation need."""
+    _create(app)
+    stamp = scaffold['root'] / '42' / '.scaffold_version'
+
+    assert stamp.is_file()
+    text = stamp.read_text()
+    assert 'commit = ' in text
+    assert 'created = ' in text
+
+
+def test_stamp_is_unknown_for_a_non_repo_template(app, scaffold):
+    """The fixture's fake .git is not a real repository: the stamp must
+    degrade to 'unknown' rather than fail folder creation — bookkeeping
+    never blocks the critical path."""
+    _create(app)
+    text = (scaffold['root'] / '42' / '.scaffold_version').read_text()
+    assert 'commit = unknown' in text
+
+
+@pytest.mark.skipif(_shutil.which('git') is None, reason='git not available')
+def test_stamp_records_the_real_template_commit(app, scaffold):
+    """Against a real git repo, the stamp carries the template's actual
+    HEAD commit, and read_scaffold_version() returns it."""
+    tpl = str(scaffold['template'])
+    _sp.run(['git', 'init', '-q'], cwd=tpl, check=True)
+    _sp.run(['git', 'config', 'user.email', 'test@test'], cwd=tpl, check=True)
+    _sp.run(['git', 'config', 'user.name', 'Test'], cwd=tpl, check=True)
+    _sp.run(['git', 'add', '-A'], cwd=tpl, check=True)
+    _sp.run(['git', 'commit', '-qm', 'template snapshot'], cwd=tpl, check=True)
+    head = _sp.run(['git', 'rev-parse', 'HEAD'], cwd=tpl,
+                   capture_output=True, text=True, check=True).stdout.strip()
+
+    _create(app)
+
+    from app.folder_service import read_scaffold_version
+    assert read_scaffold_version(str(scaffold['root'] / '42')) == head
+
+
+def test_read_scaffold_version_returns_none_when_missing(app, scaffold):
+    from app.folder_service import read_scaffold_version
+    assert read_scaffold_version(str(scaffold['root'] / 'nowhere')) is None
