@@ -10,14 +10,22 @@
         <h2 class="mb-0">{{ professor.FirstName }} {{ professor.LastName }}</h2>
         <p class="text-muted mb-0">{{ professor.Department or '—' }} &mdash; Read-only FAR view</p>
     </div>
-    <form method="POST"
-          action="{{ url_for('admin.create_professor_folder', pk=professor.ProfessorKey) }}"
-          class="ms-auto">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-folder-plus me-1"></i>Create/Repair Folder
-        </button>
-    </form>
+    <div class="ms-auto d-flex gap-2">
+        <form method="POST"
+              action="{{ url_for('admin.export_professor_data', pk=professor.ProfessorKey) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download me-1"></i>Export Data
+            </button>
+        </form>
+        <form method="POST"
+              action="{{ url_for('admin.create_professor_folder', pk=professor.ProfessorKey) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-folder-plus me-1"></i>Create/Repair Folder
+            </button>
+        </form>
+    </div>
 </div>
 
 <!-- Professor Info Card -->

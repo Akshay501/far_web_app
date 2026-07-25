@@ -133,3 +133,24 @@ def create_professor_folder(pk):
     else:
         flash('Data folder created.', 'success')
     return redirect(url_for('admin.view_professor', pk=pk))
+
+
+# ====================== EXPORT PROFESSOR DATA (Issue #7) ======================
+@admin_bp.route('/professor/<int:pk>/export', methods=['POST'])
+@login_required
+@admin_required
+def export_professor_data(pk):
+    """Download one professor's folder as a zip, refreshed from the DB."""
+    from flask import send_file
+
+    from app.routes.generate import build_export_zip, ExportError
+
+    try:
+        buf, download_name = build_export_zip(pk)
+    except ExportError as e:
+        flash(f'Export failed: {e}', 'danger')
+        return redirect(url_for('admin.view_professor', pk=pk))
+
+    return send_file(buf, as_attachment=True,
+                     download_name=download_name,
+                     mimetype='application/zip')

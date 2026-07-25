@@ -1852,3 +1852,26 @@ def publications():
                            category_map=CATEGORY_MAP,
                            total_pubs=len(pubs),
                            has_pubs=len(pubs) > 0)
+
+
+# ====================== EXPORT MY DATA (Issue #7) ======================
+@professor_bp.route('/export', methods=['POST'])
+@login_required
+@professor_required
+def export_data():
+    """Download everything in my folder as a zip — refreshed from the
+    database first, so the export carries current data even if I have
+    never generated a report. POST because the refresh writes files."""
+    from flask import send_file
+
+    from app.routes.generate import build_export_zip, ExportError
+
+    try:
+        buf, download_name = build_export_zip(current_user.professor_key)
+    except ExportError as e:
+        flash(str(e), 'danger')
+        return redirect(url_for('professor.dashboard'))
+
+    return send_file(buf, as_attachment=True,
+                     download_name=download_name,
+                     mimetype='application/zip')

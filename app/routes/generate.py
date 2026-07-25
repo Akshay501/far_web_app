@@ -35,6 +35,106 @@ def professor_required(f):
 from app.folder_service import folder_name_for as _folder_name_for
 
 
+def write_bib_from_db(professor_key, professor_folder):
+    """
+    Rebuild Scholarship/scholarship.bib from the PUBLICATIONS table —
+    each entry's RawBibtex verbatim, markers and all fields intact.
+    Zero publications leaves whatever .bib is already on disk (the
+    template's), and any failure is logged and non-fatal.
+    Shared by the generate flow and the data export (Issue #7).
+    """
+    bib_path = os.path.join(professor_folder, 'Scholarship', 'scholarship.bib')
+    try:
+        pub_rows = execute_query(
+            'SELECT RawBibtex FROM PUBLICATIONS '
+            'WHERE ProfessorKey=%s AND RawBibtex IS NOT NULL AND RawBibtex <> %s '
+            'ORDER BY Year DESC, PublicationKey',
+            (professor_key, ''),
+        ) or []
+        if pub_rows:
+            os.makedirs(os.path.dirname(bib_path), exist_ok=True)
+            with open(bib_path, 'w', encoding='utf-8') as bf:
+                bf.write('\n\n'.join(r['RawBibtex'] for r in pub_rows))
+                bf.write('\n')
+            current_app.logger.info(
+                f'Wrote {len(pub_rows)} publications to {bib_path} from DB'
+            )
+    except Exception as e:
+        current_app.logger.warning(f'Could not write scholarship.bib from DB: {e}')
+        # Non-fatal — fall back to whatever .bib is already on disk
+
+
+# Regenerated on every run; must not travel in a data export.
+EXPORT_EXCLUDED_SUFFIXES = ('.aux', '.log', '.out', '.toc', '.bbl',
+                            '.bcf', '.blg', '.run.xml')
+EXPORT_EXCLUDED_DIRS = {'Tables_far'}
+
+
+class ExportError(Exception):
+    """The professor's data could not be packaged for download."""
+
+
+def build_export_zip(professor_key):
+    """
+    Package a professor's folder as an in-memory zip, REFRESHED from the
+    database first so the export always carries current data — even for
+    a professor who has never generated (Issue #7).
+
+    Sequence: heal the folder if missing -> rebuild scholarship.bib from
+    PUBLICATIONS -> write all Excel files from the DB -> zip everything
+    except LaTeX build artifacts.
+
+    Returns (BytesIO, download_name). Raises ExportError with a
+    human-readable message on failure.
+    """
+    import io
+    import zipfile
+
+    from app.utils import safe_slug
+
+    prof = execute_query(
+        'SELECT FirstName, LastName FROM PROFESSOR WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    if not prof:
+        raise ExportError('Professor not found.')
+
+    status, heal_error = ensure_folder_for_existing(professor_key)
+    if heal_error:
+        raise ExportError(
+            f'Your data folder could not be set up: {heal_error}')
+
+    professor_folder = os.path.join(
+        current_app.config['PROFESSORS_ROOT'],
+        _folder_name_for(professor_key))
+
+    # Refresh disk from DB truth — the step that makes the export honest.
+    write_bib_from_db(professor_key, professor_folder)
+    try:
+        db_data = fetch_all_db_data(professor_key)
+        export_all(professor_key, professor_folder, db_data)
+    except Exception as e:
+        current_app.logger.error(
+            f'Export refresh failed for professor {professor_key}: {e}')
+        raise ExportError(f'Could not refresh your data files: {e}')
+
+    slug = (f"far_data_{safe_slug(prof.get('LastName'))}"
+            f"_{safe_slug(prof.get('FirstName'))}")
+    download_name = f"{slug}_{datetime.now().strftime('%Y%m%d')}.zip"
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(professor_folder):
+            dirs[:] = [d for d in dirs if d not in EXPORT_EXCLUDED_DIRS]
+            for fname in files:
+                if fname.endswith(EXPORT_EXCLUDED_SUFFIXES):
+                    continue
+                full = os.path.join(root, fname)
+                rel = os.path.relpath(full, professor_folder)
+                zf.write(full, os.path.join(slug, rel))
+    buf.seek(0)
+    return buf, download_name
+
+
 def get_professor_folder(professor_key):
     """
     Returns (folder_path, professor_row) for a professor.
@@ -425,25 +525,8 @@ def generate():
         else:
             # No upload — rebuild scholarship.bib from the DB so that any edits
             # the professor made on the Publications page are reflected in the
-            # FAR. We write each entry's RawBibtex (markers + all fields intact).
-            try:
-                pub_rows = execute_query(
-                    'SELECT RawBibtex FROM PUBLICATIONS '
-                    'WHERE ProfessorKey=%s AND RawBibtex IS NOT NULL AND RawBibtex <> %s '
-                    'ORDER BY Year DESC, PublicationKey',
-                    (pk, ''),
-                ) or []
-                if pub_rows:
-                    os.makedirs(os.path.dirname(bib_path), exist_ok=True)
-                    with open(bib_path, 'w', encoding='utf-8') as bf:
-                        bf.write('\n\n'.join(r['RawBibtex'] for r in pub_rows))
-                        bf.write('\n')
-                    current_app.logger.info(
-                        f'Wrote {len(pub_rows)} publications to {bib_path} from DB'
-                    )
-            except Exception as e:
-                current_app.logger.warning(f'Could not write scholarship.bib from DB: {e}')
-                # Non-fatal — fall back to whatever .bib is already on disk
+            # FAR. (Shared with the data export — see write_bib_from_db.)
+            write_bib_from_db(pk, professor_folder)
 
         # Fetch DB data and write Excel files
         try:

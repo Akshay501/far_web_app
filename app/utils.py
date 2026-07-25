@@ -81,3 +81,22 @@ def import_excel_to_table(file_path, table_name, professor_key, mapping):
         cursor.execute(query, tuple(data.values()))
     db.commit()
     cursor.close()
+
+
+def safe_slug(value, fallback='unknown'):
+    """
+    Filesystem- and header-safe slug: ascii lowercase, spaces become
+    underscores, and only letters/digits/underscore/hyphen survive —
+    never empty. Accents are transliterated (José -> jose); anything
+    that could act as a path or quote character is dropped. Used for
+    download filenames (Issue #7 and the far.pdf naming issue).
+    """
+    import re
+    import unicodedata
+
+    text = unicodedata.normalize('NFKD', str(value or ''))
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    text = text.lower().strip()
+    text = re.sub(r'\s+', '_', text)
+    text = re.sub(r'[^a-z0-9_-]', '', text)
+    return text or fallback
