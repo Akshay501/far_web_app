@@ -349,6 +349,23 @@ def write_prospective_visits(path, rows):
     wb.save(path)
 
 
+def _write_or_remove(path, rows, writer):
+    """
+    For summary sheets that make_far reads positionally (.iloc[-1] on the
+    last row): zero rows means the file must be ABSENT, not empty. An
+    empty sheet crashes make_far ("single positional indexer is
+    out-of-bounds"); an absent file makes it skip the section, which is
+    its designed no-data behavior (other sections delete their own
+    output when empty). Removing — not just skipping the write — also
+    clears a stale sheet left over from when the professor still had
+    data, so old numbers can never reach a new FAR. (Issue #13)
+    """
+    if rows:
+        writer(path, rows)
+    elif os.path.exists(path):
+        os.remove(path)
+
+
 def export_all(professor_key, professor_folder, db_data):
     """
     Write all Excel files for a professor into the correct subfolders.
@@ -383,9 +400,10 @@ def export_all(professor_key, professor_folder, db_data):
         os.path.join(grants_dir, 'grants.xlsx'),
         db_data.get('grants', [])
     )
-    write_expenditures(
+    _write_or_remove(
         os.path.join(grants_dir, 'expenditures.xlsx'),
-        db_data.get('expenditures', [])
+        db_data.get('expenditures', []),
+        write_expenditures,
     )
     write_current_students(
         os.path.join(scholar_dir, 'current student data.xlsx'),
@@ -411,9 +429,10 @@ def export_all(professor_key, professor_folder, db_data):
         os.path.join(service_dir, 'undergraduate research data.xlsx'),
         db_data.get('undergrad_research', [])
     )
-    write_advisee_counts(
+    _write_or_remove(
         os.path.join(service_dir, 'advisee counts.xlsx'),
-        db_data.get('advisee_counts', [])
+        db_data.get('advisee_counts', []),
+        write_advisee_counts,
     )
     # Advising evaluation data uses a special university format (STRM codes, specific columns)
     # that cannot be replicated from our DB — skip writing this file so make_far skips it
@@ -426,7 +445,8 @@ def export_all(professor_key, professor_folder, db_data):
         os.path.join(teach_dir, 'teaching evaluation data.xlsx'),
         db_data.get('teaching', [])
     )
-    write_prospective_visits(
+    _write_or_remove(
         os.path.join(service_dir, 'prospective visit data.xlsx'),
-        db_data.get('prospective_visits', [])
+        db_data.get('prospective_visits', []),
+        write_prospective_visits,
     )
