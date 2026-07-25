@@ -12,7 +12,7 @@ from flask import (Blueprint, render_template, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
-from app.utils import execute_query
+from app.utils import execute_query, safe_slug
 from app.excel_export import export_all
 from app.accounts import ensure_folder_for_existing
 
@@ -62,6 +62,19 @@ def write_bib_from_db(professor_key, professor_folder):
     except Exception as e:
         current_app.logger.warning(f'Could not write scholarship.bib from DB: {e}')
         # Non-fatal — fall back to whatever .bib is already on disk
+
+
+def generated_name(base, last, first, date_str=None):
+    """
+    Per-professor filename for a generated output, so a file stays
+    identifiable once detached from any zip:
+      ('far.pdf', 'Thugudam', 'Akshay') -> 'far_thugudam_akshay_20260725.pdf'
+    Applied at packaging time only — files on disk keep make_cv's names.
+    """
+    stem, ext = os.path.splitext(base)
+    if date_str is None:
+        date_str = datetime.now().strftime('%Y%m%d')
+    return f"{stem}_{safe_slug(last)}_{safe_slug(first)}_{date_str}{ext}"
 
 
 # Regenerated on every run; must not travel in a data export.
@@ -550,7 +563,7 @@ def generate():
                 if ok:
                     pdf = os.path.join(far_folder, 'far.pdf')
                     if os.path.exists(pdf):
-                        output_files.append(('far.pdf', pdf))
+                        output_files.append((generated_name('far.pdf', prof['LastName'], prof['FirstName']), pdf))
                 else:
                     current_app.logger.error(f'FAR PDF error: {err}')
                     errors.append(translate_error(err))
@@ -562,7 +575,7 @@ def generate():
                 if ok:
                     docx = os.path.join(far_docx_folder, 'far.docx')
                     if os.path.exists(docx):
-                        output_files.append(('far.docx', docx))
+                        output_files.append((generated_name('far.docx', prof['LastName'], prof['FirstName']), docx))
                 else:
                     current_app.logger.error(f'FAR docx error: {err}')
                     errors.append(translate_error(err))
@@ -574,7 +587,7 @@ def generate():
             if ok:
                 pdf = os.path.join(cv_folder, 'cv.pdf')
                 if os.path.exists(pdf):
-                    output_files.append(('cv.pdf', pdf))
+                    output_files.append((generated_name('cv.pdf', prof['LastName'], prof['FirstName']), pdf))
             else:
                 current_app.logger.error(f'CV error: {err}')
                 errors.append(translate_error(err))
@@ -597,7 +610,7 @@ def generate():
 
         # Package output into a zip and send
         tmp_dir  = tempfile.mkdtemp()
-        zip_name = f"FAR_{prof['LastName']}_{datetime.now().strftime('%Y%m%d')}"
+        zip_name = f"FAR_{safe_slug(prof['LastName'])}_{datetime.now().strftime('%Y%m%d')}"
         zip_path = os.path.join(tmp_dir, zip_name)
 
         import zipfile
@@ -639,7 +652,8 @@ def generate_all():
         with zipfile.ZipFile(zip_path, 'w') as zf:
             for prof in professors:
                 pk     = prof['ProfessorKey']
-                name   = f"{prof['LastName']}, {prof['FirstName']}"
+                name    = f"{prof['LastName']}, {prof['FirstName']}"
+                arc_dir = f"{safe_slug(prof['LastName'])}_{safe_slug(prof['FirstName'])}"
                 professor_folder, _ = get_professor_folder(pk)
 
                 if not professor_folder or not os.path.isdir(professor_folder):
@@ -662,7 +676,7 @@ def generate_all():
                     if ok:
                         pdf = os.path.join(far_folder, 'far.pdf')
                         if os.path.exists(pdf):
-                            zf.write(pdf, f"{name}/far.pdf")
+                            zf.write(pdf, f"{arc_dir}/{generated_name('far.pdf', prof['LastName'], prof['FirstName'])}")
                             results.append({'name': name, 'status': '✅ PDF generated'})
                     else:
                         results.append({'name': name, 'status': f'❌ {err}'})
@@ -674,7 +688,7 @@ def generate_all():
                     if ok:
                         docx = os.path.join(far_docx, 'far.docx')
                         if os.path.exists(docx):
-                            zf.write(docx, f"{name}/far.docx")
+                            zf.write(docx, f"{arc_dir}/{generated_name('far.docx', prof['LastName'], prof['FirstName'])}")
 
         return render_template('admin/generate_all.html',
                                results=results,
