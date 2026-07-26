@@ -4,6 +4,7 @@ import secrets
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_required, current_user
 from app.utils import execute_query
+from werkzeug.security import generate_password_hash
 from app.forms import AdminCreateProfessorForm
 from app.accounts import create_professor_account, DuplicateEmailError, ensure_folder_for_existing
 from functools import wraps
@@ -154,3 +155,29 @@ def export_professor_data(pk):
     return send_file(buf, as_attachment=True,
                      download_name=download_name,
                      mimetype='application/zip')
+
+
+# ====================== RESET PROFESSOR PASSWORD ======================
+@admin_bp.route('/professor/<int:pk>/reset-password', methods=['POST'])
+@login_required
+@admin_required
+def reset_professor_password(pk):
+    """Issue a new temporary password for a professor who is locked out.
+    Shown once, exactly like the add-professor flow; the professor is
+    expected to change it at /change-password."""
+    user = execute_query(
+        'SELECT UserID FROM users WHERE ProfessorKey = %s',
+        (pk,), fetchone=True)
+    if not user:
+        flash('No login account found for that professor.', 'danger')
+        return redirect(url_for('admin.view_professor', pk=pk))
+
+    temp_password = secrets.token_urlsafe(9)
+    execute_query('UPDATE users SET Password = %s WHERE UserID = %s',
+                  (generate_password_hash(temp_password), user['UserID']),
+                  commit=True)
+    current_app.logger.info('Admin reset password for professor %s', pk)
+    flash(f'Temporary password: {temp_password} — share it securely; it is '
+          f'shown only this once, and they should change it after signing in.',
+          'success')
+    return redirect(url_for('admin.view_professor', pk=pk))

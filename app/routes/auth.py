@@ -3,10 +3,10 @@ from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from app.utils import execute_query
 from app.models import User
-from app.forms import RegistrationForm
+from app.forms import RegistrationForm, ChangePasswordForm
 from app.accounts import create_professor_account, DuplicateEmailError
 
 auth_bp = Blueprint('auth', __name__)
@@ -83,3 +83,34 @@ def register():
         return redirect(url_for('auth.login'))
 
     return render_template('register.html', form=form)
+
+@auth_bp.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Change your own password. Available to professors AND admins —
+    the admin account ships with a default password and had no way to
+    replace it. On success the session is dropped and the user signs in
+    again, which is the honest way to make the change take effect
+    everywhere without stale-session bookkeeping."""
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        row = execute_query('SELECT Password FROM users WHERE UserID = %s',
+                            (current_user.id,), fetchone=True)
+        if not row or not check_password_hash(row['Password'],
+                                              form.current_password.data):
+            flash('Your current password is not correct.', 'danger')
+            return render_template('change_password.html', form=form)
+
+        execute_query(
+            'UPDATE users SET Password = %s WHERE UserID = %s',
+            (generate_password_hash(form.new_password.data),
+             current_user.id), commit=True)
+        current_app.logger.info('Password changed for user %s',
+                                current_user.id)
+        logout_user()
+        session.clear()
+        flash('Password changed. Please sign in with your new password.',
+              'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('change_password.html', form=form)

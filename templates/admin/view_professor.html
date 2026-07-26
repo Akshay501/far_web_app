@@ -12,6 +12,14 @@
     </div>
     <div class="ms-auto d-flex gap-2">
         <form method="POST"
+              action="{{ url_for('admin.reset_professor_password', pk=professor.ProfessorKey) }}"
+              onsubmit="return confirm('Issue a new temporary password? The current one stops working immediately.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-key me-1"></i>Reset Password
+            </button>
+        </form>
+        <form method="POST"
               action="{{ url_for('admin.export_professor_data', pk=professor.ProfessorKey) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-secondary btn-sm">
