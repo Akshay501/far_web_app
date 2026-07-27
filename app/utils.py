@@ -1,9 +1,7 @@
 import pymysql
 import pymysql.cursors
 import yaml
-import subprocess
 import os
-from datetime import datetime
 from flask import g, current_app
 
 
@@ -47,20 +45,6 @@ def execute_query(query, args=None, fetchone=False, commit=False, lastrowid=Fals
         result = cursor.fetchone() if fetchone else cursor.fetchall()
     cursor.close()
     return result
-
-
-def generate_cv(professor_key):
-    try:
-        result = subprocess.run(
-            ['python', '../make_cv/make_cv.py', str(professor_key)],
-            capture_output=True, text=True, cwd=os.path.dirname(__file__)
-        )
-        if result.returncode == 0:
-            return f"static/cv/FAR_{professor_key}_{datetime.now().strftime('%Y%m%d')}.pdf"
-        return None
-    except Exception as e:
-        print("CV generation error:", e)
-        return None
 
 
 def import_excel_to_table(file_path, table_name, professor_key, mapping):

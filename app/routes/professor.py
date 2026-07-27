@@ -878,19 +878,6 @@ def duplicate_grant(id):
     return redirect(url_for('professor.grants') + f'?_t={__import__("time").time_ns()}&highlight=grant-{new_id}')
 
 
-# ====================== CV ======================
-@professor_bp.route('/generate_cv')
-@login_required
-@professor_required
-def generate_cv_route():
-    from app.utils import generate_cv
-    pdf_path = generate_cv(current_user.professor_key)
-    if pdf_path:
-        return send_file(pdf_path, as_attachment=True)
-    flash('CV generation failed', 'danger')
-    return redirect(url_for('professor.dashboard'))
-
-
 # ====================== SCHOLARSHIP (Two Tabs with Full CRUD) ======================
 @professor_bp.route('/scholarship', methods=['GET', 'POST'])
 @login_required
