@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 
 from app.utils import execute_query, safe_slug
 from app.excel_export import export_all
-from app.accounts import ensure_folder_for_existing
+from app.accounts import ensure_folder_for_existing, refresh_personal_files
 
 generate_bp = Blueprint('generate', __name__)
 
@@ -121,6 +121,7 @@ def build_export_zip(professor_key):
         _folder_name_for(professor_key))
 
     # Refresh disk from DB truth — the step that makes the export honest.
+    refresh_personal_files(professor_key, professor_folder)
     write_bib_from_db(professor_key, professor_folder)
     try:
         db_data = fetch_all_db_data(professor_key)
@@ -529,6 +530,11 @@ def generate():
                 flash(err, 'danger')
             return redirect(url_for('generate.generate'))
 
+        # ContactInfo/personal_data are derived from the DB, like the bib
+        # and the spreadsheets — refresh them every run, regardless of
+        # whether the professor uploaded their own .bib below.
+        refresh_personal_files(pk, professor_folder)
+
         # Provide scholarship.bib for make_cv.
         bib_path = os.path.join(professor_folder, 'Scholarship', 'scholarship.bib')
         if bib_file and bib_file.filename.endswith('.bib'):
@@ -661,6 +667,7 @@ def generate_all():
                     continue
 
                 try:
+                    refresh_personal_files(pk, professor_folder)
                     db_data = fetch_all_db_data(pk)
                     export_all(pk, professor_folder, db_data)
                 except Exception as e:

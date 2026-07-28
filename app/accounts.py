@@ -12,11 +12,15 @@ path, so the sequence is defined exactly once:
      reported back to the caller, but never undoes the account
      (creation is retried at first generation)
 """
+import os
+
 from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from app.utils import execute_query
-from app.folder_service import ensure_professor_folder, FolderCreationError
+from app.folder_service import (ensure_professor_folder, FolderCreationError,
+                                render_contactinfo, write_personal_data,
+                                contactinfo_is_app_owned)
 
 
 class DuplicateEmailError(Exception):
@@ -111,3 +115,66 @@ def ensure_folder_for_existing(professor_key):
             'Folder healing failed for professor %s: %s',
             professor_key, exc)
         return None, str(exc)
+
+
+def refresh_personal_files(professor_key, professor_folder):
+    """
+    Rewrite the DERIVED PersonalData files — ContactInfo.tex and
+    personal_data.txt — from the professor's current database record.
+
+    These are generated files, not authored ones: they belong to the
+    same family as the Excel exports and scholarship.bib, which are
+    rebuilt from the database on every generation. Writing them only at
+    folder creation left every pre-existing folder (professor 1,
+    migrated during the ID-path redesign; every future s-drive import)
+    carrying the scaffold template's placeholders — a CV headed
+    "Jane U. Doe", a FAR whose \\mynames bolded the wrong author, and
+    blank publication IDs that would silently starve the ORCID sync.
+
+    Refreshing here also means a professor who edits their name or email
+    sees it in the next document with no repair action.
+
+    Returns True on success, False if the professor is unknown or the
+    files could not be written. Never raises: a refresh failure must not
+    cost someone their generation.
+    """
+    prof = execute_query(
+        'SELECT FirstName, LastName, GoogleID, ORCID, ScopusID '
+        'FROM PROFESSOR WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    if not prof:
+        current_app.logger.warning(
+            'Cannot refresh personal files: professor %s not found',
+            professor_key)
+        return False
+
+    user = execute_query(
+        'SELECT Email FROM users WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    email = (user or {}).get('Email') or ''
+
+    personal_dir = os.path.join(professor_folder, 'make_cv', 'PersonalData')
+    try:
+        os.makedirs(personal_dir, exist_ok=True)
+        # personal_data.txt is pure key-value data the app owns outright.
+        # ContactInfo.tex may have been hand-authored (phone, LinkedIn,
+        # webpage - fields the DB has no column for), so only refresh it
+        # when it is ours or untouched.
+        contact_path = os.path.join(personal_dir, 'ContactInfo.tex')
+        if contactinfo_is_app_owned(contact_path):
+            render_contactinfo(
+                contact_path,
+                prof.get('FirstName') or '', prof.get('LastName') or '', email)
+        else:
+            current_app.logger.info(
+                'Left hand-edited ContactInfo.tex alone for professor %s',
+                professor_key)
+        write_personal_data(
+            os.path.join(personal_dir, 'personal_data.txt'),
+            prof.get('GoogleID'), prof.get('ORCID'), prof.get('ScopusID'))
+        return True
+    except Exception as exc:
+        current_app.logger.warning(
+            'Could not refresh personal files for professor %s: %s',
+            professor_key, exc)
+        return False

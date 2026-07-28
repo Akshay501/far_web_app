@@ -83,7 +83,15 @@ def _latex_escape(text):
 # usePhoto starts false: the template ships a placeholder photo, and a new
 # professor's report should not display it; they can enable it after
 # uploading a real photo.
+# Written into every ContactInfo.tex the app generates, so a later run can
+# tell "we wrote this" from "a human wrote this". Hand-authored files often
+# carry a phone number, LinkedIn and webpage that the database has no column
+# for — refreshing those would silently destroy real contact details.
+CONTACTINFO_MARKER = '% Generated from the FAR web app database'
+
 _CONTACTINFO_TEMPLATE = (
+    "% Generated from the FAR web app database. Edits here are replaced on\n"
+    "% each generation - change your details in your profile instead.\n"
     "% Specify your last name/first initial to have it be bold in the author list\n"
     "% Multiple names can be listed separated by commas, e.g. {{Lastname/F,Other/A}}\n"
     "\\mynames{{{mynames}}}\n"
@@ -105,7 +113,42 @@ _CONTACTINFO_TEMPLATE = (
 )
 
 
-def _render_contactinfo(path, first_name, last_name, email):
+def contactinfo_is_app_owned(path, template=None):
+    """
+    May the app rewrite this ContactInfo.tex?
+
+    True when the file is missing, still byte-identical to the scaffold
+    template (nobody has touched it), or carries our marker (we wrote
+    it, so it is ours to keep current).
+
+    False when a human authored it. Those files typically hold a phone
+    number, LinkedIn and webpage that the database cannot supply, so
+    overwriting would lose real data — and it would contradict the rule
+    that PersonalData belongs to the professor.
+    """
+    if not os.path.isfile(path):
+        return True
+    try:
+        current = open(path, encoding='utf-8').read()
+    except OSError:
+        return True
+
+    if CONTACTINFO_MARKER in current:
+        return True
+
+    template = template or current_app.config.get('SCAFFOLD_TEMPLATE')
+    if template:
+        pristine = os.path.join(template, 'make_cv', 'PersonalData',
+                                'ContactInfo.tex')
+        try:
+            if open(pristine, encoding='utf-8').read() == current:
+                return True
+        except OSError:
+            pass
+    return False
+
+
+def render_contactinfo(path, first_name, last_name, email):
     """Write ContactInfo.tex for this professor: \\mynames for biblatex
     bolding, display name, institution details from config, and email."""
     institution = current_app.config.get('INSTITUTION', {}) or {}
@@ -134,7 +177,7 @@ def _render_contactinfo(path, first_name, last_name, email):
 # personal_data.txt and make_cv.cfg patching
 # ---------------------------------------------------------------------------
 
-def _write_personal_data(path, google_id, orcid, scopus_id):
+def write_personal_data(path, google_id, orcid, scopus_id):
     """Write the publication-source IDs in the format make_cv reads
     (load_personal_data). Missing IDs are left blank, matching the
     scaffold's template file."""
@@ -262,10 +305,10 @@ def ensure_professor_folder(professor_key, first_name, last_name, email,
                         ignore=shutil.ignore_patterns('.git'))
 
         personal = os.path.join(dest, 'make_cv', 'PersonalData')
-        _write_personal_data(
+        write_personal_data(
             os.path.join(personal, 'personal_data.txt'),
             google_id, orcid, scopus_id)
-        _render_contactinfo(
+        render_contactinfo(
             os.path.join(personal, 'ContactInfo.tex'),
             first_name, last_name, email)
         _disable_stats_flags(dest)
