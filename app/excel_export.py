@@ -291,7 +291,8 @@ def write_advising_evaluation(path, rows):
 def write_teaching_evaluation(path, rows):
     """
     TEACHINGEVALUATION
-    Installed make_cv (0.9.7) expects exactly these columns in Data sheet:
+    Installed make_cv (1.0.5) expects these columns in the Data sheet:
+    (verified against teaching2latex_far.py 2026-07-28)
     term, combined_course_num, combined_num_sec, course_title,
     enrollment, count_19, mean_19, count_20, mean_20
 
