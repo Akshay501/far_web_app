@@ -21,3 +21,4 @@ make_cv==1.0.5
 
 # Testing
 pytest==7.4.4
+pylatexenc==2.10

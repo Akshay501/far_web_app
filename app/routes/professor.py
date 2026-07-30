@@ -1901,3 +1901,24 @@ def export_data():
     return send_file(buf, as_attachment=True,
                      download_name=download_name,
                      mimetype='application/zip')
+
+
+# ====================== PUBLICATION SYNC (Issue #9) ======================
+@professor_bp.route('/publications/sync')
+@login_required
+@professor_required
+def publication_sync_review():
+    """Review screen for publications found on ORCID that are not yet in
+    the database. Slice (a): fetch, dedup, display. Accepting candidates
+    into the record is slice (b)."""
+    from app.publication_sync import find_new_publications
+
+    pk = current_user.professor_key
+    prof = execute_query(
+        'SELECT ORCID FROM PROFESSOR WHERE ProfessorKey = %s',
+        (pk,), fetchone=True) or {}
+    orcid = (prof.get('ORCID') or '').strip()
+
+    candidates = find_new_publications(pk, orcid)
+    return render_template('professor/sync_review.html',
+                           candidates=candidates, orcid=orcid)

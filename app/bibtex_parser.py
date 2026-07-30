@@ -12,8 +12,7 @@ import re
 import io
 import bibtexparser
 from bibtexparser.bparser import BibTexParser
-from bibtexparser.customization import convert_to_unicode
-from bibtexparser.latexenc import latex_to_unicode
+from pylatexenc.latex2text import LatexNodes2Text
 
 
 # ── Category mapping ────────────────────────────────────────────────────────
@@ -51,6 +50,33 @@ def _strip_braces(text):
         return text
     result = re.sub(r'\{([^{}]*)\}', r'\1', str(text))
     return result.strip()
+
+
+_LATEX_DISPLAY = LatexNodes2Text()
+
+
+def _latex_display(text):
+    """
+    LaTeX -> readable unicode, for DISPLAY fields only.
+
+    Uses pylatexenc (the converter make_cv itself relies on) instead of
+    bibtexparser's convert_to_unicode / latex_to_unicode, which match
+    macros greedily by prefix: \\omega became '$ømega$' (\\o is the ø
+    macro, 'mega' stranded), \\lambda became '$łambda$', and even
+    ordinary accents could land on the wrong letter. Two of the 252
+    production titles were corrupted this way — found when the ORCID
+    sync offered an already-owned paper as "new".
+
+    Never applied to url/doi/pages and similar: '%' starts a LaTeX
+    comment and '~' is a non-breaking space, so decoding a URL destroys
+    it. RawBibtex is never touched by any conversion.
+    """
+    if not text:
+        return text
+    try:
+        return _LATEX_DISPLAY.latex_to_text(str(text)).strip()
+    except Exception:
+        return _strip_braces(str(text))
 
 
 def _get_category(keywords_str):
@@ -99,63 +125,52 @@ def parse_bib_file(filepath):
         with open(filepath, encoding='utf-8', errors='replace') as f:
             text = f.read()
 
-        # Parse 1 — with unicode conversion. Used for the DISPLAY fields
-        # shown in the browser (accents become real unicode characters).
-        disp_parser = BibTexParser(common_strings=True)
-        disp_parser.customization = convert_to_unicode
-        disp_parser.ignore_nonstandard_types = False
-        disp_db = bibtexparser.load(io.StringIO(text), parser=disp_parser)
-
-        # Parse 2 — NO customization. Used to build the faithful RawBibtex
-        # stored in the DB. This is essential: convert_to_unicode treats the
-        # make_cv undergraduate marker \us as a LaTeX breve accent and corrupts
-        # it into "s̆". Parsing without customization keeps \gs and \us intact.
+        # ONE parse, NO customization — the faithful entries that become
+        # RawBibtex. Display fields derive from these via _latex_display.
+        # (A second parse with bibtexparser's convert_to_unicode used to
+        # supply display fields; that converter corrupted titles — see
+        # _latex_display's docstring and tests/test_bibtex_display.py.)
         raw_parser = BibTexParser(common_strings=True)
         raw_parser.ignore_nonstandard_types = False
         raw_db = bibtexparser.load(io.StringIO(text), parser=raw_parser)
-        raw_by_id = {e.get('ID', ''): e for e in raw_db.entries}
 
         publications = []
-        for entry in disp_db.entries:
-            ekey = entry.get('ID', '')
-            # Faithful raw entry (markers preserved); fall back to display entry
-            raw_entry = raw_by_id.get(ekey, entry)
+        for raw_entry in raw_db.entries:
             raw = _entry_to_raw_bibtex(raw_entry)
 
             # Extract category from keywords
-            keywords_raw = entry.get('keywords', '')
+            keywords_raw = raw_entry.get('keywords', '')
             category = _get_category(keywords_raw)
 
-            # Author display: take the FAITHFUL raw author (markers intact),
-            # strip \gs/\us first, THEN convert accents. Doing it in this order
-            # avoids \us being mis-read as a breve accent (which would leave a
-            # stray "s̆" in the displayed name).
-            raw_author = raw_entry.get('author', '') or entry.get('author', '')
-            disp_author = _strip_braces(latex_to_unicode(_strip_markers(raw_author)))
+            # Author display: strip \gs/\us markers FIRST, then decode.
+            # The order is load-bearing: \us reads as a breve accent to any
+            # LaTeX decoder and would corrupt the name into "s̆".
+            raw_author = raw_entry.get('author', '')
+            disp_author = _latex_display(_strip_markers(raw_author))
 
             # Build clean publication dict (display fields stripped of markers)
             pub = {
-                'bibkey':       entry.get('ID', ''),
-                'type':         entry.get('ENTRYTYPE', 'misc'),
-                'title':        _strip_braces(entry.get('title', '')),
+                'bibkey':       raw_entry.get('ID', ''),
+                'type':         raw_entry.get('ENTRYTYPE', 'misc'),
+                'title':        _latex_display(raw_entry.get('title', '')),
                 'authors':      disp_author,
-                'year':         _parse_year(entry.get('year', '')),
-                'journal':      _strip_braces(entry.get('journal', '') or entry.get('journaltitle', '')),
-                'booktitle':    _strip_braces(entry.get('booktitle', '') or entry.get('address', '')),
-                'volume':       entry.get('volume', ''),
-                'issue':        entry.get('number', '') or entry.get('issue', ''),
-                'pages':        entry.get('pages', '').replace('--', '–'),
-                'doi':          entry.get('doi', ''),
-                'url':          entry.get('url', ''),
-                'publisher':    _strip_braces(entry.get('publisher', '')),
+                'year':         _parse_year(raw_entry.get('year', '')),
+                'journal':      _latex_display(raw_entry.get('journal', '') or raw_entry.get('journaltitle', '')),
+                'booktitle':    _latex_display(raw_entry.get('booktitle', '') or raw_entry.get('address', '')),
+                'volume':       raw_entry.get('volume', ''),
+                'issue':        raw_entry.get('number', '') or raw_entry.get('issue', ''),
+                'pages':        raw_entry.get('pages', '').replace('--', '–'),
+                'doi':          raw_entry.get('doi', ''),
+                'url':          raw_entry.get('url', ''),
+                'publisher':    _latex_display(raw_entry.get('publisher', '')),
                 'keywords':     keywords_raw,
                 'category':     category,
-                'citations':    _parse_int(entry.get('citations', 0)),
-                'abstract':     _strip_braces(entry.get('abstract', '')),
+                'citations':    _parse_int(raw_entry.get('citations', 0)),
+                'abstract':     _latex_display(raw_entry.get('abstract', '')),
                 'raw_bibtex':   raw,
                 # Store any extra make_cv fields
                 'extra_fields': {
-                    k: v for k, v in entry.items()
+                    k: v for k, v in raw_entry.items()
                     if k not in {
                         'ID', 'ENTRYTYPE', 'title', 'author', 'year',
                         'journal', 'journaltitle', 'booktitle', 'volume',

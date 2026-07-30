@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <h3 class="mb-0">Publication Sync</h3>
+    <a href="{{ url_for('professor.publications') }}"
+       class="btn btn-outline-secondary btn-sm ms-auto">
+        <i class="bi bi-arrow-left me-1"></i>Back to Publications
+    </a>
+</div>
+
+{% if not orcid %}
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h5>No new publications can be checked yet</h5>
+            <p class="mb-3 text-muted">
+                Add your ORCID iD to your profile first — the sync uses it
+                to look up your publication record.
+            </p>
+            <a href="{{ url_for('professor.profile') }}"
+               class="btn btn-gold">Go to Profile</a>
+        </div>
+    </div>
+
+{% elif candidates %}
+    <div class="alert alert-info py-2">
+        Found <strong>{{ candidates|length }}</strong> publication{{ 's' if candidates|length != 1 }}
+        on ORCID ({{ orcid }}) not yet in your record. Review below —
+        importing them into your record arrives in the next update.
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th style="width: 90px">Year</th>
+                        <th style="width: 130px">Category</th>
+                        <th style="width: 220px">DOI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in candidates %}
+                    <tr>
+                        <td>{{ c.title }}</td>
+                        <td>{{ c.year or '—' }}</td>
+                        <td>
+                            <span class="badge text-bg-secondary">{{ c.category }}</span>
+                        </td>
+                        <td class="small text-muted">
+                            {% if c.doi %}
+                                <a href="https://doi.org/{{ c.doi }}" target="_blank"
+                                   rel="noopener">{{ c.doi }}</a>
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% else %}
+    <div class="card shadow-sm">
+        <div class="card-body p-4 text-center">
+            <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+            <h5 class="mt-2">Your publication record is up to date</h5>
+            <p class="text-muted mb-0">
+                Nothing new was found on ORCID ({{ orcid }}).
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}
