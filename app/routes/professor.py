@@ -1919,6 +1919,6 @@ def publication_sync_review():
         (pk,), fetchone=True) or {}
     orcid = (prof.get('ORCID') or '').strip()
 
-    candidates = find_new_publications(pk, orcid)
+    result = find_new_publications(pk, orcid)
     return render_template('professor/sync_review.html',
-                           candidates=candidates, orcid=orcid)
+                           result=result, orcid=orcid)

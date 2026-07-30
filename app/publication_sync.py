@@ -50,6 +50,7 @@ import re
 import time
 
 from flask import current_app
+from pylatexenc.latex2text import LatexNodes2Text
 
 from app.utils import execute_query
 
@@ -73,10 +74,23 @@ _CATEGORY_BY_ORCID_TYPE = {
 }
 
 
+_LATEX_TEXT = LatexNodes2Text()
+
+
 def _title_key(title, year):
-    """Normalized title+year, mirroring make_cv's make_title_id:
-    lowercase alphanumerics of the title with the year appended."""
-    t = re.sub(r'[^a-z0-9]', '', (title or '').lower())
+    """
+    Normalized title+year — make_cv's make_title_id recipe, verbatim:
+    decode LaTeX to text FIRST, then lowercase, strip non-alphanumerics,
+    append the year. The decode step is load-bearing: a database title
+    holding "$\\omega$" and an ORCID title holding "ω" must produce the
+    same key. The first live run proved it — a real paper was offered
+    as "new" because the two forms didn't match.
+    """
+    try:
+        text = _LATEX_TEXT.latex_to_text(str(title or ''))
+    except Exception:
+        text = str(title or '')
+    t = re.sub(r'[^a-z0-9]+', '', text.lower())
     return f"{t}{year or ''}"
 
 
@@ -102,17 +116,22 @@ def fetch_orcid_works(orcid_id, years=0):
     deadline = time.monotonic() + TIME_BUDGET_SECONDS
     out = []
     groups = get_all_works(orcid_id) or []
-    if len(groups) > MAX_WORKS:
+    total = len(groups)
+    examined = 0
+    hit_budget = False
+    if total > MAX_WORKS:
         current_app.logger.info(
             'ORCID record has %s works; fetching the first %s',
-            len(groups), MAX_WORKS)
+            total, MAX_WORKS)
 
     for group in groups[:MAX_WORKS]:
         if time.monotonic() > deadline:
             current_app.logger.warning(
                 'ORCID fetch hit the %ss budget after %s works',
-                TIME_BUDGET_SECONDS, len(out))
+                TIME_BUDGET_SECONDS, examined)
+            hit_budget = True
             break
+        examined += 1
 
         summaries = group.get('work-summary') or []
         if not summaries:
@@ -145,25 +164,47 @@ def fetch_orcid_works(orcid_id, years=0):
             'raw_bibtex': bibtex_entry(work) or '',
             'category': _guess_category(work.get('type')),
         })
-    return out
+    return {
+        'works': out,
+        'total': total,
+        'examined': examined,
+        'truncated': hit_budget or total > MAX_WORKS,
+    }
+
+
+def _report(candidates=None, total=None, examined=0, truncated=False,
+            error=None):
+    return {'candidates': candidates or [], 'total_works': total,
+            'examined': examined, 'truncated': truncated, 'error': error}
 
 
 def find_new_publications(professor_key, orcid_id, years=0):
     """
-    The slice (a) service: fetch -> dedup against PUBLICATIONS ->
-    return candidates not yet in the database. Returns [] for a blank
-    ORCID iD (without fetching) and [] on any fetch failure — a sync
-    problem must never become a 500.
+    Fetch -> dedup against PUBLICATIONS -> report.
+
+    Returns a REPORT, not just a list, so the page can tell the truth:
+
+        {'candidates': [...],      new works not in the database
+         'total_works': int|None,  how many works the ORCID record holds
+         'examined': int,          how many we fetched details for
+         'truncated': bool,        stopped at the cap / time budget
+         'error': None|str}        human-readable failure, if any
+
+    The distinction matters most when candidates is empty: "checked all
+    42, nothing new" and "the fetch crashed, checked nothing" must never
+    look the same. A sync problem is reported, never raised — and never
+    dressed as success.
     """
     if not (orcid_id or '').strip():
-        return []
+        return _report()
 
     try:
         fetched = fetch_orcid_works(orcid_id, years=years)
     except Exception as exc:
         current_app.logger.warning(
             'ORCID fetch failed for professor %s: %s', professor_key, exc)
-        return []
+        return _report(error='Could not reach ORCID. Nothing was checked '
+                             '— please try again in a moment.')
 
     rows = execute_query(
         'SELECT Title, Year, DOI FROM PUBLICATIONS WHERE ProfessorKey = %s',
@@ -173,7 +214,7 @@ def find_new_publications(professor_key, orcid_id, years=0):
     known_titles = {_title_key(r.get('Title'), r.get('Year')) for r in rows}
 
     candidates = []
-    for work in fetched:
+    for work in fetched['works']:
         doi = (work.get('doi') or '').strip().lower()
         if doi and doi in known_dois:
             continue
@@ -182,6 +223,9 @@ def find_new_publications(professor_key, orcid_id, years=0):
         candidates.append(work)
 
     current_app.logger.info(
-        'ORCID sync for professor %s: %s fetched, %s new',
-        professor_key, len(fetched), len(candidates))
-    return candidates
+        'ORCID sync for professor %s: %s of %s works examined, %s new%s',
+        professor_key, fetched['examined'], fetched['total'],
+        len(candidates), ' (truncated)' if fetched['truncated'] else '')
+    return _report(candidates, total=fetched['total'],
+                   examined=fetched['examined'],
+                   truncated=fetched['truncated'])
