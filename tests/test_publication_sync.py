@@ -96,7 +96,7 @@ def canned_fetch(monkeypatch):
         _work(DUP_TITLE_TITLE, 2022, None),
     ]
     monkeypatch.setattr(sync, 'fetch_orcid_works',
-                        lambda orcid, years=0: _fetch_result(works))
+                        lambda orcid, years=0, offset=0: _fetch_result(works))
     return works
 
 
@@ -146,7 +146,7 @@ def test_truncation_is_reported(app, seeded_pubs, monkeypatch):
     import app.publication_sync as sync
     monkeypatch.setattr(
         sync, 'fetch_orcid_works',
-        lambda orcid, years=0: {'works': [_work(NEW_TITLE, 2025, None)],
+        lambda orcid, years=0, offset=0: {'works': [_work(NEW_TITLE, 2025, None)],
                                 'total': 97, 'examined': 60,
                                 'truncated': True})
     from app.publication_sync import find_new_publications
@@ -214,12 +214,12 @@ def test_page_up_to_date_states_the_count(app, logged_in_client,
                                           seeded_pubs, monkeypatch):
     import app.publication_sync as sync
     monkeypatch.setattr(sync, 'fetch_orcid_works',
-                        lambda orcid, years=0: _fetch_result(
+                        lambda orcid, years=0, offset=0: _fetch_result(
                             [], total=42, truncated=False))
     # make 'examined' meaningful for the empty case
     monkeypatch.setattr(
         sync, 'fetch_orcid_works',
-        lambda orcid, years=0: {'works': [], 'total': 42, 'examined': 42,
+        lambda orcid, years=0, offset=0: {'works': [], 'total': 42, 'examined': 42,
                                 'truncated': False})
 
     resp = logged_in_client.get('/professor/publications/sync')
@@ -234,7 +234,7 @@ def test_page_admits_truncation(app, logged_in_client, seeded_pubs,
     import app.publication_sync as sync
     monkeypatch.setattr(
         sync, 'fetch_orcid_works',
-        lambda orcid, years=0: {'works': [_work(NEW_TITLE, 2025, None)],
+        lambda orcid, years=0, offset=0: {'works': [_work(NEW_TITLE, 2025, None)],
                                 'total': 97, 'examined': 60,
                                 'truncated': True})
 
@@ -378,3 +378,157 @@ def test_import_ignores_smuggled_professor_key(app, logged_in_client,
     assert row and row['ProfessorKey'] == seeded_pubs
 
 
+
+
+# =====================================================================
+# Slice (c): pagination + navigation
+#
+# The truncation message used to say "run the sync again later for the
+# rest" — a white lie, since a second run re-fetched the same first 60
+# works. Now the URL carries ?offset=N, the report says which window it
+# covered (works 61-97), and the page offers a real continue link. The
+# sync page also finally gets a button on the publications page instead
+# of being reachable only by typing the URL.
+# =====================================================================
+
+def test_service_passes_offset_and_reports_it(app, monkeypatch):
+    """DB-free: find_new_publications hands the offset to the fetcher
+    and echoes it in the report, so the page can render the window."""
+    import app.publication_sync as sync
+    seen = {}
+    monkeypatch.setattr(sync, 'execute_query', lambda *a, **k: [])
+
+    def fake_fetch(orcid, years=0, offset=0):
+        seen['offset'] = offset
+        return {'works': [], 'total': 97, 'examined': 37,
+                'truncated': False, 'offset': offset}
+    monkeypatch.setattr(sync, 'fetch_orcid_works', fake_fetch)
+
+    with app.app_context():
+        result = sync.find_new_publications(9001, '0000-0000-0000-0000',
+                                            offset=60)
+
+    assert seen['offset'] == 60, 'the fetcher must receive the offset'
+    assert result['offset'] == 60, 'the report must echo the offset'
+
+
+def test_route_reads_offset_and_page_shows_the_window(app, logged_in_client,
+                                                      seeded_pubs,
+                                                      monkeypatch):
+    """?offset=60 reaches the fetch, and the page states works 61-97."""
+    import app.publication_sync as sync
+    seen = {}
+
+    def fake_fetch(orcid, years=0, offset=0):
+        seen['offset'] = offset
+        return {'works': [], 'total': 97, 'examined': 37,
+                'truncated': False, 'offset': offset}
+    monkeypatch.setattr(sync, 'fetch_orcid_works', fake_fetch)
+
+    resp = logged_in_client.get('/professor/publications/sync?offset=60')
+
+    assert resp.status_code == 200
+    assert seen.get('offset') == 60
+    assert b'61' in resp.data and b'97' in resp.data, \
+        'the page must state which window was checked'
+
+
+def test_truncated_page_offers_a_real_continue_link(app, logged_in_client,
+                                                    seeded_pubs,
+                                                    monkeypatch):
+    """A truncated run links to the NEXT window instead of advising a
+    rerun that would repeat the same works."""
+    import app.publication_sync as sync
+    monkeypatch.setattr(
+        sync, 'fetch_orcid_works',
+        lambda orcid, years=0, offset=0: {
+            'works': [_work(NEW_TITLE, 2025, None)],
+            'total': 97, 'examined': 60, 'truncated': True,
+            'offset': offset})
+
+    resp = logged_in_client.get('/professor/publications/sync')
+
+    assert resp.status_code == 200
+    assert b'offset=60' in resp.data, \
+        'the continue link must carry the next offset'
+
+
+def test_publications_page_links_to_sync(app, logged_in_client, seeded_pubs):
+    """The sync page must be reachable by button, not only by URL."""
+    resp = logged_in_client.get('/professor/publications')
+
+    assert resp.status_code == 200
+    assert b'/professor/publications/sync' in resp.data
+
+
+# =====================================================================
+# Slice (c): pagination — a bookmark in the URL
+#
+# "Run the sync again later for the rest" used to re-fetch the same
+# first 60 works. Now a truncated run offers a link carrying
+# ?offset=60, and the next run starts from work 61. Each run states
+# its window; "up to date" is reserved for a run that covered the
+# whole record.
+# =====================================================================
+
+def test_offset_is_passed_to_the_fetcher(app, seeded_pubs, monkeypatch):
+    import app.publication_sync as sync
+    seen = {}
+
+    def spy(orcid, years=0, offset=0):
+        seen['offset'] = offset
+        return {'works': [], 'total': 97, 'examined': 37, 'truncated': False}
+    monkeypatch.setattr(sync, 'fetch_orcid_works', spy)
+    from app.publication_sync import find_new_publications
+
+    with app.app_context():
+        result = find_new_publications(seeded_pubs, '0000-0000-0000-0000',
+                                       offset=60)
+
+    assert seen['offset'] == 60
+    assert result['offset'] == 60
+    assert result['next_offset'] == 97, 'offset + examined'
+
+
+def test_truncated_page_links_to_the_next_window(app, logged_in_client,
+                                                 seeded_pubs, monkeypatch):
+    """The continue button must carry the bookmark: offset=60."""
+    import app.publication_sync as sync
+    monkeypatch.setattr(
+        sync, 'fetch_orcid_works',
+        lambda orcid, years=0, offset=0: {
+            'works': [], 'total': 97, 'examined': 60, 'truncated': True})
+
+    resp = logged_in_client.get('/professor/publications/sync')
+
+    assert resp.status_code == 200
+    assert b'offset=60' in resp.data, \
+        'a truncated run must offer a link that resumes at the next work'
+
+
+def test_offset_run_states_its_window(app, logged_in_client, seeded_pubs,
+                                      monkeypatch):
+    """A continued run says which works it covered — and does not claim
+    the whole record is up to date."""
+    import app.publication_sync as sync
+    monkeypatch.setattr(
+        sync, 'fetch_orcid_works',
+        lambda orcid, years=0, offset=0: {
+            'works': [], 'total': 97, 'examined': 37, 'truncated': False})
+
+    resp = logged_in_client.get('/professor/publications/sync?offset=60')
+
+    assert resp.status_code == 200
+    assert b'61' in resp.data and b'97' in resp.data, \
+        'the window (works 61-97) must be stated'
+    assert b'up to date' not in resp.data.lower(), \
+        'a windowed run must not claim the whole record is current'
+
+
+def test_publications_page_links_to_sync(app, logged_in_client,
+                                         seed_professor):
+    resp = logged_in_client.get('/professor/publications')
+
+    assert resp.status_code == 200
+    assert b'/publications/sync' in resp.data, \
+        'the sync page must be reachable from the publications page'

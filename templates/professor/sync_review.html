@@ -41,11 +41,17 @@
         category if needed, and import the ones you want.
     </div>
     {% if result.truncated %}
-    <div class="alert alert-warning py-2">
-        This ORCID record has <strong>{{ result.total_works }}</strong>
-        works and only the first <strong>{{ result.examined }}</strong>
-        were checked — there may be more new publications beyond these.
-        Run the sync again later for the rest.
+    <div class="alert alert-warning py-2 d-flex align-items-center">
+        <span>
+            Checked works <strong>{{ result.offset + 1 }}–{{ result.next_offset }}</strong>
+            of <strong>{{ result.total_works }}</strong> — there may be more
+            new publications beyond these.
+        </span>
+        <a class="btn btn-sm btn-outline-dark ms-auto"
+           href="{{ url_for('professor.publication_sync_review',
+                            offset=result.next_offset) }}">
+            Check the next works
+        </a>
     </div>
     {% endif %}
 
@@ -115,12 +121,16 @@
     <div class="card shadow-sm">
         <div class="card-body p-4 text-center">
             <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
-            <h5 class="mt-2">No new publications in the works checked so far</h5>
-            <p class="text-muted mb-0">
-                This ORCID record has {{ result.total_works }} works and only
-                the first {{ result.examined }} were checked. Run the sync
-                again later for the rest.
+            <h5 class="mt-2">No new publications in works
+                {{ result.offset + 1 }}–{{ result.next_offset }}</h5>
+            <p class="text-muted mb-3">
+                This ORCID record has {{ result.total_works }} works.
             </p>
+            <a class="btn btn-gold"
+               href="{{ url_for('professor.publication_sync_review',
+                                offset=result.next_offset) }}">
+                Check works {{ result.next_offset + 1 }} onward
+            </a>
         </div>
     </div>
 
@@ -128,11 +138,20 @@
     <div class="card shadow-sm">
         <div class="card-body p-4 text-center">
             <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+            {% if result.offset %}
+            <h5 class="mt-2">No new publications in works
+                {{ result.offset + 1 }}–{{ result.next_offset }}</h5>
+            <p class="text-muted mb-0">
+                That covers the rest of the {{ result.total_works }} works on
+                ORCID ({{ orcid }}).
+            </p>
+            {% else %}
             <h5 class="mt-2">Your publication record is up to date</h5>
             <p class="text-muted mb-0">
                 All {{ result.examined }} works on ORCID ({{ orcid }}) were
                 checked — nothing new was found.
             </p>
+            {% endif %}
         </div>
     </div>
 {% endif %}

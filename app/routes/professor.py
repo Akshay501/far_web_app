@@ -1918,8 +1918,9 @@ def publication_sync_review():
         'SELECT ORCID FROM PROFESSOR WHERE ProfessorKey = %s',
         (pk,), fetchone=True) or {}
     orcid = (prof.get('ORCID') or '').strip()
+    offset = max(0, request.args.get('offset', 0, type=int) or 0)
 
-    result = find_new_publications(pk, orcid)
+    result = find_new_publications(pk, orcid, offset=offset)
     return render_template('professor/sync_review.html',
                            result=result, orcid=orcid)
 

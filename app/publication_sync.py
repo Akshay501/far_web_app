@@ -104,7 +104,7 @@ def _guess_category(orcid_type):
     return _CATEGORY_BY_ORCID_TYPE.get((orcid_type or '').lower(), 'journal')
 
 
-def fetch_orcid_works(orcid_id, years=0):
+def fetch_orcid_works(orcid_id, years=0, offset=0):
     """
     Fetch a professor's works from ORCID's public API, one summary call
     plus one detail call per work, bounded by MAX_WORKS and
@@ -123,14 +123,15 @@ def fetch_orcid_works(orcid_id, years=0):
     out = []
     groups = get_all_works(orcid_id) or []
     total = len(groups)
+    offset = max(0, int(offset or 0))
     examined = 0
     hit_budget = False
-    if total > MAX_WORKS:
+    if total > offset + MAX_WORKS:
         current_app.logger.info(
-            'ORCID record has %s works; fetching the first %s',
-            total, MAX_WORKS)
+            'ORCID record has %s works; fetching %s..%s',
+            total, offset + 1, offset + MAX_WORKS)
 
-    for group in groups[:MAX_WORKS]:
+    for group in groups[offset:offset + MAX_WORKS]:
         if time.monotonic() > deadline:
             current_app.logger.warning(
                 'ORCID fetch hit the %ss budget after %s works',
@@ -174,17 +175,20 @@ def fetch_orcid_works(orcid_id, years=0):
         'works': out,
         'total': total,
         'examined': examined,
-        'truncated': hit_budget or total > MAX_WORKS,
+        # Truncated = this run did not reach the END of the record,
+        # whether it stopped at the window cap or the time budget.
+        'truncated': hit_budget or (offset + examined) < total,
     }
 
 
 def _report(candidates=None, total=None, examined=0, truncated=False,
-            error=None):
+            error=None, offset=0):
     return {'candidates': candidates or [], 'total_works': total,
-            'examined': examined, 'truncated': truncated, 'error': error}
+            'examined': examined, 'truncated': truncated, 'error': error,
+            'offset': offset, 'next_offset': offset + examined}
 
 
-def find_new_publications(professor_key, orcid_id, years=0):
+def find_new_publications(professor_key, orcid_id, years=0, offset=0):
     """
     Fetch -> dedup against PUBLICATIONS -> report.
 
@@ -205,7 +209,7 @@ def find_new_publications(professor_key, orcid_id, years=0):
         return _report()
 
     try:
-        fetched = fetch_orcid_works(orcid_id, years=years)
+        fetched = fetch_orcid_works(orcid_id, years=years, offset=offset)
     except Exception as exc:
         current_app.logger.warning(
             'ORCID fetch failed for professor %s: %s', professor_key, exc)
@@ -234,7 +238,7 @@ def find_new_publications(professor_key, orcid_id, years=0):
         len(candidates), ' (truncated)' if fetched['truncated'] else '')
     return _report(candidates, total=fetched['total'],
                    examined=fetched['examined'],
-                   truncated=fetched['truncated'])
+                   truncated=fetched['truncated'], offset=offset)
 
 
 def _inject_keyword(raw_bibtex, category):
