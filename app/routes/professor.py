@@ -1922,3 +1922,41 @@ def publication_sync_review():
     result = find_new_publications(pk, orcid)
     return render_template('professor/sync_review.html',
                            result=result, orcid=orcid)
+
+
+@professor_bp.route('/publications/sync/import', methods=['POST'])
+@login_required
+@professor_required
+def publication_sync_import():
+    """Slice (b): insert the ticked candidates from the review page.
+    The form sends parallel arrays; only indices listed in include[]
+    are imported, and only for the logged-in professor."""
+    from app.publication_sync import import_candidates
+
+    # The form sends only what cannot be derived: the raw bibtex entry
+    # and the category the professor chose. Title, year and DOI are read
+    # back OUT of the raw entry server-side rather than trusted from
+    # hidden fields, so the browser cannot contradict the entry it is
+    # submitting — dedup then runs against the real values.
+    selected = []
+    for idx in request.form.getlist('import'):
+        raw = request.form.get(f'candidate-{idx}-raw')
+        if not raw:
+            continue
+        selected.append({
+            'raw_bibtex': raw,
+            'category': request.form.get(f'candidate-{idx}-category')
+                        or 'journal',
+        })
+
+    result = import_candidates(current_user.professor_key, selected)
+
+    parts = [f"Imported {result['imported']} publication"
+             f"{'s' if result['imported'] != 1 else ''}."]
+    if result['skipped']:
+        parts.append(f"Skipped {result['skipped']} already in your record.")
+    if result['failed']:
+        parts.append(f"{result['failed']} could not be parsed.")
+    flash(' '.join(parts),
+          'success' if result['imported'] else 'warning')
+    return redirect(url_for('professor.publications'))

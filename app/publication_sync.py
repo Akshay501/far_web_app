@@ -46,12 +46,15 @@ Dedup keys, checked in order:
     (lowercase alphanumerics + year), so punctuation and spacing
     differences don't defeat the match
 """
+import os
 import re
+import tempfile
 import time
 
 from flask import current_app
 from pylatexenc.latex2text import LatexNodes2Text
 
+from app.bibtex_parser import parse_bib_file
 from app.utils import execute_query
 
 # Bounds for one sync run.
@@ -61,16 +64,19 @@ TIME_BUDGET_SECONDS = 45
 # ORCID work types -> the category badge shown on the review screen.
 # Display-level for slice (a); slice (b) maps onto the app's publication
 # categories at insert time.
+# ORCID work types -> make_cv keyword vocabulary (the same categories the
+# publications page uses). These are GUESSES the professor confirms via a
+# dropdown on the review screen — the human check that replaces make_cv's
+# silent auto-classification.
 _CATEGORY_BY_ORCID_TYPE = {
     'journal-article': 'journal',
-    'conference-paper': 'conference',
+    'conference-paper': 'refereed',
     'conference-abstract': 'conference',
     'book': 'book',
-    'book-chapter': 'book chapter',
-    'preprint': 'preprint',
+    'book-chapter': 'book',
+    'preprint': 'arxiv',
     'patent': 'patent',
-    'dissertation-thesis': 'thesis',
-    'report': 'report',
+    'report': 'techreport',
 }
 
 
@@ -95,7 +101,7 @@ def _title_key(title, year):
 
 
 def _guess_category(orcid_type):
-    return _CATEGORY_BY_ORCID_TYPE.get((orcid_type or '').lower(), 'other')
+    return _CATEGORY_BY_ORCID_TYPE.get((orcid_type or '').lower(), 'journal')
 
 
 def fetch_orcid_works(orcid_id, years=0):
@@ -229,3 +235,118 @@ def find_new_publications(professor_key, orcid_id, years=0):
     return _report(candidates, total=fetched['total'],
                    examined=fetched['examined'],
                    truncated=fetched['truncated'])
+
+
+def _inject_keyword(raw_bibtex, category):
+    """
+    Ensure the stored entry carries the chosen category as a bibtex
+    keywords field. This is what makes the review screen's choice REAL:
+    scholarship.bib is rebuilt from RawBibtex on every generation, and
+    make_cv sections publications by the keywords field in the bib — an
+    entry without one gets re-guessed by make_cv's missing-type step,
+    ignoring whatever the professor picked.
+    """
+    if not category:
+        return raw_bibtex
+    # Replace an existing keywords field, if any (the chosen category wins).
+    replaced, n = re.subn(r'(?im)^(\s*keywords\s*=\s*)\{[^}]*\}',
+                          lambda m: m.group(1) + '{' + category + '}',
+                          raw_bibtex)
+    if n:
+        return replaced
+    # Otherwise insert one before the closing brace.
+    idx = raw_bibtex.rfind('}')
+    if idx == -1:
+        return raw_bibtex
+    return (raw_bibtex[:idx].rstrip().rstrip(',')
+            + f',\n  keywords       = {{{category}}},\n}}')
+
+
+def import_candidates(professor_key, candidates):
+    """
+    Slice (b): write accepted candidates into PUBLICATIONS.
+
+    Safety rules, in order:
+      1. Dedup runs AGAIN here, against the database as it is NOW — the
+         review page's list may be stale (a paper added by hand while
+         the tab sat open must not become a duplicate). Skips are
+         counted and reported, never silent.
+      2. Each candidate's raw_bibtex is parsed through the app's own
+         fixed parser, so the display fields obey the same invariant as
+         a bib upload: RawBibtex keeps markers and LaTeX verbatim,
+         Title/Authors come out decoded.
+      3. The professor_key comes from the session, never the form.
+
+    Returns {'imported': n, 'skipped': n, 'failed': n}.
+    """
+    rows = execute_query(
+        'SELECT Title, Year, DOI FROM PUBLICATIONS WHERE ProfessorKey = %s',
+        (professor_key,)) or []
+    known_dois = {(r.get('DOI') or '').strip().lower()
+                  for r in rows if (r.get('DOI') or '').strip()}
+    known_titles = {_title_key(r.get('Title'), r.get('Year')) for r in rows}
+
+    imported = skipped = failed = 0
+    for cand in candidates:
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                    'w', suffix='.bib', delete=False,
+                    encoding='utf-8') as tmp:
+                tmp.write(cand.get('raw_bibtex') or '')
+                tmp_path = tmp.name
+            pubs, err = parse_bib_file(tmp_path)
+        finally:
+            if tmp_path:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+        if err or not pubs:
+            failed += 1
+            current_app.logger.warning(
+                'Sync import: could not parse a candidate for professor '
+                '%s: %s', professor_key, err)
+            continue
+        p = pubs[0]
+
+        # Dedup on the PARSED values — the entry's own title/year/DOI,
+        # not anything the browser claimed. Runs here, against the
+        # database as it is NOW, so a stale review tab cannot create a
+        # duplicate.
+        doi = (p.get('doi') or '').strip().lower()
+        tkey = _title_key(p.get('title'), p.get('year'))
+        if (doi and doi in known_dois) or tkey in known_titles:
+            skipped += 1
+            continue
+
+        raw_stored = _inject_keyword(p.get('raw_bibtex', ''),
+                                     cand.get('category'))
+
+        execute_query("""
+            INSERT INTO PUBLICATIONS
+                (ProfessorKey, BibKey, Type, Title, Authors, Year,
+                 Journal, Booktitle, Volume, Issue, Pages, DOI, URL,
+                 Publisher, Keywords, Citations, Abstract, RawBibtex)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            professor_key, p.get('bibkey', ''), p.get('type', 'misc'),
+            p.get('title', ''), p.get('authors', ''), p.get('year'),
+            p.get('journal', ''), p.get('booktitle', ''),
+            p.get('volume', ''), p.get('issue', ''), p.get('pages', ''),
+            p.get('doi', ''),
+            p.get('url', ''), p.get('publisher', ''),
+            cand.get('category') or p.get('category') or 'journal',
+            p.get('citations', 0), p.get('abstract', ''),
+            raw_stored,
+        ), commit=True)
+        imported += 1
+        known_titles.add(tkey)
+        if doi:
+            known_dois.add(doi)
+
+    current_app.logger.info(
+        'Sync import for professor %s: %s imported, %s skipped, %s failed',
+        professor_key, imported, skipped, failed)
+    return {'imported': imported, 'skipped': skipped, 'failed': failed}

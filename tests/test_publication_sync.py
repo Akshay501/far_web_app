@@ -51,6 +51,7 @@ def _fetch_result(works, total=None, truncated=False):
 
 
 NEW_TITLE = 'A Completely Novel Result In Fluid Dynamics'
+OTHER_TITLE = 'Another Unimported Result Entirely'
 DUP_DOI_TITLE = 'Shared Work Matched By DOI'
 DUP_TITLE_TITLE = 'Shared Work Matched By Title And Year'
 
@@ -79,7 +80,7 @@ def seeded_pubs(app, seed_professor):
         execute_query(
             'UPDATE PROFESSOR SET ORCID = NULL WHERE ProfessorKey = %s',
             (pk,), commit=True)
-        for t in (NEW_TITLE, DUP_DOI_TITLE, DUP_TITLE_TITLE):
+        for t in (NEW_TITLE, OTHER_TITLE, DUP_DOI_TITLE, DUP_TITLE_TITLE):
             execute_query('DELETE FROM PUBLICATIONS WHERE Title = %s',
                           (t,), commit=True)
 
@@ -261,3 +262,119 @@ def test_page_shows_failure_as_failure(app, logged_in_client, seeded_pubs,
     assert (b'could not' in lower or b'try again' in lower)
     assert b'up to date' not in lower, \
         'a failed check must never be dressed as success'
+
+
+# ----------------------------------------------- slice (b): the import
+
+def _import_form(*cands, ticked=None):
+    """Build the POST body the review page's form produces: hidden
+    fields per candidate, checkboxes selecting which to import."""
+    form = {}
+    for i, c in enumerate(cands):
+        form[f'candidate-{i}-raw'] = c['raw_bibtex']
+        form[f'candidate-{i}-category'] = c.get('category', 'journal')
+    form['import'] = [str(i) for i in (ticked if ticked is not None
+                                       else range(len(cands)))]
+    return form
+
+
+def test_import_requires_login(client):
+    resp = client.post('/professor/publications/sync/import', data={})
+    assert resp.status_code == 302
+    assert '/login' in resp.headers['Location']
+
+
+def test_import_inserts_selected_candidate(app, logged_in_client,
+                                           seeded_pubs):
+    """A ticked candidate becomes a real PUBLICATIONS row, owned by the
+    logged-in professor, with its RawBibtex stored."""
+    cand = _work(NEW_TITLE, 2025, '10.9999/new.one')
+    resp = logged_in_client.post('/professor/publications/sync/import',
+                                 data=_import_form(cand),
+                                 follow_redirects=True)
+    assert resp.status_code == 200
+
+    with app.app_context():
+        row = execute_query(
+            'SELECT ProfessorKey, Title, Year, RawBibtex FROM PUBLICATIONS '
+            'WHERE Title = %s', (NEW_TITLE,), fetchone=True)
+    assert row, 'the imported candidate must exist in the database'
+    assert row['ProfessorKey'] == seeded_pubs
+    assert NEW_TITLE in row['RawBibtex']
+
+
+def test_import_only_inserts_ticked(app, logged_in_client, seeded_pubs):
+    """Two candidates in the form, one checkbox ticked: exactly one row."""
+    a = _work(NEW_TITLE, 2025, '10.9999/new.one')
+    b = _work(OTHER_TITLE, 2024, '10.9999/other.two')
+    logged_in_client.post('/professor/publications/sync/import',
+                          data=_import_form(a, b, ticked=[0]),
+                          follow_redirects=True)
+
+    with app.app_context():
+        got_a = execute_query('SELECT 1 FROM PUBLICATIONS WHERE Title=%s',
+                              (NEW_TITLE,), fetchone=True)
+        got_b = execute_query('SELECT 1 FROM PUBLICATIONS WHERE Title=%s',
+                              (OTHER_TITLE,), fetchone=True)
+    assert got_a and not got_b
+
+
+def test_import_rechecks_duplicates_at_insert_time(app, logged_in_client,
+                                                   seeded_pubs):
+    """The stale-tab case: a candidate that entered the database AFTER
+    the review page was rendered must be skipped, not duplicated. The
+    dedup runs again at insert time against fresh state."""
+    with app.app_context():
+        execute_query(
+            'INSERT INTO PUBLICATIONS (ProfessorKey, Title, Year, DOI, '
+            'RawBibtex) VALUES (%s,%s,%s,%s,%s)',
+            (seeded_pubs, NEW_TITLE, 2025, '10.9999/new.one',
+             '@article{x,title={z}}'), commit=True)
+
+    cand = _work(NEW_TITLE, 2025, '10.9999/new.one')
+    logged_in_client.post('/professor/publications/sync/import',
+                          data=_import_form(cand), follow_redirects=True)
+
+    with app.app_context():
+        rows = execute_query(
+            'SELECT 1 FROM PUBLICATIONS WHERE ProfessorKey=%s AND DOI=%s',
+            (seeded_pubs, '10.9999/new.one'))
+    assert len(rows) == 1, 'a now-known candidate must be skipped, not doubled'
+
+
+def test_import_writes_the_chosen_category_keyword(app, logged_in_client,
+                                                   seeded_pubs):
+    """The category picked on the review screen is written INTO the
+    stored bibtex as a keywords line — that is how make_cv decides which
+    FAR/CV section the paper lands in when the bib regenerates."""
+    cand = _work(NEW_TITLE, 2025, '10.9999/new.one')
+    cand['category'] = 'refereed'
+    logged_in_client.post('/professor/publications/sync/import',
+                          data=_import_form(cand), follow_redirects=True)
+
+    with app.app_context():
+        row = execute_query(
+            'SELECT Keywords, RawBibtex FROM PUBLICATIONS WHERE Title = %s',
+            (NEW_TITLE,), fetchone=True)
+    assert row
+    assert 'refereed' in (row['Keywords'] or '')
+    assert 'keywords' in row['RawBibtex'].lower()
+    assert 'refereed' in row['RawBibtex']
+
+
+def test_import_ignores_smuggled_professor_key(app, logged_in_client,
+                                               seeded_pubs):
+    """Ownership comes from the session, never from the form."""
+    cand = _work(NEW_TITLE, 2025, '10.9999/new.one')
+    form = _import_form(cand)
+    form['professor_key'] = '999999'
+    logged_in_client.post('/professor/publications/sync/import',
+                          data=form, follow_redirects=True)
+
+    with app.app_context():
+        row = execute_query(
+            'SELECT ProfessorKey FROM PUBLICATIONS WHERE Title = %s',
+            (NEW_TITLE,), fetchone=True)
+    assert row and row['ProfessorKey'] == seeded_pubs
+
+
