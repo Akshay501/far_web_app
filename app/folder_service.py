@@ -195,7 +195,7 @@ def write_personal_data(path, google_id, orcid, scopus_id):
 _STATS_KEYS = ('scopusstats', 'googlestats')
 
 
-def _disable_stats_flags(folder):
+def disable_stats_flags(folder):
     """Set scopusstats/googlestats to false in every make_cv.cfg under the
     folder. Creation-time default — see module docstring. Only these two
     keys are touched; all other lines pass through unchanged."""
@@ -311,7 +311,7 @@ def ensure_professor_folder(professor_key, first_name, last_name, email,
         render_contactinfo(
             os.path.join(personal, 'ContactInfo.tex'),
             first_name, last_name, email)
-        _disable_stats_flags(dest)
+        disable_stats_flags(dest)
         _write_scaffold_version(dest, template)
 
         return 'created'

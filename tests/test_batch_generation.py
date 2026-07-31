@@ -148,3 +148,28 @@ def test_one_professor_failing_does_not_abort_the_batch(app, admin_client,
     assert resp.status_code == 200, 'the batch must not 500'
     assert b'Pytest' in resp.data, \
         'the failing professor must be listed with their error'
+
+
+def test_batch_disarms_the_stats_fetch(app, admin_client, seed_professor,
+                                       scaffold, batch_stubs):
+    """The stats fetch (per-publication citation scraping, no timeout
+    upstream) is gated by GoogleStats/ScopusStats in make_cv.cfg. An old
+    cfg can arrive armed — and ensure_config_updated's repair step
+    re-arms it, because make_cv's create_config defaults those keys to
+    TRUE. One armed folder stalls the whole batch; batch must therefore
+    disarm after every config update. Observed live 2026-07-30."""
+    pk = seed_professor['professor_key']
+    far = scaffold['root'] / str(pk) / 'make_cv' / 'FAR'
+    far.mkdir(parents=True, exist_ok=True)
+    (far / 'make_cv.cfg').write_text(
+        '[CV]\n'
+        'years = 1\n'
+        'GoogleStats = true\n'
+        'ScopusStats = true\n')
+
+    admin_client.post('/admin/generate-all',
+                      data={'years': '1', 'format': 'pdf'})
+
+    cfg = (far / 'make_cv.cfg').read_text().lower()
+    assert 'googlestats = false' in cfg, cfg
+    assert 'scopusstats = false' in cfg, cfg

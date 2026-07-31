@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 from app.utils import execute_query, safe_slug
 from app.excel_export import export_all
 from app.accounts import ensure_folder_for_existing, refresh_personal_files
+from app.folder_service import disable_stats_flags
 
 generate_bp = Blueprint('generate', __name__)
 
@@ -650,6 +651,27 @@ def generate_all():
 
         professors = execute_query("SELECT ProfessorKey, FirstName, LastName, Department FROM PROFESSOR") or []
 
+        # THE STATS-HANG LAW, applied to batch.
+        #
+        # The stats fetch (Google Scholar / Scopus citation scraping,
+        # one lookup per publication, NO timeout upstream) is gated by
+        # the GoogleStats/ScopusStats keys in make_cv.cfg. Folder
+        # creation sets them false — but ensure_config_updated repairs
+        # an old cfg by running make_cv's create_config, whose DEFAULTS
+        # for those keys are TRUE. So the repair step re-arms the very
+        # landmine creation defuses: one professor with an ancient cfg
+        # stalls the batch on a per-publication scrape, and everyone
+        # after them never gets generated. Observed live 2026-07-30
+        # ("UseWebScraper is missing from config file" ... hang).
+        #
+        # Batch therefore disables the stats flags AFTER every config
+        # update, using the same tested patcher creation uses. A
+        # professor who wants citation counts can generate alone and
+        # wait for their own fetch.
+        batch_options = {
+            'years': int(years) if years != '0' else -1,
+        }
+
         tmp_dir  = tempfile.mkdtemp()
         zip_path = os.path.join(tmp_dir, 'all_fars.zip')
         results  = []
@@ -705,7 +727,8 @@ def generate_all():
                 try:
                     if fmt in ('pdf', 'both'):
                         far_folder = os.path.join(make_cv_folder, 'FAR')
-                        ensure_config_updated(far_folder)
+                        ensure_config_updated(far_folder, batch_options)
+                        disable_stats_flags(far_folder)
                         ok, err = run_make_far(far_folder, use_pandoc=False)
                         pdf = os.path.join(far_folder, 'far.pdf')
                         if ok and os.path.exists(pdf):
@@ -718,7 +741,8 @@ def generate_all():
 
                     if fmt in ('docx', 'both'):
                         far_docx = os.path.join(make_cv_folder, 'FAR_docx')
-                        ensure_config_updated(far_docx)
+                        ensure_config_updated(far_docx, batch_options)
+                        disable_stats_flags(far_docx)
                         ok, err = run_make_far(far_docx, use_pandoc=True)
                         docx = os.path.join(far_docx, 'far.docx')
                         if ok and os.path.exists(docx):
