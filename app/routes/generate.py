@@ -660,42 +660,79 @@ def generate_all():
                 pk     = prof['ProfessorKey']
                 name    = f"{prof['LastName']}, {prof['FirstName']}"
                 arc_dir = f"{safe_slug(prof['LastName'])}_{safe_slug(prof['FirstName'])}"
-                professor_folder, _ = get_professor_folder(pk)
 
-                if not professor_folder or not os.path.isdir(professor_folder):
-                    results.append({'name': name, 'status': '❌ folder not found'})
-                    continue
+                # Every professor gets exactly ONE row in the report,
+                # whatever happens to them. A name missing from this table
+                # would mean the report is broken, not the professor — and
+                # an admin has no way to notice an absence.
+                notes = []
 
                 try:
+                    # Heal first, exactly as the single-generation route
+                    # does: a professor who signed up but never logged in
+                    # has no folder, and rebuilding it is automatic.
+                    status, heal_error = ensure_folder_for_existing(pk)
+                    professor_folder, _ = get_professor_folder(pk)
+
+                    if not professor_folder or not os.path.isdir(professor_folder):
+                        reason = f': {heal_error}' if heal_error else ''
+                        results.append({'name': name,
+                                        'status': f'❌ no folder and healing failed{reason}'})
+                        continue
+                    if heal_error:
+                        # Folder exists but healing complained — worth a note
+                        # on this professor's row rather than silence.
+                        notes.append(f'⚠️ folder: {heal_error}')
+
+                    # Refresh disk from DB truth — the same three steps the
+                    # single route performs. write_bib_from_db was missing
+                    # here, so batch FARs were built from whatever bib
+                    # happened to be on disk, silently omitting every
+                    # publication added through the web app.
                     refresh_personal_files(pk, professor_folder)
+                    write_bib_from_db(pk, professor_folder)
                     db_data = fetch_all_db_data(pk)
                     export_all(pk, professor_folder, db_data)
                 except Exception as e:
-                    results.append({'name': name, 'status': f'❌ export error: {e}'})
+                    # Covers healing, the personal-file refresh, the bib
+                    # rebuild, and the Excel export — everything before
+                    # make_far runs.
+                    results.append({'name': name, 'status': f'❌ preparation failed: {e}'})
                     continue
 
                 make_cv_folder = os.path.join(professor_folder, 'make_cv')
 
-                if fmt in ('pdf', 'both'):
-                    far_folder = os.path.join(make_cv_folder, 'FAR')
-                    ensure_config_updated(far_folder)
-                    ok, err = run_make_far(far_folder, use_pandoc=False)
-                    if ok:
+                try:
+                    if fmt in ('pdf', 'both'):
+                        far_folder = os.path.join(make_cv_folder, 'FAR')
+                        ensure_config_updated(far_folder)
+                        ok, err = run_make_far(far_folder, use_pandoc=False)
                         pdf = os.path.join(far_folder, 'far.pdf')
-                        if os.path.exists(pdf):
+                        if ok and os.path.exists(pdf):
                             zf.write(pdf, f"{arc_dir}/{generated_name('far.pdf', prof['LastName'], prof['FirstName'])}")
-                            results.append({'name': name, 'status': '✅ PDF generated'})
-                    else:
-                        results.append({'name': name, 'status': f'❌ {err}'})
+                            notes.append('✅ PDF generated')
+                        elif ok:
+                            notes.append('❌ PDF: make_far reported success but no file was produced')
+                        else:
+                            notes.append(f'❌ PDF: {err}')
 
-                if fmt in ('docx', 'both'):
-                    far_docx = os.path.join(make_cv_folder, 'FAR_docx')
-                    ensure_config_updated(far_docx)
-                    ok, err = run_make_far(far_docx, use_pandoc=True)
-                    if ok:
+                    if fmt in ('docx', 'both'):
+                        far_docx = os.path.join(make_cv_folder, 'FAR_docx')
+                        ensure_config_updated(far_docx)
+                        ok, err = run_make_far(far_docx, use_pandoc=True)
                         docx = os.path.join(far_docx, 'far.docx')
-                        if os.path.exists(docx):
+                        if ok and os.path.exists(docx):
                             zf.write(docx, f"{arc_dir}/{generated_name('far.docx', prof['LastName'], prof['FirstName'])}")
+                            notes.append('✅ Word generated')
+                        elif ok:
+                            notes.append('❌ Word: make_far reported success but no file was produced')
+                        else:
+                            notes.append(f'❌ Word: {err}')
+                except Exception as e:
+                    notes.append(f'❌ generation error: {e}')
+
+                results.append({'name': name,
+                                'status': ' · '.join(notes) or '❌ nothing was generated'})
 
         return render_template('admin/generate_all.html',
                                results=results,
