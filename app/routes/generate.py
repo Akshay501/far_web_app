@@ -15,7 +15,6 @@ from werkzeug.utils import secure_filename
 from app.utils import execute_query, safe_slug
 from app.excel_export import export_all
 from app.accounts import ensure_folder_for_existing, refresh_personal_files
-from app.folder_service import disable_stats_flags
 
 generate_bp = Blueprint('generate', __name__)
 
@@ -269,11 +268,23 @@ def ensure_config_updated(far_folder, options=None):
     """
     import configparser
     cfg_path = os.path.join(far_folder, 'make_cv.cfg')
-    if not os.path.exists(cfg_path):
-        return  # no config file — make_far will handle this itself
+    folder_kind = os.path.basename(os.path.normpath(far_folder))
 
     try:
         from make_cv.create_config import create_config, verify_config
+
+        if not os.path.exists(cfg_path):
+            # Create it HERE rather than deferring to make_far, whose own
+            # create_config at generation time is unguarded — it would
+            # plant the same defaults the guard below exists to defuse.
+            current_dir = os.getcwd()
+            os.chdir(far_folder)
+            try:
+                create_config('make_cv.cfg', configparser.ConfigParser())
+                current_app.logger.info(
+                    f'Created make_cv.cfg in {far_folder}')
+            finally:
+                os.chdir(current_dir)
 
         # Read the existing config
         old_config = configparser.ConfigParser()
@@ -290,6 +301,31 @@ def ensure_config_updated(far_folder, options=None):
                 old_config.read(cfg_path)
             finally:
                 os.chdir(current_dir)
+
+        # ------------------------------------------------------------
+        # THE FAR CONFIG GUARD (batch hangs of 2026-07-30).
+        #
+        # create_config's defaults plant two mines in a FAR config:
+        #   GoogleStats/ScopusStats=true -> per-publication citation
+        #     scrape with no timeout upstream (the hang);
+        #   References=false -> a CV-only section FAR.sty never
+        #     declares, so LaTeX errors — and make_far's missing
+        #     -interaction=batchmode turns that error into a ? prompt
+        #     waiting forever for keyboard input.
+        # Both fired live, from one config repair, freezing the batch
+        # twice. CV configs are left alone: a CV legitimately excludes
+        # its References section.
+        # ------------------------------------------------------------
+        sec0 = list(old_config.sections())[0] if old_config.sections() else 'CV'
+        latexfile = old_config.get(sec0, 'latexfile', fallback='')
+        is_far = (latexfile.lower().startswith('far')
+                  or folder_kind.upper().startswith('FAR'))
+        if is_far:
+            if latexfile.lower() != 'far.tex':
+                old_config.set(sec0, 'latexfile', 'far.tex')
+            old_config.set(sec0, 'references', 'true')
+            old_config.set(sec0, 'googlestats', 'false')
+            old_config.set(sec0, 'scopusstats', 'false')
 
         # Apply user options if provided
         if options:
@@ -318,10 +354,14 @@ def ensure_config_updated(far_folder, options=None):
                 if old_config.has_option(section, sec):
                     old_config.set(section, sec, val)
 
-            # Write updated config back
-            with open(cfg_path, 'w') as f:
-                old_config.write(f)
             current_app.logger.info(f'Applied user options to make_cv.cfg in {far_folder}')
+
+        # Persist ALWAYS, not only when options were supplied. The guard
+        # above sets values in memory; without an unconditional write they
+        # were discarded on every call that passed no options — which is
+        # every call from batch and export.
+        with open(cfg_path, 'w') as f:
+            old_config.write(f)
 
     except Exception as e:
         current_app.logger.warning(f'Could not update make_cv.cfg: {e}')
@@ -728,7 +768,6 @@ def generate_all():
                     if fmt in ('pdf', 'both'):
                         far_folder = os.path.join(make_cv_folder, 'FAR')
                         ensure_config_updated(far_folder, batch_options)
-                        disable_stats_flags(far_folder)
                         ok, err = run_make_far(far_folder, use_pandoc=False)
                         pdf = os.path.join(far_folder, 'far.pdf')
                         if ok and os.path.exists(pdf):
@@ -742,7 +781,6 @@ def generate_all():
                     if fmt in ('docx', 'both'):
                         far_docx = os.path.join(make_cv_folder, 'FAR_docx')
                         ensure_config_updated(far_docx, batch_options)
-                        disable_stats_flags(far_docx)
                         ok, err = run_make_far(far_docx, use_pandoc=True)
                         docx = os.path.join(far_docx, 'far.docx')
                         if ok and os.path.exists(docx):
