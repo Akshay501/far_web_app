@@ -473,50 +473,109 @@ def translate_error(raw_error):
     )
 
 
-def run_make_far(far_folder, use_pandoc=False):
-    """
-    Call make_far from within the FAR or FAR_docx folder.
-    Returns (success, error_message)
-    """
+GENERATION_TIMEOUT_DEFAULT = 300  # seconds
+
+
+def _generation_command(module, extra_args=()):
+    """The command list that launches a generator as a subprocess.
+    Separated out so tests can substitute tiny fake scripts."""
     import sys
+    # -u: unbuffered. A python child writing into a pipe block-buffers
+    # its prints, so progress arrives inverted (grandchildren first) and
+    # a HUNG child's lines are lost entirely — exactly when the timeout
+    # report needs them. Proven live 2026-08-17.
+    return [sys.executable, '-u', '-m', module, *extra_args]
+
+
+def _run_generation(module, folder, extra_args=(), what='generation'):
+    """
+    Issue #12: run a generator (make_far / make_cv) as a SUBPROCESS with
+    a hard timeout, instead of importing it in-process.
+
+    In-process, a hang inside the generator — LaTeX waiting at a "?"
+    prompt for keyboard input, a network call with no limit — is a hang
+    inside the web worker: the app cannot notice, log, or recover. Both
+    happened live on 2026-07-30 and froze the batch until Ctrl-C.
+
+    As a subprocess the app keeps control: it watches the clock, kills
+    the process at the budget, and reports a timeout. Output is captured
+    so a failure's actual error text reaches the results table instead
+    of scattering into a console nobody is watching.
+
+    Returns (success, error_message) — the same contract as before, so
+    every caller (single generate, batch, standalone) is unchanged.
+    """
+    import subprocess
+
     try:
-        from make_cv.make_far import main as make_far_main
-        original_dir = os.getcwd()
-        original_argv = sys.argv
-        os.chdir(far_folder)
-        try:
-            # Replace sys.argv so argparse does not pick up Flask arguments
-            argv = ['-p'] if use_pandoc else []
-            sys.argv = ['make_far'] + argv
-            make_far_main(argv)
-        finally:
-            os.chdir(original_dir)
-            sys.argv = original_argv
-        return True, None
+        timeout = current_app.config.get('GENERATION_TIMEOUT',
+                                         GENERATION_TIMEOUT_DEFAULT)
+    except RuntimeError:  # outside an app context
+        timeout = GENERATION_TIMEOUT_DEFAULT
+
+    import threading
+
+    cmd = _generation_command(module, extra_args)
+    captured = []
+    try:
+        # stderr merged into stdout: one stream, lines in order, and
+        # error text can never be lost in a separate pipe.
+        # start_new_session: the child gets its own process group, so a
+        # timeout can kill the WHOLE tree. The likeliest hanger is a
+        # grandchild (xelatex at its ? prompt); killing only the middle
+        # python would orphan it, still holding far.pdf.
+        proc = subprocess.Popen(cmd, cwd=folder, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True,
+                                bufsize=1, start_new_session=True)
     except Exception as e:
         return False, str(e)
+
+    def _pump():
+        # Show it AND capture it: relay each line to the app's console
+        # the moment it arrives, and keep a copy for error reporting.
+        for line in proc.stdout:
+            print(line, end='', flush=True)
+            captured.append(line)
+
+    pump = threading.Thread(target=_pump, daemon=True)
+    pump.start()
+
+    try:
+        rc = proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        import signal
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+        proc.wait()
+        pump.join(timeout=5)
+        tail = ''.join(captured)[-1500:].strip()
+        return False, (
+            f'{what} timed out after {timeout}s and was stopped. This '
+            f'usually means LaTeX hit an error and waited for keyboard '
+            f'input, or a network call hung.'
+            + (f' Last output before the stop:\n{tail}' if tail else ''))
+
+    pump.join(timeout=5)
+    if rc != 0:
+        output = ''.join(captured).strip()
+        tail = output[-1500:] if output else f'exit status {rc}'
+        return False, tail
+    return True, None
+
+
+def run_make_far(far_folder, use_pandoc=False):
+    """Generate a FAR in far_folder. Returns (success, error_message)."""
+    extra = ('-p',) if use_pandoc else ()
+    return _run_generation('make_cv.make_far', far_folder, extra,
+                           what='FAR generation')
 
 
 def run_make_cv(cv_folder):
-    """
-    Call make_cv from within the CV folder.
-    Returns (success, error_message)
-    """
-    import sys
-    try:
-        from make_cv.make_cv import main as make_cv_main
-        original_dir = os.getcwd()
-        original_argv = sys.argv
-        os.chdir(cv_folder)
-        try:
-            sys.argv = ['make_cv']
-            make_cv_main([])
-        finally:
-            os.chdir(original_dir)
-            sys.argv = original_argv
-        return True, None
-    except Exception as e:
-        return False, str(e)
+    """Generate a CV in cv_folder. Returns (success, error_message)."""
+    return _run_generation('make_cv.make_cv', cv_folder,
+                           what='CV generation')
 
 
 @generate_bp.route('/generate', methods=['GET', 'POST'])
