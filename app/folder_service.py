@@ -301,7 +301,8 @@ def ensure_professor_folder(professor_key, first_name, last_name, email,
     try:
         # Professor folders are data, not clones: .git stays behind, and
         # scaffolding updates flow through the app's template, not git.
-        shutil.copytree(template, dest)
+        shutil.copytree(template, dest,
+                        ignore=shutil.ignore_patterns('.git'))
 
         personal = os.path.join(dest, 'make_cv', 'PersonalData')
         write_personal_data(
