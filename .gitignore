@@ -178,7 +178,10 @@ cython_debug/
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
-.cursorindexingignoreconfig.yml
+.cursorindexingignore
+
+# FAR app secrets and local settings - NEVER commit
+config.yml
 *.yml
 tests/MANUAL_CHECKS.md
 DEBUGGING_LOG.md

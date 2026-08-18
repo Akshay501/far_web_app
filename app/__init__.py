@@ -1,5 +1,6 @@
 # app/__init__.py
 import logging
+import os
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -24,7 +25,18 @@ def create_app():
     csrf.exempt(_standalone_bp)
 
     cfg = load_config()
+    # Phase 2: secrets prefer the environment (.env via load_dotenv in
+    # app.config). config.yml stays the fallback so existing setups
+    # keep working until their .env exists.
+    env_pw = os.getenv('FAR_DB_PASSWORD')
+    if env_pw:
+        cfg['db']['pw'] = env_pw
     app.config['DB_CONFIG'] = cfg['db']
+    app.config['SCOPUS_API_KEY'] = os.getenv('FAR_SCOPUS_API_KEY')
+    if app.config['SECRET_KEY'] == 'clarkson-far-2026-secret-key':
+        app.logger.warning(
+            'SECRET_KEY is the committed default - sessions are '
+            'forgeable. Set SECRET_KEY in .env before any deployment.')
 
     # Flat professors root — folders are named by ProfessorKey
     far_cfg = cfg.get('far', {})
