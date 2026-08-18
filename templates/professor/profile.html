@@ -63,9 +63,13 @@
                                 <label class="form-label">Google Scholar ID</label>
                                 {{ form.google_id(class="form-control") }}
                             </div>
-                            <div class="col-12">
+                            <div class="col-md-6">
+                                <label class="form-label">Scopus ID</label>
+                                {{ form.scopus_id(class="form-control") }}
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Department</label>
-                                {{ form.department(class="form-control") }}
+                                {{ form.department(class="form-select") }}
                             </div>
                             <div class="col-12 mt-4">
                                 <button type="submit" class="btn btn-gold px-5 py-2">Update Profile</button>

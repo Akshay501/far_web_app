@@ -33,6 +33,7 @@
                     <div class="row g-3">
                         <div class="col-md-7">{{ personal_form.title.label(class="form-label") }}{{ personal_form.title(class="form-control") }}</div>
                         <div class="col-md-3">{{ personal_form.type.label(class="form-label") }}{{ personal_form.type(class="form-select") }}</div>
+                        <div class="col-md-2">{{ personal_form.amount.label(class="form-label") }}{{ personal_form.amount(class="form-control", step="0.01") }}</div>
                         <div class="col-md-2">{{ personal_form.year.label(class="form-label") }}{{ personal_form.year(class="form-control") }}</div>
                         <div class="col-12">{{ personal_form.submit(class="btn btn-gold") }}</div>
                     </div>

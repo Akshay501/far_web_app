@@ -86,6 +86,9 @@ def dashboard():
 def profile():
     pk = current_user.professor_key
     form = ProfileForm()
+    # Same single source as registration: the config department list.
+    form.department.choices = [
+        (d, d) for d in current_app.config.get('DEPARTMENTS', [])]
 
     if form.validate_on_submit():
         execute_query("""
@@ -94,11 +97,13 @@ def profile():
                 LastName = %s,
                 ORCID = %s,
                 GoogleID = %s,
+                ScopusID = %s,
                 Department = %s
             WHERE ProfessorKey = %s
         """, (form.first_name.data, form.last_name.data,
               form.orcid.data, form.google_id.data,
-              form.department.data, pk), commit=True)
+              form.scopus_id.data, form.department.data, pk),
+              commit=True)
         
         flash('Profile updated successfully', 'success')
         return redirect(url_for('professor.profile'))
@@ -106,14 +111,14 @@ def profile():
     # Safe query that works even if Photo column doesn't exist yet
     try:
         professor = execute_query("""
-            SELECT FirstName, LastName, ORCID, GoogleID, Department, Photo
+            SELECT FirstName, LastName, ORCID, GoogleID, ScopusID, Department, Photo
             FROM PROFESSOR 
             WHERE ProfessorKey = %s
         """, (pk,), fetchone=True)
     except:
         # Fallback if Photo column is missing
         professor = execute_query("""
-            SELECT FirstName, LastName, ORCID, GoogleID, Department
+            SELECT FirstName, LastName, ORCID, GoogleID, ScopusID, Department
             FROM PROFESSOR 
             WHERE ProfessorKey = %s
         """, (pk,), fetchone=True)
@@ -123,6 +128,7 @@ def profile():
         form.last_name.data = professor.get('LastName')
         form.orcid.data = professor.get('ORCID')
         form.google_id.data = professor.get('GoogleID')
+        form.scopus_id.data = professor.get('ScopusID')
         form.department.data = professor.get('Department')
 
     photo = professor.get('Photo') if professor and 'Photo' in professor else None
@@ -185,7 +191,7 @@ def awards():
         execute_query(
             'INSERT INTO PERSONALAWARDS (`Award Key`, ProfessorKey, Amount) '
             'VALUES (%s, %s, %s)',
-            (award_key, pk, None),
+            (award_key, pk, personal_form.amount.data),
             commit=True)
         flash('Personal Award added successfully', 'success')
         return redirect(url_for('professor.awards'))

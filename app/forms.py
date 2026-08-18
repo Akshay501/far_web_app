@@ -56,6 +56,8 @@ class PersonalAwardForm(FlaskForm):
         ('University', 'University')
     ], validators=[DataRequired()])
     year = IntegerField('Year', validators=[DataRequired()])
+    amount = DecimalField('Amount ($)', places=2,
+                          validators=[Optional()])
     submit = SubmitField('Save Personal Award')
 
 class StudentAwardForm(FlaskForm):
@@ -87,8 +89,10 @@ class ProfileForm(FlaskForm):
     first_name = StringField('First Name')
     last_name = StringField('Last Name')
     orcid = StringField('ORCID')
+    scopus_id = StringField('Scopus ID',
+                            validators=[Optional(), Length(max=20)])
     google_id = StringField('Google Scholar ID')
-    department = StringField('Department')
+    department = SelectField('Department', validators=[Optional()])
     submit = SubmitField('Update Profile')
 
 class ProposalForm(FlaskForm):
