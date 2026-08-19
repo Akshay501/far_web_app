@@ -354,3 +354,126 @@ def import_candidates(professor_key, candidates):
         'Sync import for professor %s: %s imported, %s skipped, %s failed',
         professor_key, imported, skipped, failed)
     return {'imported': imported, 'skipped': skipped, 'failed': failed}
+
+
+# ---------------------------------------------------------------------------
+# Scopus source (Phase 0.2 follow-on, 2026-08-18)
+#
+# make_cv's own bib_get_entries_scopus can NEVER run server-side: it has
+# an input("Add this entry? Y/N") prompt (line 182 — fifth instance of
+# the interactive-prompt law) and uses pybliometrics, which prompts to
+# create its own config on first run and keeps the key in its own file.
+# The app talks to the Scopus Search REST API directly: requests, a
+# HARD timeout (stats-hang law), key from app config (.env).
+#
+# The fetch happens BEFORE any database read, so an auth failure or a
+# timeout short-circuits without touching the DB — and the error path
+# is honest: it never dresses a failed fetch as "up to date".
+# ---------------------------------------------------------------------------
+
+SCOPUS_SEARCH_URL = 'https://api.elsevier.com/content/search/scopus'
+SCOPUS_PAGE_SIZE = 25
+SCOPUS_TIMEOUT = 10  # seconds — a hung Scopus call must never hang a worker
+
+
+class ScopusAuthError(Exception):
+    pass
+
+
+def _scopus_fetch_page(scopus_id, api_key, start=0):
+    """One page of the author's works, newest first.
+    Returns (total_results, entries). Raises on failure — the caller
+    turns exceptions into an honest report."""
+    import requests
+    resp = requests.get(
+        SCOPUS_SEARCH_URL,
+        params={'query': f'AU-ID({scopus_id})', 'apiKey': api_key,
+                'start': start, 'count': SCOPUS_PAGE_SIZE,
+                'view': 'STANDARD', 'sort': '-coverDate'},
+        headers={'Accept': 'application/json'},
+        timeout=SCOPUS_TIMEOUT)
+    if resp.status_code in (401, 403):
+        raise ScopusAuthError(
+            'Scopus rejected the API key (HTTP %d). Personal keys '
+            'usually work only from the campus network — try from '
+            'Clarkson wifi or VPN.' % resp.status_code)
+    resp.raise_for_status()
+    sr = resp.json().get('search-results', {})
+    total = int(sr.get('opensearch:totalResults') or 0)
+    entries = [e for e in sr.get('entry', []) if 'error' not in e]
+    return total, entries
+
+
+def _scopus_entry_to_candidate(entry):
+    """Map one Scopus search entry to the review screen's candidate
+    shape (title/year/doi/raw_bibtex/category) — the same contract the
+    ORCID source uses, so the review template and the import route are
+    reused untouched."""
+    title = (entry.get('dc:title') or '').strip()
+    year = (entry.get('prism:coverDate') or '')[:4] or None
+    doi = entry.get('prism:doi') or None
+    venue = (entry.get('prism:publicationName') or '').strip()
+    author = (entry.get('dc:creator') or '').strip()
+    subtype = entry.get('subtypeDescription') or ''
+    category = 'conference' if 'onference' in subtype else 'journal'
+
+    safe_title = title.replace('{', '').replace('}', '')
+    word = re.sub(r'[^A-Za-z]', '', (safe_title.split() or ['work'])[0])
+    entry_id = f"scopus{year or 'nd'}{word[:12] or 'work'}"
+    kind = 'inproceedings' if category == 'conference' else 'article'
+    venue_field = 'booktitle' if kind == 'inproceedings' else 'journal'
+    lines = [f'@{kind}{{{entry_id},',
+             f'  author         = {{{author}}},' if author else None,
+             f'  title          = {{{{{safe_title}}}}},',
+             f'  {venue_field:<14} = {{{venue}}},' if venue else None,
+             f'  year           = {{{year}}},' if year else None,
+             f'  doi            = {{{doi}}},' if doi else None,
+             '}']
+    raw = '\n'.join(l for l in lines if l)
+    return {'title': title, 'year': year, 'doi': doi,
+            'raw_bibtex': raw, 'category': category}
+
+
+def find_new_scopus_publications(professor_key, scopus_id, api_key,
+                                 offset=0):
+    """Scopus twin of find_new_publications: fetch -> dedup -> report."""
+    if not scopus_id:
+        return _report(error='no-id', offset=offset)
+    if not api_key:
+        return _report(error='No Scopus API key is configured. Set '
+                             'FAR_SCOPUS_API_KEY in .env and restart.',
+                       offset=offset)
+    try:
+        total, entries = _scopus_fetch_page(scopus_id, api_key,
+                                            start=offset)
+    except ScopusAuthError as e:
+        return _report(error=str(e), offset=offset)
+    except Exception as e:
+        import requests
+        if isinstance(e, requests.exceptions.Timeout):
+            return _report(error='Scopus did not respond within '
+                                 f'{SCOPUS_TIMEOUT}s; the request was '
+                                 'stopped. Try again later.',
+                           offset=offset)
+        return _report(error=f'Scopus fetch failed: {e}', offset=offset)
+
+    rows = execute_query(
+        'SELECT Title, Year FROM PUBLICATIONS WHERE ProfessorKey = %s',
+        (professor_key,)) or []
+    known_titles = {_title_key(r.get('Title'), r.get('Year')) for r in rows}
+
+    candidates = []
+    for entry in entries:
+        cand = _scopus_entry_to_candidate(entry)
+        if _title_key(cand['title'], cand['year']) in known_titles:
+            continue
+        candidates.append(cand)
+
+    examined = len(entries)
+    truncated = (offset + examined) < total
+    current_app.logger.info(
+        'Scopus sync for professor %s: %s of %s works examined, %s new%s',
+        professor_key, examined, total, len(candidates),
+        ' (truncated)' if truncated else '')
+    return _report(candidates, total=total, examined=examined,
+                   truncated=truncated, offset=offset)

@@ -1928,7 +1928,33 @@ def publication_sync_review():
 
     result = find_new_publications(pk, orcid, offset=offset)
     return render_template('professor/sync_review.html',
-                           result=result, orcid=orcid)
+                           result=result, orcid=orcid,
+                           source='ORCID', source_id=orcid,
+                           sync_endpoint='professor.publication_sync_review')
+
+
+@professor_bp.route('/publications/sync/scopus')
+@login_required
+@professor_required
+def publication_sync_scopus():
+    """Scopus twin of the ORCID review screen. Same template, same
+    candidate shape, same import endpoint - only the source differs."""
+    from app.publication_sync import find_new_scopus_publications
+
+    pk = current_user.professor_key
+    prof = execute_query(
+        'SELECT ScopusID FROM PROFESSOR WHERE ProfessorKey = %s',
+        (pk,), fetchone=True) or {}
+    scopus_id = (prof.get('ScopusID') or '').strip()
+    offset = max(0, request.args.get('offset', 0, type=int) or 0)
+
+    result = find_new_scopus_publications(
+        pk, scopus_id, current_app.config.get('SCOPUS_API_KEY'),
+        offset=offset)
+    return render_template('professor/sync_review.html',
+                           result=result, orcid=scopus_id,
+                           source='Scopus', source_id=scopus_id,
+                           sync_endpoint='professor.publication_sync_scopus')
 
 
 @professor_bp.route('/publications/sync/import', methods=['POST'])

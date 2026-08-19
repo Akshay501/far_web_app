@@ -14,7 +14,7 @@
         <div class="card-body p-4">
             <h5>No new publications can be checked yet</h5>
             <p class="mb-3 text-muted">
-                Add your ORCID iD to your profile first — the sync uses it
+                Add your {{ source }} ID to your profile first — the sync uses it
                 to look up your publication record.
             </p>
             <a href="{{ url_for('professor.profile') }}"
@@ -26,7 +26,7 @@
     <div class="card shadow-sm border-danger">
         <div class="card-body p-4 text-center">
             <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
-            <h5 class="mt-2">Could not check ORCID</h5>
+            <h5 class="mt-2">Could not check {{ source }}</h5>
             <p class="text-muted mb-0">{{ result.error }}</p>
         </div>
     </div>
@@ -37,7 +37,7 @@
         publication{{ 's' if result.candidates|length != 1 }} not yet in
         your record, in the
         <strong>{{ result.examined }}</strong> work{{ 's' if result.examined != 1 }}
-        checked on ORCID ({{ orcid }}). Review each entry, adjust its
+        checked on {{ source }} ({{ source_id }}). Review each entry, adjust its
         category if needed, and import the ones you want.
     </div>
     {% if result.truncated %}
@@ -48,8 +48,7 @@
             new publications beyond these.
         </span>
         <a class="btn btn-sm btn-outline-dark ms-auto"
-           href="{{ url_for('professor.publication_sync_review',
-                            offset=result.next_offset) }}">
+           href="{{ url_for(sync_endpoint, offset=result.next_offset) }}">
             Check the next works
         </a>
     </div>
@@ -124,11 +123,10 @@
             <h5 class="mt-2">No new publications in works
                 {{ result.offset + 1 }}–{{ result.next_offset }}</h5>
             <p class="text-muted mb-3">
-                This ORCID record has {{ result.total_works }} works.
+                This {{ source }} record has {{ result.total_works }} works.
             </p>
             <a class="btn btn-gold"
-               href="{{ url_for('professor.publication_sync_review',
-                                offset=result.next_offset) }}">
+               href="{{ url_for(sync_endpoint, offset=result.next_offset) }}">
                 Check works {{ result.next_offset + 1 }} onward
             </a>
         </div>
@@ -143,12 +141,12 @@
                 {{ result.offset + 1 }}–{{ result.next_offset }}</h5>
             <p class="text-muted mb-0">
                 That covers the rest of the {{ result.total_works }} works on
-                ORCID ({{ orcid }}).
+                {{ source }} ({{ source_id }}).
             </p>
             {% else %}
             <h5 class="mt-2">Your publication record is up to date</h5>
             <p class="text-muted mb-0">
-                All {{ result.examined }} works on ORCID ({{ orcid }}) were
+                All {{ result.examined }} works on {{ source }} ({{ source_id }}) were
                 checked — nothing new was found.
             </p>
             {% endif %}
