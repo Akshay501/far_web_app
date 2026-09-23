@@ -1,24 +1,25 @@
 # Web framework and extensions
-Flask==3.0.3
-Flask-Login==0.6.3
-Flask-WTF==1.2.1
-WTForms==3.2.1
-Werkzeug==3.0.6
+Flask
+Flask-Login
+Flask-WTF
+WTForms
+Werkzeug
 
 # Database
-pymysql==1.1.1
+pymysql
+cryptography
 
 # Configuration
-python-dotenv==1.0.1
-PyYAML==6.0.2
+python-dotenv
+PyYAML
 
 # Data export (Excel) and publication parsing
-openpyxl==3.1.5
-bibtexparser==1.4.1
+openpyxl
+bibtexparser
 
 # Report generation engine (LaTeX pipeline)
-make_cv==1.0.5
+make_cv
 
 # Testing
-pytest==7.4.4
-pylatexenc==2.10
+pytest
+pylatexenc
