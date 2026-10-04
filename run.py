@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # run.py
 import os
 from app import create_app
@@ -14,7 +16,8 @@ if __name__ == '__main__':
     print(f"Template Folder  : {app.template_folder}")
     print(f"Static Folder    : {app.static_folder}")
     print("=" * 60)
-    print("Access the app at: http://localhost:5000/login")
+    print("Access the app at: http://localhost:8000/login")
+    print("or for the sandalone version at: http://localhost:8000/standalone")
     print("=" * 60)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=8000)
