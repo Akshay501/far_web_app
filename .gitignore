@@ -182,8 +182,15 @@ cython_debug/
 
 # FAR app secrets and local settings - NEVER commit
 config.yml
-*.yml
 tests/MANUAL_CHECKS.md
 DEBUGGING_LOG.md
 FEATURES_LOG.md
 ROADMAP.md
+Roadmap*.md
+
+# macOS Finder metadata
+.DS_Store
+
+# User-uploaded files (profile photos)
+static/uploads/
+app/static/uploads/

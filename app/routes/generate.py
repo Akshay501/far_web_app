@@ -524,7 +524,15 @@ def _run_generation(module, folder, extra_args=(), what='generation'):
         # timeout can kill the WHOLE tree. The likeliest hanger is a
         # grandchild (xelatex at its ? prompt); killing only the middle
         # python would orphan it, still holding far.pdf.
-        proc = subprocess.Popen(cmd, cwd=folder, stdout=subprocess.PIPE,
+        # stdin=DEVNULL: no generator may ever wait for keyboard input
+        # (design principle P4). make_cv still contains input() calls — its
+        # config [Y/N] prompt among them. The in-process config repair keeps
+        # them unreachable, but swallows its own exceptions; with an empty
+        # stdin any stray prompt fails at once with EOFError instead of
+        # blocking — under the dev server, on the developer's terminal —
+        # until the deadline.
+        proc = subprocess.Popen(cmd, cwd=folder, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
                                 bufsize=1, start_new_session=True)
     except Exception as e:

@@ -193,3 +193,51 @@ def test_timeout_kills_the_whole_process_group(app, monkeypatch, tmp_path):
     else:
         os.kill(gpid, 9)                     # clean up, then fail
         raise AssertionError('grandchild survived the timeout')
+
+
+def _with_parent_stdin_pipe(fn):
+    """Run fn with the PARENT's fd 0 replaced by an open pipe, so the test
+    never depends on where pytest's own stdin points (a terminal, a pipe,
+    or /dev/null in CI). Without this, the red case could pass by luck."""
+    import os
+    r, w = os.pipe()
+    saved = os.dup(0)
+    os.dup2(r, 0)
+    try:
+        return fn()
+    finally:
+        os.dup2(saved, 0)
+        os.close(saved); os.close(r); os.close(w)
+
+
+def test_child_stdin_is_the_null_device(app, monkeypatch, tmp_path):
+    """P4, made structural: whatever the parent's stdin is (a terminal
+    under the dev server), the generator's stdin must be the null device.
+    make_cv still contains input() calls (e.g. its config [Y/N] prompt);
+    the in-process config repair is meant to keep them unreachable, but
+    that repair swallows its own exceptions — so this is the second wall."""
+    import app.routes.generate as gen
+    script = ('import os,stat,sys;a=os.fstat(0);b=os.stat(os.devnull);'
+              'sys.exit(0 if stat.S_ISCHR(a.st_mode) and a.st_rdev==b.st_rdev else 3)')
+    monkeypatch.setattr(gen, '_generation_command',
+                        lambda module, extra_args=(): _fake(script))
+    with app.app_context():
+        ok, err = _with_parent_stdin_pipe(lambda: gen.run_make_far(str(tmp_path)))
+    assert ok, 'the generator inherited the parent stdin instead of /dev/null'
+
+
+def test_stray_input_fails_fast_not_at_the_deadline(app, monkeypatch, tmp_path):
+    """Behavioural twin: a generator that calls input() must fail at once
+    with EOFError — not sit blocked until GENERATION_TIMEOUT."""
+    import app.routes.generate as gen
+    monkeypatch.setattr(gen, '_generation_command',
+                        lambda module, extra_args=(): _fake(
+                            'input("Would you like to update make_cv.cfg [Y/N]?")'))
+    app.config['GENERATION_TIMEOUT'] = 8
+    start = time.monotonic()
+    with app.app_context():
+        ok, err = _with_parent_stdin_pipe(lambda: gen.run_make_far(str(tmp_path)))
+    elapsed = time.monotonic() - start
+    assert ok is False
+    assert elapsed < 4, f'blocked for {elapsed:.1f}s waiting on stdin'
+    assert 'EOFError' in (err or '')
