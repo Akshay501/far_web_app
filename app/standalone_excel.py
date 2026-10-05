@@ -26,7 +26,7 @@ def _get_path(folder, subfolder, filename):
     return os.path.join(folder, subfolder, filename)
 
 
-def _read_excel(path):
+def _read_excel(path, sheet_name=None):
     """
     Read an Excel file and return a list of dicts.
     Row 1 = headers, Row 2+ = data.
@@ -36,7 +36,7 @@ def _read_excel(path):
         return []
     try:
         wb = openpyxl.load_workbook(path, data_only=True)
-        ws = wb.active
+        ws = wb[sheet_name] if sheet_name else wb.active
         headers = [cell.value for cell in ws[1]]
         rows = []
         for row in ws.iter_rows(min_row=2, values_only=True):
@@ -119,7 +119,7 @@ GRANTS_HEADERS = [
 
 
 def read_grants(folder):
-    return _read_excel(_get_path(folder, *GRANTS_FILE))
+    return _read_excel(_get_path(folder, *GRANTS_FILE),'Data')
 
 
 def append_grant(folder, form):
@@ -177,7 +177,7 @@ PROPOSALS_HEADERS = [
 
 
 def read_proposals(folder):
-    return _read_excel(_get_path(folder, *PROPOSALS_FILE))
+    return _read_excel(_get_path(folder, *PROPOSALS_FILE),'Data')
 
 
 def append_proposal(folder, form):
@@ -234,7 +234,7 @@ SERVICE_HEADERS = [
 
 
 def read_service(folder):
-    return _read_excel(_get_path(folder, *SERVICE_FILE))
+    return _read_excel(_get_path(folder, *SERVICE_FILE),'Data')
 
 
 def append_service(folder, form):
@@ -284,7 +284,7 @@ PERSONAL_AWARDS_HEADERS = ['Title', 'Type', 'Year']
 
 
 def read_personal_awards(folder):
-    return _read_excel(_get_path(folder, *PERSONAL_AWARDS_FILE))
+    return _read_excel(_get_path(folder, *PERSONAL_AWARDS_FILE),'Data')
 
 
 def append_personal_award(folder, form):
@@ -326,7 +326,7 @@ STUDENT_AWARDS_HEADERS = ['Student', 'Title', 'Amount', 'Category', 'Type', 'Yea
 
 
 def read_student_awards(folder):
-    return _read_excel(_get_path(folder, *STUDENT_AWARDS_FILE))
+    return _read_excel(_get_path(folder, *STUDENT_AWARDS_FILE),'Data')
 
 
 def append_student_award(folder, form):
@@ -374,7 +374,7 @@ CURRENT_STUDENTS_HEADERS = ['Student Name', 'Current Program', 'Start Date']
 
 
 def read_current_students(folder):
-    return _read_excel(_get_path(folder, *CURRENT_STUDENTS_FILE))
+    return _read_excel(_get_path(folder, *CURRENT_STUDENTS_FILE),'Data')
 
 
 def append_current_student(folder, form):
@@ -416,7 +416,7 @@ THESIS_HEADERS = ['Student', 'Start Date', 'Year', 'Degree', 'Advisor', 'Title',
 
 
 def read_thesis(folder):
-    return _read_excel(_get_path(folder, *THESIS_FILE))
+    return _read_excel(_get_path(folder, *THESIS_FILE),'Data')
 
 
 def append_thesis(folder, form):
@@ -465,7 +465,7 @@ TEACHING_FILE = ('Teaching', 'teaching evaluation data.xlsx')
 
 
 def read_teaching(folder):
-    return _read_excel(_get_path(folder, *TEACHING_FILE))
+    return _read_excel(_get_path(folder, *TEACHING_FILE), 'Data')
 
 
 # ─── File inventory ───────────────────────────────────────────────────────────

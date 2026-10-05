@@ -264,11 +264,10 @@ def write_advisee_counts(path, rows):
     wb = Workbook()
     ws = wb.active
     ws.title = "Sheet1"
-    ws.append(['Advisor Name', 'Count Distinct Name', 'YEAR'])
+    ws.append(['Count', 'Year'])
     for r in rows:
         ws.append([
-            r.get('Advisor Name', ''),
-            r.get('Advisee Count', 0) or 0,
+            r.get('Count', 0) or 0,
             _safe_year(r.get('Year')),
         ])
     wb.save(path)
