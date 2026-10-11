@@ -35,6 +35,15 @@
                         {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                     </div>
 
+                    <div class="mb-3">
+                        {{ form.netid.label(class="form-label fw-medium",
+                                            text="Clarkson NetID" ~ (" *" if config.CAS_SERVER_URL else "")) }}
+                        {{ form.netid(class="form-control", placeholder="e.g. jsmith",
+                                      autocomplete="off", **{"aria-describedby": "netid-help"}) }}
+                        <div id="netid-help" class="form-text">The username they sign in to Clarkson with — not their email.</div>
+                        {% for e in form.netid.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-medium">Department *</label>
                         {{ form.department(class="form-select") }}

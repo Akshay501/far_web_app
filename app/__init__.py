@@ -33,6 +33,9 @@ def create_app():
         cfg['db']['pw'] = env_pw
     app.config['DB_CONFIG'] = cfg['db']
     app.config['SCOPUS_API_KEY'] = os.getenv('FAR_SCOPUS_API_KEY')
+    # Clarkson single sign-on. Unset = CAS off: password login only,
+    # which keeps local development and the test suite working.
+    app.config['CAS_SERVER_URL'] = os.getenv('CAS_SERVER_URL') or None
     if app.config['SECRET_KEY'] == 'clarkson-far-2026-secret-key':
         app.logger.warning(
             'SECRET_KEY is the committed default - sessions are '

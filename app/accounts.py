@@ -27,15 +27,21 @@ class DuplicateEmailError(Exception):
     """An account with this email already exists."""
 
 
+class DuplicateNetIDError(Exception):
+    """An account with this Clarkson NetID already exists."""
+
+
 def create_professor_account(*, first_name, last_name, email, password,
                              department, middle_name=None, google_id=None,
-                             orcid=None, scopus_id=None):
+                             orcid=None, scopus_id=None, netid=None):
     """
     Create a professor account and attempt its on-disk folder.
 
     Returns (professor_key, folder_error): folder_error is None when the
     folder was created, else the error message (the account still exists).
-    Raises DuplicateEmailError if the email is already registered.
+    Raises DuplicateEmailError if the email is already registered, and
+    DuplicateNetIDError if the NetID is. Both checks run before anything
+    is written, so a refusal creates nothing.
     """
     email = email.strip().lower()
     first = first_name.strip()
@@ -44,12 +50,17 @@ def create_professor_account(*, first_name, last_name, email, password,
     google_id = (google_id or '').strip() or None
     orcid = (orcid or '').strip() or None
     scopus_id = (scopus_id or '').strip() or None
+    netid = (netid or '').strip().lower() or None
 
     existing = execute_query(
         'SELECT UserID FROM users WHERE Email = %s',
         (email,), fetchone=True)
     if existing:
         raise DuplicateEmailError(email)
+    if netid and execute_query(
+            'SELECT UserID FROM users WHERE NetID = %s',
+            (netid,), fetchone=True):
+        raise DuplicateNetIDError(netid)
 
     professor_key = execute_query(
         'INSERT INTO PROFESSOR '
@@ -58,10 +69,10 @@ def create_professor_account(*, first_name, last_name, email, password,
         (first, middle, last, department, google_id, orcid, scopus_id),
         commit=True, lastrowid=True)
     execute_query(
-        'INSERT INTO users (Name, Email, Password, Role, ProfessorKey) '
-        'VALUES (%s, %s, %s, %s, %s)',
+        'INSERT INTO users (Name, Email, Password, Role, ProfessorKey, NetID) '
+        'VALUES (%s, %s, %s, %s, %s, %s)',
         (f'{first} {last}', email, generate_password_hash(password),
-         'professor', professor_key),
+         'professor', professor_key, netid),
         commit=True)
 
     folder_error = None

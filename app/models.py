@@ -7,3 +7,5 @@ class User(UserMixin):
             self.professor_key = data.get('ProfessorKey')
             self.role = data['Role']
             self.email = data['Email']
+            # Clarkson NetID for CAS login; None until one is recorded.
+            self.netid = data.get('NetID')

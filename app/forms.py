@@ -1,3 +1,5 @@
+import re
+
 from flask import current_app
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DateField, SelectField, DecimalField, TextAreaField, SubmitField, PasswordField
@@ -38,13 +40,37 @@ class RegistrationForm(FlaskForm):
                 f'Please use your @{domain} email address.')
 
 
+NETID_RE = re.compile(r'^[a-z0-9._-]{1,64}$')
+
+
 class AdminCreateProfessorForm(RegistrationForm):
     """Admin add-professor: same fields and rules as self-registration,
     minus the password fields — a temporary password is generated
-    server-side and shown to the admin once."""
+    server-side and shown to the admin once.
+
+    NetID is the Clarkson username CAS reports at login. Optional while
+    CAS is off; required once CAS_SERVER_URL is set, because an account
+    without one could never log in."""
     password = None
     confirm_password = None
+    netid = StringField('Clarkson NetID')
     submit = SubmitField('Create Professor')
+
+    def validate_netid(self, field):
+        netid = (field.data or '').strip().lower()
+        if not netid:
+            if current_app.config.get('CAS_SERVER_URL'):
+                raise ValidationError(
+                    'A NetID is required: it is how this professor signs '
+                    'in with their Clarkson account.')
+            return
+        if '@' in netid:
+            raise ValidationError(
+                'Enter just the username, without @clarkson.edu.')
+        if not NETID_RE.match(netid):
+            raise ValidationError(
+                'A NetID may contain only letters, digits, dots, dashes '
+                'and underscores (64 characters at most).')
 
 
 class PersonalAwardForm(FlaskForm):
