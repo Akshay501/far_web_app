@@ -76,10 +76,12 @@
                 </a>
                 {% endif %} 
             
+                {% if not config.CAS_SERVER_URL or current_user.role == 'admin' %}
                 <a href="{{ url_for('auth.change_password') }}"
                    class="btn btn-outline-light btn-sm me-2">
                     Change Password
                 </a>
+                {% endif %}
 
                 <a href="{{ url_for('auth.logout') }}" 
                    class="btn btn-outline-light btn-sm">

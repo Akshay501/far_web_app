@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header text-center bg-clarkson-green text-white">
+                <h1 class="h4 mb-0">{{ title }}</h1>
+            </div>
+            <div class="card-body p-4">
+                <p role="alert" class="mb-4">{{ message }}</p>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-gold w-100 py-2 fw-bold">
+                    Try signing in again
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

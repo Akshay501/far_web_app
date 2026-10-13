@@ -30,6 +30,9 @@ def app():
     app.config['TESTING'] = True
     # Turn off CSRF so tests can POST forms without a real token.
     app.config['WTF_CSRF_ENABLED'] = False
+    # CAS off unless a test switches it on: a CAS_SERVER_URL in the
+    # developer's .env must never change how the suite logs in.
+    app.config['CAS_SERVER_URL'] = None
 
     # ---- Point every query at the test database -------------------------
     # execute_query reads current_app.config['DB_CONFIG'] on each call,

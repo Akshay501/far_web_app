@@ -7,6 +7,9 @@
             <div class="card-header text-center bg-clarkson-green text-white">
                 <h4 class="mb-0">Clarkson University</h4>
                 <p class="mb-0 mt-1">Faculty Activity Report (FAR)</p>
+                {% if emergency %}
+                <p class="mb-0 mt-2 small">Administrator emergency sign-in</p>
+                {% endif %}
             </div>
             <div class="card-body p-4">
                 <form method="POST">
@@ -26,10 +29,17 @@
                         Sign In
                     </button>
 
+                    {% if emergency %}
+                    <p class="text-center mt-3 mb-0 small">
+                        For use when Clarkson sign-in is unavailable.
+                        <a href="{{ url_for('auth.login') }}">Sign in with Clarkson</a>
+                    </p>
+                    {% elif not config.CAS_SERVER_URL %}
                     <p class="text-center mt-3 mb-0 small">
                         Need an account?
                         <a href="{{ url_for('auth.register') }}">Register</a>
                     </p>
+                    {% endif %}
                 </form>
             </div>
             
