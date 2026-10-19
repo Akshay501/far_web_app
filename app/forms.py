@@ -5,6 +5,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, DateField, SelectField, DecimalField, TextAreaField, SubmitField, PasswordField
 from wtforms.validators import DataRequired, Optional, Length, EqualTo, ValidationError
 
+from app.cas import CLARKSON_EMPLOYEE_ID
+
 
 class RegistrationForm(FlaskForm):
     """Professor self-signup. Department choices are set by the route from
@@ -54,7 +56,20 @@ class AdminCreateProfessorForm(RegistrationForm):
     password = None
     confirm_password = None
     netid = StringField('Clarkson NetID')
+    # Optional: once CAS is on it is filled in automatically at the
+    # professor's first sign-in (from the carLicense attribute).
+    employee_id = StringField('Employee ID')
     submit = SubmitField('Create Professor')
+
+    def validate_employee_id(self, field):
+        value = (field.data or '').strip()
+        # The same rule CAS login uses (EMPLOYEE_ID_PATTERN).
+        pattern = current_app.config.get('EMPLOYEE_ID_PATTERN',
+                                         CLARKSON_EMPLOYEE_ID)
+        if value and not pattern.match(value):
+            raise ValidationError(current_app.config.get(
+                'EMPLOYEE_ID_HINT',
+                'An Employee ID is exactly 7 digits, e.g. 1234567.'))
 
     def validate_netid(self, field):
         netid = (field.data or '').strip().lower()

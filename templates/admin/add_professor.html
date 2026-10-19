@@ -44,6 +44,14 @@
                         {% for e in form.netid.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
                     </div>
 
+                    <div class="mb-3">
+                        {{ form.employee_id.label(class="form-label fw-medium") }}
+                        {{ form.employee_id(class="form-control", autocomplete="off",
+                                            inputmode="text", **{"aria-describedby": "employee-id-help"}) }}
+                        <div id="employee-id-help" class="form-text">Optional. {{ config.EMPLOYEE_ID_HINT }} {% if config.CAS_SERVER_URL %}Filled in automatically from Clarkson the first time they sign in.{% endif %}</div>
+                        {% for e in form.employee_id.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label fw-medium">Department *</label>
                         {{ form.department(class="form-select") }}

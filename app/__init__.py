@@ -1,6 +1,7 @@
 # app/__init__.py
 import logging
 import os
+import re
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -36,6 +37,21 @@ def create_app():
     # Clarkson single sign-on. Unset = CAS off: password login only,
     # which keeps local development and the test suite working.
     app.config['CAS_SERVER_URL'] = os.getenv('CAS_SERVER_URL') or None
+    # The CAS attribute that carries the employee ID. Clarkson re-uses
+    # carLicense for it; overridable in case IT ever moves it.
+    app.config['CAS_EMPLOYEE_ID_ATTRIBUTE'] = (
+        os.getenv('CAS_EMPLOYEE_ID_ATTRIBUTE') or 'carLicense')
+    # What a valid employee ID looks like - one rule for the admin form
+    # and for CAS. Default: Clarkson's 7 digits. A bad pattern in the
+    # environment fails here, at startup, not at someone's login.
+    from .cas import CLARKSON_EMPLOYEE_ID
+    custom_pattern = os.getenv('EMPLOYEE_ID_PATTERN')
+    app.config['EMPLOYEE_ID_PATTERN'] = (
+        re.compile(custom_pattern) if custom_pattern
+        else CLARKSON_EMPLOYEE_ID)
+    app.config['EMPLOYEE_ID_HINT'] = os.getenv('EMPLOYEE_ID_HINT') or (
+        'That Employee ID is not in the expected format.' if custom_pattern
+        else 'An Employee ID is exactly 7 digits, e.g. 1234567.')
     if app.config['SECRET_KEY'] == 'clarkson-far-2026-secret-key':
         app.logger.warning(
             'SECRET_KEY is the committed default - sessions are '

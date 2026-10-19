@@ -7,7 +7,8 @@ from app.utils import execute_query
 from werkzeug.security import generate_password_hash
 from app.forms import AdminCreateProfessorForm
 from app.accounts import (create_professor_account, DuplicateEmailError,
-                          DuplicateNetIDError, ensure_folder_for_existing)
+                          DuplicateNetIDError, DuplicateEmployeeIDError,
+                          ensure_folder_for_existing)
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
@@ -105,12 +106,17 @@ def new_professor():
                 google_id=form.google_id.data,
                 orcid=form.orcid.data,
                 scopus_id=form.scopus_id.data,
-                netid=form.netid.data)
+                netid=form.netid.data,
+                employee_id=form.employee_id.data)
         except DuplicateEmailError:
             flash('An account with that email already exists.', 'danger')
             return render_template('admin/add_professor.html', form=form)
         except DuplicateNetIDError:
             flash('An account with that NetID already exists.', 'danger')
+            return render_template('admin/add_professor.html', form=form)
+        except DuplicateEmployeeIDError:
+            flash('A professor with that Employee ID already exists.',
+                  'danger')
             return render_template('admin/add_professor.html', form=form)
 
         flash(f'Professor account created. Temporary password: '

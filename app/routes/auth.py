@@ -8,9 +8,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.utils import execute_query
 from app.models import User
 from app.forms import RegistrationForm, ChangePasswordForm
-from app.accounts import create_professor_account, DuplicateEmailError
+from app.accounts import (create_professor_account, DuplicateEmailError,
+                          sync_employee_id)
 from app.cas import (login_url, logout_url, validate_ticket,
-                     CASError, CASUnavailable)
+                     employee_id_from, CASError, CASUnavailable)
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -91,7 +92,7 @@ def cas_callback():
             'signing in again.')
 
     try:
-        netid, _attributes = validate_ticket(cas, ticket, _callback_url())
+        netid, attributes = validate_ticket(cas, ticket, _callback_url())
     except CASUnavailable as exc:
         current_app.logger.warning('CAS unavailable during login: %s', exc)
         return _cas_error(
@@ -122,8 +123,30 @@ def cas_callback():
     session.clear()             # no session fixation: start fresh
     user = User(user_data)
     login_user(user)
+    _sync_employee_id(user, attributes)
     flash('Login successful', 'success')
     return _dashboard_for(user)
+
+
+def _sync_employee_id(user, attributes):
+    """Fill the professor's employee ID from CAS (carLicense) if FAR
+    has none. Admin accounts have no PROFESSOR row and are skipped.
+    Whatever happens here, the person is already signed in: the ID is
+    profile data and must never cost anyone a login."""
+    if not user.professor_key:
+        return
+    attr = current_app.config.get('CAS_EMPLOYEE_ID_ATTRIBUTE', 'carLicense')
+    employee_id = employee_id_from(
+        attributes, attr, current_app.config['EMPLOYEE_ID_PATTERN'])
+    if not employee_id:
+        return
+    try:
+        sync_employee_id(user.professor_key, employee_id)
+    except Exception as exc:
+        # Exception TYPE only: a database message could echo the ID.
+        current_app.logger.warning(
+            'Employee ID sync skipped for professor %s (%s)',
+            user.professor_key, type(exc).__name__)
 
 
 @auth_bp.route('/admin-login', methods=['GET', 'POST'])

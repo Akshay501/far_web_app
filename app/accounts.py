@@ -31,17 +31,23 @@ class DuplicateNetIDError(Exception):
     """An account with this Clarkson NetID already exists."""
 
 
+class DuplicateEmployeeIDError(Exception):
+    """A professor with this employee ID already exists."""
+
+
 def create_professor_account(*, first_name, last_name, email, password,
                              department, middle_name=None, google_id=None,
-                             orcid=None, scopus_id=None, netid=None):
+                             orcid=None, scopus_id=None, netid=None,
+                             employee_id=None):
     """
     Create a professor account and attempt its on-disk folder.
 
     Returns (professor_key, folder_error): folder_error is None when the
     folder was created, else the error message (the account still exists).
     Raises DuplicateEmailError if the email is already registered, and
-    DuplicateNetIDError if the NetID is. Both checks run before anything
-    is written, so a refusal creates nothing.
+    DuplicateNetIDError / DuplicateEmployeeIDError if the NetID or
+    employee ID is. Every check runs before anything is written, so a
+    refusal creates nothing.
     """
     email = email.strip().lower()
     first = first_name.strip()
@@ -51,6 +57,8 @@ def create_professor_account(*, first_name, last_name, email, password,
     orcid = (orcid or '').strip() or None
     scopus_id = (scopus_id or '').strip() or None
     netid = (netid or '').strip().lower() or None
+    # Text, not a number: leading zeros are part of the ID.
+    employee_id = (employee_id or '').strip() or None
 
     existing = execute_query(
         'SELECT UserID FROM users WHERE Email = %s',
@@ -61,12 +69,18 @@ def create_professor_account(*, first_name, last_name, email, password,
             'SELECT UserID FROM users WHERE NetID = %s',
             (netid,), fetchone=True):
         raise DuplicateNetIDError(netid)
+    if employee_id and execute_query(
+            'SELECT ProfessorKey FROM PROFESSOR WHERE EmployeeID = %s',
+            (employee_id,), fetchone=True):
+        raise DuplicateEmployeeIDError()
 
     professor_key = execute_query(
         'INSERT INTO PROFESSOR '
-        '(FirstName, MiddleName, LastName, Department, GoogleID, ORCID, ScopusID) '
-        'VALUES (%s, %s, %s, %s, %s, %s, %s)',
-        (first, middle, last, department, google_id, orcid, scopus_id),
+        '(FirstName, MiddleName, LastName, Department, GoogleID, ORCID, '
+        ' ScopusID, EmployeeID) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+        (first, middle, last, department, google_id, orcid, scopus_id,
+         employee_id),
         commit=True, lastrowid=True)
     execute_query(
         'INSERT INTO users (Name, Email, Password, Role, ProfessorKey, NetID) '
@@ -87,6 +101,63 @@ def create_professor_account(*, first_name, last_name, email, password,
         folder_error = str(exc)
 
     return professor_key, folder_error
+
+
+def sync_employee_id(professor_key, cas_employee_id):
+    """
+    Bring PROFESSOR.EmployeeID in line with the ID CAS reported at login.
+
+    The rule is FILL, NEVER OVERWRITE:
+      'filled'    FAR had no ID -> CAS's value stored
+      'match'     FAR already holds the same ID -> nothing to do
+      'mismatch'  FAR holds a DIFFERENT ID -> left alone, warning logged
+                  (an admin decides which is right; a login must not
+                  silently rewrite a record)
+      'conflict'  another professor already holds this ID -> not
+                  written, warning logged
+      'missing'   no PROFESSOR row for this key
+
+    The ID itself is NEVER written to the log - only the ProfessorKey -
+    because employee IDs are personal identifiers and logs travel.
+    May raise on a database error; the caller treats any exception as
+    "skip the sync", never as "refuse the login".
+    """
+    row = execute_query(
+        'SELECT EmployeeID FROM PROFESSOR WHERE ProfessorKey = %s',
+        (professor_key,), fetchone=True)
+    if not row:
+        return 'missing'
+
+    current = (row.get('EmployeeID') or '').strip()
+    if current == cas_employee_id:
+        return 'match'
+    if current:
+        current_app.logger.warning(
+            'Employee ID for professor %s does not match the one Clarkson '
+            'CAS reports; FAR record left unchanged - an admin should '
+            'check it.', professor_key)
+        return 'mismatch'
+
+    if execute_query(
+            'SELECT ProfessorKey FROM PROFESSOR '
+            'WHERE EmployeeID = %s AND ProfessorKey <> %s',
+            (cas_employee_id, professor_key), fetchone=True):
+        current_app.logger.warning(
+            'Employee ID that Clarkson CAS reports for professor %s is '
+            'already recorded on another professor; not stored - an '
+            'admin should check both records.', professor_key)
+        return 'conflict'
+
+    # The WHERE guard makes the fill itself safe: if anything wrote an
+    # ID between the read above and this line, nothing is overwritten.
+    execute_query(
+        'UPDATE PROFESSOR SET EmployeeID = %s WHERE ProfessorKey = %s '
+        "AND (EmployeeID IS NULL OR EmployeeID = '')",
+        (cas_employee_id, professor_key), commit=True)
+    current_app.logger.info(
+        'Employee ID filled in from Clarkson CAS for professor %s',
+        professor_key)
+    return 'filled'
 
 
 def ensure_folder_for_existing(professor_key):

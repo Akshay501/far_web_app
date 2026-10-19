@@ -18,12 +18,20 @@ library: about forty lines, every failure mode visible, and faked in
 tests by monkeypatching `requests.get` (the same seam as the Scopus
 sync).
 """
+import re
 from urllib.parse import urlencode
 import xml.etree.ElementTree as ET
 
 import requests
 
 CAS_NS = {'cas': 'http://www.yale.edu/tp/cas'}
+
+# Clarkson's EMPLID is always exactly 7 digits (Josh Fiske, 2026-10-15).
+# Strict on purpose: carLicense is a re-used LDAP field, and a licence
+# plate such as ABC1234 must never be stored as someone's employee ID.
+# [0-9], not \d, which would also accept non-ASCII digits. The default
+# for EMPLOYEE_ID_PATTERN; other institutions set their own.
+CLARKSON_EMPLOYEE_ID = re.compile(r'^[0-9]{7}$')
 
 # Hard timeout on the validation call (stats-hang law): a slow or dead
 # CAS server must cost one failed login, never a hung worker.
@@ -98,3 +106,21 @@ def validate_ticket(cas_server, ticket, service):
                 attributes[name] = value
 
     return netid, attributes
+
+
+def employee_id_from(attributes, name, pattern=CLARKSON_EMPLOYEE_ID):
+    """The employee ID CAS released under attribute `name`, or None.
+
+    Clarkson releases it as carLicense (confirmed by Prof. Brian). A
+    repeated attribute arrives as a list: the same value repeated is
+    fine, two DIFFERENT values are ambiguous and give None - the app
+    never guesses which one is right. Blank, or anything that does not
+    match `pattern`, gives None."""
+    raw = (attributes or {}).get(name)
+    values = raw if isinstance(raw, list) else [raw]
+    values = {str(v).strip() for v in values if v is not None}
+    values.discard('')
+    if len(values) != 1:
+        return None
+    value = values.pop()
+    return value if pattern.match(value) else None
